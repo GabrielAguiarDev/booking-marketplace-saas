@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+  <body
+    style="
+      margin: 0;
+      padding: 32px 20px;
+      background: #f7f7f8;
+      font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, sans-serif;
+    "
+  >
+    <table
+      role="presentation"
+      style="max-width: 420px; margin: 0 auto; background: #fff; border-radius: 18px; padding: 32px"
+    >
+      <tr>
+        <td>
+          <p style="margin: 0 0 6px; font-size: 11px; letter-spacing: 0.12em; color: #71757a">
+            VEZ
+          </p>
+          <h1 style="margin: 0 0 14px; font-size: 22px; color: #14171a">Redefinir sua senha</h1>
+          <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.5; color: #4a4e52">
+            Digite este código no app para escolher uma senha nova:
+          </p>
+          <p
+            style="
+              margin: 0 0 24px;
+              font-family: &quot;IBM Plex Mono&quot;, Menlo, monospace;
+              font-size: 34px;
+              font-weight: 600;
+              letter-spacing: 0.18em;
+              color: #14171a;
+            "
+          >
+            {{ .Token }}
+          </p>
+          <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #71757a">
+            O código vale por 1 hora. Se não foi você que pediu, ignore este e-mail — sua senha
+            continua a mesma.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

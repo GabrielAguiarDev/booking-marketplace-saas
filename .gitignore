@@ -1,0 +1,30 @@
+# dependências
+node_modules/
+
+# nativo gerado pelo prebuild do Expo (CNG) — não versionar
+apps/*/ios/
+apps/*/android/
+
+# builds
+.next/
+out/
+dist/
+.expo/
+*.tsbuildinfo
+
+# caches
+.turbo/
+.eslintcache
+
+# ambiente
+.env
+.env.*
+!.env.example
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# sistema
+.DS_Store
+*.log

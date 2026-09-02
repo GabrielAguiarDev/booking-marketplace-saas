@@ -1,0 +1,17 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 11 lê apenas auth/registry de .npmrc; toda configuração fica aqui.
+
+# pnpm bloqueia scripts de instalação por padrão. Sem esta lista o install
+# termina em ERR_PNPM_IGNORED_BUILDS.
+allowBuilds:
+  # resolver nativo do eslint-import-resolver-typescript (via eslint-config-next)
+  unrs-resolver: true
+  # bundler usado pelo Next e pelo tooling do Expo
+  esbuild: true
+
+# Os pacotes do SDK 57 do Expo são recentes; o gate de idade do pnpm os
+# bloquearia a cada bump de SDK.
+minimumReleaseAge: 0

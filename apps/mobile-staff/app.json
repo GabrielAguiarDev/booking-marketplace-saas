@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Vez Staff",
+    "slug": "vez-staff",
+    "scheme": "vezstaff",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.vez.vez-staff"
+    },
+    "android": {
+      "package": "app.vez.vezstaff"
+    },
+    "plugins": ["expo-router", "expo-secure-store"]
+  }
+}

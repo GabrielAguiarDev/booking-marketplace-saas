@@ -1,0 +1,44 @@
+{
+  "name": "@vez/supabase",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./browser": "./src/browser.ts",
+    "./server": "./src/server.ts",
+    "./next": "./src/next.ts",
+    "./native": "./src/native.ts",
+    "./types": "./src/database.types.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "0.12.5",
+    "@supabase/supabase-js": "2.112.4"
+  },
+  "peerDependencies": {
+    "expo-secure-store": "~57.0.3",
+    "react-native": "0.86.3",
+    "next": "16.3.4"
+  },
+  "peerDependenciesMeta": {
+    "expo-secure-store": {
+      "optional": true
+    },
+    "react-native": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "expo": "~57.0.19",
+    "expo-secure-store": "~57.0.3",
+    "next": "16.3.4",
+    "react": "19.2.3",
+    "react-native": "0.86.3"
+  }
+}

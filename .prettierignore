@@ -1,0 +1,11 @@
+node_modules
+.next
+.expo
+.turbo
+dist
+pnpm-lock.yaml
+packages/supabase/src/database.types.ts
+
+# SQL fica sob formatação manual: o prettier-plugin-sql quebra as assinaturas
+# de função e o `set search_path` de um jeito que atrapalha a leitura.
+*.sql

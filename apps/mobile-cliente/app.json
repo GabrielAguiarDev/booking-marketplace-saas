@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Vez",
+    "slug": "vez-cliente",
+    "scheme": "vezcliente",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.vez.vez-cliente"
+    },
+    "android": {
+      "package": "app.vez.vezcliente"
+    },
+    "plugins": ["expo-router", "expo-secure-store"]
+  }
+}
