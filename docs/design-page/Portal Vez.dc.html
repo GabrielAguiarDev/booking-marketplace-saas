@@ -1,0 +1,2213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#FFFFFF}*{box-sizing:border-box}
+a{color:#FF5C3A;text-decoration:none}a:hover{color:#E04520;text-decoration:underline}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#DCDCDE;border-radius:6px;border:3px solid #fff}::-webkit-scrollbar-track{background:#fff}
+@keyframes vezFlash{0%,100%{box-shadow:0 0 0 0 rgba(255,92,58,0)}30%{box-shadow:0 0 0 4px rgba(255,92,58,.35)}}
+@keyframes vezSlide{from{transform:translateX(24px);opacity:.4}to{transform:translateX(0);opacity:1}}
+@keyframes vezSpin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div style="display:flex;min-height:100vh;width:100%;min-width:1400px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#14171A;font-size:13px;background:#FFFFFF;">
+
+  <!-- ══════ MENU LATERAL ══════ -->
+  <nav style="width:272px;flex:none;background:#F7F7F8;border-right:1px solid #ECECEC;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;">
+    <div style="padding:20px 20px 16px;display:flex;align-items:center;gap:10px;">
+      <div style="width:26px;height:26px;border-radius:7px;background:#FF5C3A;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;">V</div>
+      <div style="font-weight:800;font-size:17px;letter-spacing:-0.4px;">Vez</div>
+      <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#A2A5A9;letter-spacing:0.6px;">PORTAL</div>
+    </div>
+
+    <div style="padding:0 10px;display:flex;flex-direction:column;overflow-y:auto;flex:1;">
+      <sc-for list="{{ grupos }}" as="g" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:0.9px;color:#A2A5A9;padding:8px 12px 6px;">{{ g.label }}</div>
+          <sc-for list="{{ g.itens }}" as="it" hint-placeholder-count="4">
+            <div onClick="{{ it.go }}" style="display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:9px;cursor:pointer;min-height:44px;font-size:14.5px;font-weight:{{ it.w }};color:{{ it.fg }};background:{{ it.bg }};box-shadow:{{ it.sh }};position:relative;" style-hover="background:#EFEFF1;">
+              <div style="position:absolute;left:0;top:11px;bottom:11px;width:3px;border-radius:0 3px 3px 0;background:{{ it.bar }};"></div>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="{{ it.icoFg }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none;">
+                <path d="{{ it.ico }}"></path>
+              </svg>
+              <span style="letter-spacing:-0.1px;">{{ it.label }}</span>
+              <sc-if value="{{ it.badge }}" hint-placeholder-val="{{ true }}">
+                <span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:{{ it.bBg }};color:{{ it.bFg }};display:flex;align-items:center;justify-content:center;">{{ it.badge }}</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="border-top:1px solid #ECECEC;padding:14px 18px 16px;">
+      <div onClick="{{ goPlano }}" style="cursor:pointer;display:flex;gap:9px;align-items:flex-start;padding:10px 11px;border:1px solid #F2C7C2;background:#fff;border-radius:9px;margin-bottom:13px;">
+        <div style="width:7px;height:7px;border-radius:50%;background:#D92D20;margin-top:5px;flex:none;"></div>
+        <div>
+          <div style="font-size:12.5px;font-weight:700;color:#D92D20;line-height:1.25;">Cobrança recusada</div>
+          <div style="font-size:12px;color:#71757A;line-height:1.35;margin-top:2px;">Atualize o cartão até 12/09.</div>
+        </div>
+      </div>
+      <div style="font-size:13.5px;font-weight:700;letter-spacing:-0.2px;">Barbearia Corte Reto</div>
+      <div style="font-size:12.5px;color:#71757A;margin-top:2px;">Rafael Nunes · dono</div>
+    </div>
+  </nav>
+
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column;background:#FFFFFF;">
+
+    <!-- ══════ CABEÇALHO ══════ -->
+    <header style="border-bottom:1px solid #ECECEC;padding:0 24px;height:64px;display:flex;align-items:center;gap:24px;position:sticky;top:0;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);z-index:30;">
+      <div>
+        <div style="font-size:17px;font-weight:700;letter-spacing:-0.4px;line-height:1.1;">{{ titulo }}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;margin-top:3px;">{{ subtitulo }}</div>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:20px;">
+        <div style="text-align:right;">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;line-height:1;">14:32</div>
+          <div style="font-size:11px;color:#71757A;margin-top:3px;">Terça, 8 de setembro</div>
+        </div>
+        <div onClick="{{ abrirNovo }}" style="cursor:pointer;background:#FF5C3A;color:#fff;font-weight:600;font-size:13px;padding:10px 15px;border-radius:8px;display:flex;align-items:center;gap:8px;white-space:nowrap;" style-hover="background:#E04520;">
+          Novo agendamento
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.7;border:1px solid rgba(255,255,255,.45);border-radius:4px;padding:0 4px;">N</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ══════ VISÃO GERAL ══════ -->
+    <sc-if value="{{ secVisao }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:20px 24px 40px;">
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+          <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+            <div style="padding:14px 16px;border-right:1px solid #ECECEC;">
+              <div style="font-size:11.5px;color:#71757A;font-weight:500;">{{ k.label }}</div>
+              <div style="display:flex;align-items:baseline;gap:7px;margin-top:6px;">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:23px;font-weight:600;letter-spacing:-0.8px;white-space:nowrap;">{{ k.valor }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:{{ k.dFg }};">{{ k.delta }}</span>
+              </div>
+              <div style="font-size:11px;color:#A2A5A9;margin-top:3px;">{{ k.nota }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+          <sc-for list="{{ alertas }}" as="a" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:11px;border:1px solid {{ a.bd }};border-left:3px solid {{ a.fg }};border-radius:8px;padding:11px 14px;">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:0.5px;color:{{ a.fg }};">{{ a.tag }}</span>
+              <span style="font-size:13px;font-weight:600;">{{ a.titulo }}</span>
+              <span style="font-size:12.5px;color:#71757A;">{{ a.texto }}</span>
+              <span onClick="{{ a.go }}" style="margin-left:auto;cursor:pointer;font-size:12.5px;font-weight:600;color:#FF5C3A;">{{ a.acao }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start;">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #ECECEC;">
+                <div style="font-size:14px;font-weight:700;">Aguardando sua aprovação</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;background:#FFF1ED;color:#D9451F;padding:2px 7px;border-radius:6px;">4</div>
+                <div style="margin-left:auto;font-size:12px;color:#71757A;">Aprovação manual está ligada</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.3fr 1.5fr .9fr .8fr 154px;padding:8px 16px;background:#F7F7F8;border-bottom:1px solid #ECECEC;font-size:10.5px;letter-spacing:0.4px;color:#71757A;font-weight:600;">
+                <div>CLIENTE</div><div>SERVIÇO</div><div>QUANDO</div><div style="text-align:right;">VALOR</div><div></div>
+              </div>
+              <sc-for list="{{ pendentes }}" as="p" hint-placeholder-count="4">
+                <div style="display:grid;grid-template-columns:1.3fr 1.5fr .9fr .8fr 154px;align-items:center;padding:11px 16px;border-bottom:1px solid #F4F4F5;" style-hover="background:#FCFCFD;">
+                  <div>
+                    <div style="font-weight:600;font-size:13px;">{{ p.cliente }}</div>
+                    <div style="font-size:11.5px;color:#71757A;">{{ p.nota }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:13px;">{{ p.servico }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;">{{ p.pro }} · {{ p.dur }}</div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;">{{ p.quando }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;">{{ p.valor }}</div>
+                  <div style="display:flex;gap:6px;justify-content:flex-end;">
+                    <div onClick="{{ p.aprovar }}" style="cursor:pointer;font-size:12px;font-weight:600;padding:6px 11px;border-radius:6px;background:#FF5C3A;color:#fff;" style-hover="background:#E04520;">Aprovar</div>
+                    <div onClick="{{ p.recusar }}" style="cursor:pointer;font-size:12px;font-weight:600;padding:6px 11px;border-radius:6px;border:1px solid #ECECEC;color:#71757A;" style-hover="border-color:#D92D20;color:#D92D20;">Recusar</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="border:1px solid #ECECEC;border-radius:10px;padding:14px 16px 16px;">
+              <div style="display:flex;align-items:baseline;gap:10px;">
+                <div style="font-size:14px;font-weight:700;">Hoje, hora por hora</div>
+                <div style="font-size:12px;color:#71757A;">Os vãos claros são horários que você ainda pode vender.</div>
+                <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;">2h15 livres</div>
+              </div>
+              <div style="margin-top:14px;">
+                <sc-for list="{{ trilhas }}" as="t" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <div style="width:92px;flex:none;font-size:12.5px;font-weight:600;">{{ t.nome }}</div>
+                    <div style="flex:1;position:relative;height:28px;background:#F7F7F8;border-radius:5px;">
+                      <sc-for list="{{ t.blocos }}" as="b" hint-placeholder-count="5">
+                        <div title="{{ b.t }}" style="position:absolute;top:0;bottom:0;left:{{ b.l }}%;width:{{ b.w }}%;border-radius:4px;background:{{ b.bg }};border:1px solid {{ b.bd }};display:flex;align-items:center;padding-left:5px;overflow:hidden;">
+                          <sc-if value="{{ b.mostrar }}" hint-placeholder-val="{{ true }}">
+                            <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;color:{{ b.fg }};white-space:nowrap;">{{ b.rot }}</span>
+                          </sc-if>
+                        </div>
+                      </sc-for>
+                      <div style="position:absolute;top:-4px;bottom:-4px;left:54.4%;width:2px;background:#FF5C3A;"></div>
+                    </div>
+                  </div>
+                </sc-for>
+                <div style="display:flex;margin-left:102px;margin-top:6px;">
+                  <sc-for list="{{ reguaHoras }}" as="h" hint-placeholder-count="7">
+                    <div style="flex:1;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#A2A5A9;">{{ h }}</div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="border:1px solid #ECECEC;border-radius:10px;padding:14px 16px 12px;">
+              <div style="display:flex;align-items:baseline;gap:10px;">
+                <div style="font-size:14px;font-weight:700;">Últimas 8 semanas</div>
+                <div style="margin-left:auto;display:flex;gap:12px;">
+                  <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#71757A;"><div style="width:8px;height:8px;background:#DCDCDE;border-radius:2px;"></div>agendamentos</div>
+                  <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#71757A;"><div style="width:12px;height:2px;background:#FF5C3A;"></div>faturamento</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:8px;min-height:130px;margin-top:16px;">
+                <sc-for list="{{ semanas }}" as="s" hint-placeholder-count="8">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#71757A;">{{ s.fat }}</div>
+                    <div style="width:100%;position:relative;height:{{ s.h }}px;background:#EDEDEF;border-radius:3px 3px 0 0;">
+                      <div style="position:absolute;left:0;right:0;top:{{ s.linha }}px;height:2px;background:#FF5C3A;"></div>
+                    </div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#A2A5A9;">{{ s.sem }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+              <div style="padding:13px 16px;border-bottom:1px solid #ECECEC;display:flex;align-items:center;">
+                <div style="font-size:14px;font-weight:700;">Na fila agora</div>
+                <div onClick="{{ goFila }}" style="margin-left:auto;cursor:pointer;font-size:12.5px;font-weight:600;color:#FF5C3A;">Abrir fila</div>
+              </div>
+              <sc-for list="{{ filaResumo }}" as="q" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid #F4F4F5;">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#A2A5A9;width:14px;">{{ q.pos }}</div>
+                  <div style="flex:1;">
+                    <div style="font-size:13px;font-weight:600;">{{ q.nome }}</div>
+                    <div style="font-size:11.5px;color:#71757A;">{{ q.servico }} · {{ q.origem }}</div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:{{ q.fg }};font-variant-numeric:tabular-nums;">{{ q.espera }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════ AGENDA ══════ -->
+    <sc-if value="{{ secAgenda }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:stretch;">
+        <div style="flex:1;min-width:0;padding:16px 20px 30px;">
+
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <div style="display:flex;border:1px solid #ECECEC;border-radius:8px;overflow:hidden;">
+              <sc-for list="{{ vistas }}" as="v" hint-placeholder-count="3">
+                <div onClick="{{ v.go }}" style="cursor:pointer;padding:8px 17px;font-size:13px;font-weight:600;color:{{ v.fg }};background:{{ v.bg }};border-right:1px solid #ECECEC;">{{ v.label }}</div>
+              </sc-for>
+            </div>
+            <div style="cursor:pointer;border:1px solid #ECECEC;border-radius:7px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#71757A;" style-hover="background:#F7F7F8;">‹</div>
+            <div style="cursor:pointer;border:1px solid #ECECEC;border-radius:7px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#71757A;" style-hover="background:#F7F7F8;">›</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;">{{ periodoLabel }}</div>
+            <div style="cursor:pointer;font-size:12.5px;font-weight:600;color:#FF5C3A;">Hoje</div>
+
+            <sc-if value="{{ pedeProfissional }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:7px;margin-left:6px;padding-left:14px;border-left:1px solid #ECECEC;">
+                <div style="font-size:12px;color:#71757A;">Profissional</div>
+                <sc-for list="{{ proChips }}" as="f" hint-placeholder-count="4">
+                  <div onClick="{{ f.go }}" style="cursor:pointer;display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:20px;border:1px solid {{ f.bd }};background:{{ f.bg }};font-size:12.5px;font-weight:600;color:{{ f.fg }};">
+                    <div style="width:7px;height:7px;border-radius:50%;background:{{ f.dot }};"></div>{{ f.nome }}
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+              <select style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;padding:8px 11px;border:1px solid #ECECEC;border-radius:7px;background:#F7F7F8;color:#14171A;">
+                <option>Todos os serviços</option><option>Corte + barba</option><option>Barba na navalha</option>
+              </select>
+              <div style="cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 13px;border:1px solid #ECECEC;border-radius:7px;" style-hover="background:#F7F7F8;">Bloquear período</div>
+            </div>
+          </div>
+
+          <sc-if value="{{ mostrarLegenda }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:9px;">
+              <sc-for list="{{ legenda }}" as="l" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#71757A;">
+                  <div style="width:10px;height:10px;border-radius:2px;background:{{ l.bg }};border:1px solid {{ l.bd }};"></div>{{ l.label }}
+                </div>
+              </sc-for>
+              <div style="width:1px;height:14px;background:#ECECEC;"></div>
+              <sc-for list="{{ legendaIcones }}" as="l" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#71757A;">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#71757A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{ l.ico }}"></path></svg>
+                  {{ l.label }}
+                </div>
+              </sc-for>
+              <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#A2A5A9;">{{ dicaGrade }}</div>
+            </div>
+          </sc-if>
+
+          <!-- grade de blocos: dia (profissionais em colunas) ou semana (um profissional, dias em colunas) -->
+          <sc-if value="{{ mostrarGrade }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+              <sc-if value="{{ tituloGrade }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid #ECECEC;background:#FCFCFD;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:#F2F2F3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#3F4347;">{{ tituloGradeIni }}</div>
+                  <div style="font-size:15px;font-weight:700;letter-spacing:-0.3px;">{{ tituloGrade }}</div>
+                  <div style="font-size:12px;color:#71757A;">{{ tituloGradeSub }}</div>
+                </div>
+              </sc-if>
+
+              <div style="display:flex;background:#F7F7F8;border-bottom:1px solid #ECECEC;">
+                <div style="width:56px;flex:none;"></div>
+                <sc-for list="{{ colunas }}" as="c" hint-placeholder-count="4">
+                  <div style="flex:1;min-width:0;border-left:1px solid #ECECEC;background:{{ c.hdBg }};padding:9px 12px;display:flex;align-items:baseline;gap:8px;">
+                    <span style="font-size:13px;font-weight:700;">{{ c.titulo }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;">{{ c.sub }}</span>
+                    <span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:{{ c.ocupFg }};">{{ c.ocup }}</span>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:flex;max-height:600px;overflow-y:auto;">
+                <div style="width:56px;flex:none;border-right:1px solid #ECECEC;">
+                  <sc-for list="{{ horas }}" as="h" hint-placeholder-count="12">
+                    <div style="height:60px;padding:3px 8px 0;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#A2A5A9;border-bottom:1px solid #F4F4F5;">{{ h }}</div>
+                  </sc-for>
+                </div>
+                <sc-for list="{{ colunas }}" as="c" hint-placeholder-count="4">
+                  <div onClick="{{ c.novoAqui }}" title="clique num espaço vazio para agendar aqui" style="flex:1;min-width:0;position:relative;border-left:1px solid #ECECEC;height:720px;background-image:repeating-linear-gradient(#FFFFFF 0 59px,#F4F4F5 59px 60px);cursor:copy;">
+                    <sc-for list="{{ c.ags }}" as="a" hint-placeholder-count="6">
+                      <div onClick="{{ a.sel }}" title="{{ a.tip }}" style="position:absolute;left:4px;right:4px;top:{{ a.top }}px;height:{{ a.h }}px;border-radius:6px;overflow:hidden;cursor:pointer;padding:{{ a.pad }};background:{{ a.bg }};border:1px solid {{ a.bd }};border-left:3px solid {{ a.fg }};animation:{{ a.anim }};" style-hover="filter:brightness(.98);">
+                        <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+                          <sc-if value="{{ a.mostrarHora }}" hint-placeholder-val="{{ true }}">
+                            <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;color:{{ a.fg }};white-space:nowrap;flex:none;">{{ a.hora }}</span>
+                          </sc-if>
+                          <sc-if value="{{ a.ico }}" hint-placeholder-val="{{ false }}">
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="{{ a.fg }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="{{ a.ico }}"></path></svg>
+                          </sc-if>
+                          <sc-if value="{{ a.compacto }}" hint-placeholder-val="{{ false }}">
+                            <span style="font-size:12px;font-weight:700;letter-spacing:-0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">{{ a.cliente }}</span>
+                          </sc-if>
+                        </div>
+                        <sc-if value="{{ a.mostrarNome }}" hint-placeholder-val="{{ true }}">
+                          <div style="font-size:12.5px;font-weight:700;letter-spacing:-0.2px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.cliente }}</div>
+                        </sc-if>
+                        <sc-if value="{{ a.mostrarServico }}" hint-placeholder-val="{{ true }}">
+                          <div style="font-size:11.5px;color:#71757A;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.servico }}</div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ c.hoje }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;left:0;right:0;top:392px;height:2px;background:#FF5C3A;z-index:5;"></div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- visão Equipe: ocupação, sem renderizar cada agendamento -->
+          <sc-if value="{{ mostrarEquipeGrade }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+              <div style="padding:13px 16px;border-bottom:1px solid #ECECEC;display:flex;align-items:baseline;gap:10px;">
+                <div style="font-size:14px;font-weight:700;">Ocupação por profissional</div>
+                <div style="font-size:12px;color:#71757A;">Quanto da jornada de cada um já está vendida. Clique num dia para abrir a agenda dele.</div>
+              </div>
+              <div style="display:flex;background:#F7F7F8;border-bottom:1px solid #ECECEC;">
+                <div style="width:150px;flex:none;padding:8px 16px;font-size:10.5px;letter-spacing:0.4px;color:#71757A;font-weight:600;">PROFISSIONAL</div>
+                <sc-for list="{{ equipeDias }}" as="d" hint-placeholder-count="6">
+                  <div style="flex:1;border-left:1px solid #ECECEC;padding:8px 12px;font-size:10.5px;letter-spacing:0.4px;color:#71757A;font-weight:600;">{{ d }}</div>
+                </sc-for>
+                <div style="width:120px;flex:none;border-left:1px solid #ECECEC;padding:8px 16px;font-size:10.5px;letter-spacing:0.4px;color:#71757A;font-weight:600;text-align:right;">MÉDIA</div>
+              </div>
+              <sc-for list="{{ equipeGrade }}" as="e" hint-placeholder-count="4">
+                <div style="display:flex;border-bottom:1px solid #F4F4F5;align-items:stretch;">
+                  <div style="width:150px;flex:none;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#F2F2F3;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#71757A;">{{ e.ini }}</div>
+                    <div style="font-size:13px;font-weight:700;">{{ e.nome }}</div>
+                  </div>
+                  <sc-for list="{{ e.dias }}" as="d" hint-placeholder-count="6">
+                    <div onClick="{{ d.go }}" style="flex:1;border-left:1px solid #F4F4F5;padding:12px;cursor:pointer;" style-hover="background:#FCFCFD;">
+                      <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;letter-spacing:-0.8px;color:{{ d.fg }};">{{ d.pct }}</div>
+                      <div style="height:6px;border-radius:3px;background:#F2F2F3;margin-top:6px;overflow:hidden;">
+                        <div style="height:6px;width:{{ d.w }}%;background:{{ d.barra }};"></div>
+                      </div>
+                      <div style="font-size:11px;color:#A2A5A9;margin-top:5px;">{{ d.nota }}</div>
+                    </div>
+                  </sc-for>
+                  <div style="width:120px;flex:none;border-left:1px solid #F4F4F5;padding:12px 16px;text-align:right;">
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;letter-spacing:-0.8px;color:{{ e.mediaFg }};">{{ e.media }}</div>
+                    <div style="font-size:11px;color:#A2A5A9;margin-top:5px;">{{ e.horas }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- painel lateral de detalhe -->
+        <aside style="width:352px;flex:none;border-left:1px solid #ECECEC;padding:18px 20px 30px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:0.6px;color:#A2A5A9;">AGENDAMENTO SELECIONADO</div>
+            <div style="margin-left:auto;cursor:pointer;font-size:17px;color:#A2A5A9;line-height:1;">×</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+            <div style="display:inline-flex;align-items:center;gap:6px;border:1px solid #EFDFB0;border-radius:20px;padding:4px 10px;">
+              <div style="width:7px;height:7px;border-radius:50%;background:#E0A200;"></div>
+              <span style="font-size:12px;font-weight:700;color:#E0A200;">Aguardando aprovação</span>
+            </div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;">#8241</div>
+          </div>
+          <div style="font-size:20px;font-weight:700;letter-spacing:-0.4px;margin-top:12px;">Marcos Vieira</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#71757A;margin-top:3px;">(11) 98812-4471</div>
+
+          <div style="border:1px solid #ECECEC;border-radius:9px;margin-top:14px;">
+            <sc-for list="{{ selLinhas }}" as="r" hint-placeholder-count="6">
+              <div style="display:flex;align-items:baseline;gap:10px;padding:10px 12px;border-bottom:1px solid #F4F4F5;">
+                <div style="font-size:12px;color:#71757A;width:100px;flex:none;">{{ r.k }}</div>
+                <div style="font-family:{{ r.ff }};font-size:13px;font-weight:600;color:{{ r.fg }};text-align:right;margin-left:auto;">{{ r.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:18px;">
+            <div style="font-size:13px;font-weight:700;">Histórico deste cliente</div>
+            <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;">desde mar/2024</div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:10px;">
+            <sc-for list="{{ selResumo }}" as="r" hint-placeholder-count="3">
+              <div style="flex:1;border:1px solid #ECECEC;border-radius:8px;padding:9px 10px;">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;letter-spacing:-0.6px;color:{{ r.fg }};">{{ r.v }}</div>
+                <div style="font-size:11px;color:#71757A;margin-top:2px;">{{ r.k }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-for list="{{ selHist }}" as="h" hint-placeholder-count="3">
+            <div style="display:flex;align-items:baseline;gap:8px;padding:9px 0;border-bottom:1px solid #F4F4F5;">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#71757A;">{{ h.data }}</div>
+              <div style="font-size:12.5px;">{{ h.servico }}</div>
+              <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:12px;font-variant-numeric:tabular-nums;">{{ h.valor }}</div>
+            </div>
+          </sc-for>
+
+          <div style="background:#F7F7F8;border-radius:8px;padding:11px 12px;margin-top:14px;">
+            <div style="font-size:11.5px;color:#71757A;font-weight:600;">Observação da equipe</div>
+            <div style="font-size:12.5px;line-height:1.45;margin-top:4px;">Máquina 2 nas laterais. Costuma chegar dez minutos antes.</div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;">
+            <div style="cursor:pointer;text-align:center;background:#FF5C3A;color:#fff;font-weight:600;font-size:13px;padding:11px;border-radius:8px;grid-column:span 2;" style-hover="background:#E04520;">Concluir atendimento</div>
+            <div style="cursor:pointer;text-align:center;border:1px solid #ECECEC;font-weight:600;font-size:13px;padding:10px;border-radius:8px;" style-hover="background:#F7F7F8;">Remarcar</div>
+            <div style="cursor:pointer;text-align:center;border:1px solid #ECECEC;font-weight:600;font-size:13px;padding:10px;border-radius:8px;" style-hover="background:#F7F7F8;">Cobrar sinal</div>
+            <div style="cursor:pointer;text-align:center;border:1px solid #ECECEC;color:#E0A200;font-weight:600;font-size:13px;padding:10px;border-radius:8px;" style-hover="background:#FFFBF0;">Não compareceu</div>
+            <div style="cursor:pointer;text-align:center;border:1px solid #ECECEC;color:#D92D20;font-weight:600;font-size:13px;padding:10px;border-radius:8px;" style-hover="background:#FEF3F2;">Cancelar</div>
+          </div>
+        </aside>
+      </div>
+    </sc-if>
+
+    <!-- ══════ FILA ══════ -->
+    <sc-if value="{{ secFila }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:20px 24px 40px;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #ECECEC;">
+              <div style="width:8px;height:8px;border-radius:50%;background:#12A150;"></div>
+              <div style="font-size:14px;font-weight:700;">Fila aberta</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#71757A;">5 esperando · média de hoje 21min</div>
+              <div style="margin-left:auto;cursor:pointer;background:#FF5C3A;color:#fff;font-weight:600;font-size:13px;padding:9px 14px;border-radius:8px;display:flex;align-items:center;gap:8px;" style-hover="background:#E04520;">
+                Chamar próximo
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.7;border:1px solid rgba(255,255,255,.45);border-radius:4px;padding:0 4px;">↵</span>
+              </div>
+              <div style="cursor:pointer;font-size:13px;font-weight:600;padding:9px 13px;border:1px solid #ECECEC;border-radius:8px;" style-hover="background:#F7F7F8;">Adicionar no balcão</div>
+            </div>
+            <div style="display:grid;grid-template-columns:32px 1.4fr 1.3fr .8fr .8fr 132px;padding:8px 16px;background:#F7F7F8;border-bottom:1px solid #ECECEC;font-size:10.5px;letter-spacing:0.4px;color:#71757A;font-weight:600;">
+              <div>#</div><div>CLIENTE</div><div>SERVIÇO</div><div>ENTROU</div><div style="text-align:right;">ESPERA</div><div></div>
+            </div>
+            <sc-for list="{{ fila }}" as="q" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:32px 1.4fr 1.3fr .8fr .8fr 132px;align-items:center;padding:11px 16px;border-bottom:1px solid #F4F4F5;background:{{ q.rowBg }};" style-hover="background:#FCFCFD;">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:{{ q.posFg }};">{{ q.pos }}</div>
+                <div>
+                  <div style="font-weight:600;font-size:13px;">{{ q.nome }}</div>
+                  <div style="display:flex;align-items:center;gap:5px;margin-top:2px;">
+                    <div style="width:6px;height:6px;border-radius:1px;background:{{ q.origemFg }};"></div>
+                    <span style="font-size:11px;color:#71757A;">{{ q.origem }}</span>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:13px;">{{ q.servico }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;">{{ q.pro }}</div>
+                </div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;">{{ q.entrou }}</div>
+                <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:{{ q.esperaFg }};font-variant-numeric:tabular-nums;">{{ q.espera }}</div>
+                <div style="display:flex;gap:5px;justify-content:flex-end;">
+                  <div style="cursor:pointer;font-size:12px;font-weight:600;padding:6px 9px;border-radius:6px;border:1px solid #ECECEC;color:#71757A;" style-hover="background:#F7F7F8;">↑</div>
+                  <div style="cursor:pointer;font-size:12px;font-weight:600;padding:6px 9px;border-radius:6px;border:1px solid #ECECEC;color:#71757A;" style-hover="background:#F7F7F8;">↓</div>
+                  <div style="cursor:pointer;font-size:12px;font-weight:600;padding:6px 10px;border-radius:6px;border:1px solid #ECECEC;color:#E0A200;" style-hover="background:#FFFBF0;">Ausente</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+            <div style="padding:13px 16px;border-bottom:1px solid #ECECEC;display:flex;align-items:baseline;gap:10px;">
+              <div style="font-size:14px;font-weight:700;">Filas anteriores</div>
+              <div style="font-size:12px;color:#71757A;">onde a espera estourou e em que horário</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr .9fr 1fr .9fr 1fr 1.1fr;padding:8px 16px;background:#F7F7F8;border-bottom:1px solid #ECECEC;font-size:10.5px;letter-spacing:0.4px;color:#71757A;font-weight:600;">
+              <div>DIA</div><div style="text-align:right;">ENTRARAM</div><div style="text-align:right;">ATENDIDOS</div><div style="text-align:right;">MÉDIA</div><div style="text-align:right;">PIOR ESPERA</div><div style="text-align:right;">HORÁRIO DO PICO</div>
+            </div>
+            <sc-for list="{{ filaHist }}" as="h" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:1fr .9fr 1fr .9fr 1fr 1.1fr;align-items:center;padding:10px 16px;border-bottom:1px solid #F4F4F5;">
+                <div style="font-size:13px;font-weight:600;">{{ h.dia }}</div>
+                <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-variant-numeric:tabular-nums;">{{ h.entraram }}</div>
+                <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-variant-numeric:tabular-nums;">{{ h.atendidos }}</div>
+                <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:{{ h.mFg }};font-variant-numeric:tabular-nums;">{{ h.media }}</div>
+                <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:{{ h.pFg }};font-variant-numeric:tabular-nums;">{{ h.pico }}</div>
+                <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#71757A;">{{ h.horaPico }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+            <div style="padding:13px 16px;border-bottom:1px solid #ECECEC;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="font-size:14px;font-weight:700;">Pré-fila</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;background:#FFFBF0;color:#B07E00;padding:2px 7px;border-radius:6px;">2</div>
+              </div>
+              <div style="font-size:12px;color:#71757A;margin-top:3px;line-height:1.4;">Entraram pelo app e ainda não confirmaram que chegaram. Só entram na fila de verdade depois de confirmar.</div>
+            </div>
+            <sc-for list="{{ preFila }}" as="p" hint-placeholder-count="2">
+              <div style="padding:12px 16px;border-bottom:1px solid #F4F4F5;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="font-size:13px;font-weight:600;">{{ p.nome }}</div>
+                  <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#E0A200;font-weight:600;">{{ p.prazo }}</div>
+                </div>
+                <div style="font-size:11.5px;color:#71757A;margin-top:2px;">{{ p.servico }} · avisado {{ p.avisado }}</div>
+                <div style="display:flex;gap:6px;margin-top:9px;">
+                  <div style="cursor:pointer;font-size:12px;font-weight:600;padding:6px 11px;border-radius:6px;background:#F7F7F8;" style-hover="background:#EFEFF1;">Confirmar chegada</div>
+                  <div style="cursor:pointer;font-size:12px;font-weight:600;padding:6px 11px;border-radius:6px;border:1px solid #ECECEC;color:#71757A;" style-hover="border-color:#D92D20;color:#D92D20;">Remover</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="border:1px solid #ECECEC;border-radius:10px;padding:14px 16px;">
+            <div style="font-size:14px;font-weight:700;">Como as pessoas entraram hoje</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+              <sc-for list="{{ origens }}" as="o" hint-placeholder-count="3">
+                <div>
+                  <div style="display:flex;align-items:center;gap:7px;">
+                    <div style="width:8px;height:8px;border-radius:1px;background:{{ o.c }};"></div>
+                    <div style="font-size:12.5px;font-weight:600;">{{ o.label }}</div>
+                    <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-variant-numeric:tabular-nums;">{{ o.n }}</div>
+                  </div>
+                  <div style="height:6px;border-radius:3px;background:#F2F2F3;margin-top:6px;overflow:hidden;">
+                    <div style="height:6px;width:{{ o.pct }}%;background:{{ o.c }};"></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-size:11.5px;color:#71757A;margin-top:12px;">Das 08:00 até agora.</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════ SEÇÕES GENÉRICAS ══════ -->
+    <sc-if value="{{ secGenerica }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:20px 24px 44px;display:flex;flex-direction:column;gap:16px;">
+        <sc-for list="{{ blocos }}" as="b" hint-placeholder-count="3">
+          <div>
+            <sc-if value="{{ b.isKpis }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:{{ b.gc }};border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+                <sc-for list="{{ b.itens }}" as="k" hint-placeholder-count="4">
+                  <div style="padding:14px 16px;border-right:1px solid #ECECEC;">
+                    <div style="font-size:11.5px;color:#71757A;font-weight:500;">{{ k.label }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;letter-spacing:-0.9px;margin-top:6px;white-space:nowrap;">{{ k.valor }}</div>
+                    <div style="display:flex;align-items:center;gap:7px;margin-top:5px;">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:{{ k.dFg }};">{{ k.delta }}</span>
+                      <span style="font-size:11px;color:#A2A5A9;">{{ k.nota }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b.isBarra }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <sc-for list="{{ b.chips }}" as="c" hint-placeholder-count="4">
+                  <div style="cursor:pointer;padding:8px 13px;border-radius:{{ c.r }};border:1px solid {{ c.bd }};background:{{ c.bg }};font-size:12.5px;font-weight:600;color:{{ c.fg }};">{{ c.label }}</div>
+                </sc-for>
+                <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#71757A;">{{ b.nota }}</div>
+                <sc-if value="{{ b.cta }}" hint-placeholder-val="{{ true }}">
+                  <div style="cursor:pointer;background:#FF5C3A;color:#fff;font-weight:600;font-size:13px;padding:9px 14px;border-radius:8px;" style-hover="background:#E04520;">{{ b.cta }}</div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b.isTabela }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+                <sc-if value="{{ b.titulo }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:13px 16px;border-bottom:1px solid #ECECEC;display:flex;align-items:baseline;gap:10px;">
+                    <div style="font-size:14px;font-weight:700;">{{ b.titulo }}</div>
+                    <div style="font-size:12px;color:#71757A;">{{ b.sub }}</div>
+                  </div>
+                </sc-if>
+                <div style="display:grid;grid-template-columns:{{ b.gc }};padding:8px 16px;background:#F7F7F8;border-bottom:1px solid #ECECEC;font-size:10.5px;letter-spacing:0.4px;color:#71757A;font-weight:600;">
+                  <sc-for list="{{ b.cols }}" as="c" hint-placeholder-count="5">
+                    <div style="text-align:{{ c.a }};">{{ c.t }}</div>
+                  </sc-for>
+                </div>
+                <sc-for list="{{ b.linhas }}" as="r" hint-placeholder-count="8">
+                  <div style="display:grid;grid-template-columns:{{ b.gc }};align-items:center;padding:11px 16px;border-bottom:1px solid #F4F4F5;" style-hover="background:#FCFCFD;">
+                    <sc-for list="{{ r.cels }}" as="c" hint-placeholder-count="5">
+                      <div style="text-align:{{ c.a }};min-width:0;">
+                        <sc-if value="{{ c.v }}" hint-placeholder-val="{{ true }}">
+                          <div style="font-family:{{ c.ff }};font-size:{{ c.fs }};font-weight:{{ c.w }};color:{{ c.fg }};font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.v }}</div>
+                        </sc-if>
+                        <sc-if value="{{ c.sub }}" hint-placeholder-val="{{ true }}">
+                          <div style="font-family:{{ c.subFf }};font-size:11px;color:#71757A;margin-top:1px;">{{ c.sub }}</div>
+                        </sc-if>
+                        <sc-if value="{{ c.barra }}" hint-placeholder-val="{{ false }}">
+                          <div style="height:6px;border-radius:3px;background:#F2F2F3;overflow:hidden;margin-top:3px;">
+                            <div style="height:6px;width:{{ c.barra.pct }}%;background:{{ c.barra.c }};"></div>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b.isLista }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+                <div style="padding:13px 16px;border-bottom:1px solid #ECECEC;">
+                  <div style="font-size:14px;font-weight:700;">{{ b.titulo }}</div>
+                  <sc-if value="{{ b.sub }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:12px;color:#71757A;margin-top:2px;">{{ b.sub }}</div>
+                  </sc-if>
+                </div>
+                <sc-for list="{{ b.itens }}" as="i" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid #F4F4F5;">
+                    <div style="min-width:0;flex:1;">
+                      <div style="font-size:13px;font-weight:600;">{{ i.label }}</div>
+                      <div style="font-size:12px;color:#71757A;margin-top:2px;line-height:1.4;">{{ i.desc }}</div>
+                    </div>
+                    <sc-if value="{{ i.valor }}" hint-placeholder-val="{{ true }}">
+                      <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:{{ i.fg }};white-space:nowrap;">{{ i.valor }}</div>
+                    </sc-if>
+                    <sc-if value="{{ i.temSw }}" hint-placeholder-val="{{ true }}">
+                      <div onClick="{{ i.toggle }}" style="cursor:pointer;width:38px;height:22px;border-radius:12px;background:{{ i.swBg }};position:relative;flex:none;">
+                        <div style="position:absolute;top:2px;left:{{ i.swL }}px;width:18px;height:18px;border-radius:50%;background:#fff;"></div>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b.isCards }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;">
+                <sc-for list="{{ b.itens }}" as="m" hint-placeholder-count="4">
+                  <div style="border:1px solid {{ m.bd }};border-style:{{ m.bs }};border-radius:10px;padding:18px 20px;">
+                    <div style="display:flex;gap:12px;align-items:center;">
+                      <sc-if value="{{ m.ini }}" hint-placeholder-val="{{ true }}">
+                        <div style="width:44px;height:44px;border-radius:50%;background:#F2F2F3;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#71757A;flex:none;">{{ m.ini }}</div>
+                      </sc-if>
+                      <div style="min-width:0;">
+                        <div style="font-size:15px;font-weight:700;letter-spacing:-0.3px;">{{ m.nome }}</div>
+                        <div style="font-size:12px;color:#71757A;line-height:1.4;margin-top:1px;">{{ m.funcao }}</div>
+                      </div>
+                      <sc-if value="{{ m.acesso }}" hint-placeholder-val="{{ true }}">
+                        <div style="margin-left:auto;font-size:11.5px;font-weight:600;color:{{ m.acFg }};border:1px solid {{ m.acBd }};padding:4px 9px;border-radius:20px;white-space:nowrap;">{{ m.acesso }}</div>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{ m.stats }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid #F4F4F5;">
+                        <sc-for list="{{ m.stats }}" as="s" hint-placeholder-count="3">
+                          <div>
+                            <div style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;letter-spacing:-0.9px;color:{{ s.fg }};white-space:nowrap;">{{ s.v }}</div>
+                            <div style="font-size:11.5px;color:#71757A;margin-top:3px;">{{ s.k }}</div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ m.tags }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:18px;padding-top:16px;border-top:1px solid #F4F4F5;">
+                        <sc-for list="{{ m.tags }}" as="t" hint-placeholder-count="4">
+                          <div style="font-size:11.5px;padding:4px 9px;background:#F7F7F8;border-radius:6px;color:#3F4347;">{{ t.t }}</div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ m.cta }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex;gap:6px;margin-top:16px;">
+                        <input placeholder="{{ m.ph }}" style="flex:1;min-width:0;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:9px 12px;border:1px solid #ECECEC;border-radius:8px;background:#fff;" />
+                        <div style="cursor:pointer;background:#FF5C3A;color:#fff;font-weight:600;font-size:13px;padding:10px 14px;border-radius:8px;white-space:nowrap;" style-hover="background:#E04520;">{{ m.cta }}</div>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b.isEscala }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+                <div style="padding:13px 16px;border-bottom:1px solid #ECECEC;display:flex;align-items:baseline;gap:10px;">
+                  <div style="font-size:14px;font-weight:700;">{{ b.titulo }}</div>
+                  <div style="margin-left:auto;display:flex;gap:14px;">
+                    <sc-for list="{{ b.legenda }}" as="l" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#71757A;"><div style="width:10px;height:10px;border-radius:2px;background:{{ l.c }};"></div>{{ l.label }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="padding:14px 16px 18px;">
+                  <div style="display:flex;margin-bottom:6px;">
+                    <div style="width:110px;flex:none;"></div>
+                    <sc-for list="{{ b.dias }}" as="d" hint-placeholder-count="6">
+                      <div style="flex:1;font-size:11.5px;font-weight:600;color:#71757A;text-align:center;">{{ d }}</div>
+                    </sc-for>
+                  </div>
+                  <sc-for list="{{ b.linhas }}" as="e" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;margin-bottom:6px;">
+                      <div style="width:110px;flex:none;font-size:12.5px;font-weight:600;">{{ e.nome }}</div>
+                      <sc-for list="{{ e.dias }}" as="d" hint-placeholder-count="6">
+                        <div style="flex:1;padding:0 3px;">
+                          <div style="height:38px;border-radius:6px;background:{{ d.bg }};border:1px solid {{ d.bd }};display:flex;flex-direction:column;justify-content:center;align-items:center;">
+                            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:{{ d.fg }};">{{ d.faixa }}</span>
+                            <span style="font-size:10px;color:{{ d.fg }};opacity:.75;">{{ d.nota }}</span>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b.isPerfil }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start;">
+                <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+                  <div style="padding:13px 16px;border-bottom:1px solid #ECECEC;">
+                    <div style="font-size:14px;font-weight:700;">O que o cliente vê no app</div>
+                    <div style="font-size:12px;color:#71757A;margin-top:2px;">Tudo aqui aparece na hora na prévia do lado.</div>
+                  </div>
+                  <div style="padding:16px;display:flex;flex-direction:column;gap:16px;">
+                    <div>
+                      <div style="font-size:11.5px;font-weight:600;color:#71757A;margin-bottom:7px;">Galeria</div>
+                      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                        <sc-for list="{{ b.fotos }}" as="f" hint-placeholder-count="4">
+                          <div style="height:88px;border-radius:8px;border:1px solid #ECECEC;background-image:repeating-linear-gradient(135deg,#FAFAFB 0 6px,#F2F2F3 6px 12px);display:flex;align-items:flex-end;padding:7px;">
+                            <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#A2A5A9;">{{ f.rot }}</span>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <sc-for list="{{ b.campos }}" as="c" hint-placeholder-count="4">
+                      <div>
+                        <div style="font-size:11.5px;font-weight:600;color:#71757A;margin-bottom:5px;">{{ c.label }}</div>
+                        <div style="border:1px solid #ECECEC;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.5;background:#fff;">{{ c.valor }}</div>
+                      </div>
+                    </sc-for>
+                    <div>
+                      <div style="font-size:11.5px;font-weight:600;color:#71757A;margin-bottom:7px;">Cor da sua marca no app</div>
+                      <div style="display:flex;gap:9px;align-items:center;">
+                        <sc-for list="{{ b.cores }}" as="c" hint-placeholder-count="5">
+                          <div onClick="{{ c.go }}" style="cursor:pointer;width:32px;height:32px;border-radius:8px;background:{{ c.c }};border:2px solid {{ c.bd }};box-shadow:0 0 0 2px #fff inset;"></div>
+                        </sc-for>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#71757A;margin-left:4px;">{{ b.corAtual }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="position:sticky;top:80px;">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:0.6px;color:#A2A5A9;margin-bottom:8px;">PRÉVIA · APP DO CLIENTE</div>
+                  <div style="width:310px;border:9px solid #14171A;border-radius:34px;overflow:hidden;background:#fff;">
+                    <div style="height:154px;background-image:repeating-linear-gradient(135deg,#FAFAFB 0 6px,#F2F2F3 6px 12px);position:relative;">
+                      <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:{{ b.corAtual }};"></div>
+                    </div>
+                    <div style="padding:15px;">
+                      <div style="font-size:17px;font-weight:800;letter-spacing:-0.3px;">Barbearia Corte Reto</div>
+                      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:{{ b.corAtual }};">4,9</span>
+                        <span style="font-size:11.5px;color:#71757A;">· 212 avaliações · Vila Mariana</span>
+                      </div>
+                      <div style="font-size:12px;color:#71757A;line-height:1.5;margin-top:8px;">Corte clássico e barba feita à navalha. Sem enrolação, no horário.</div>
+                      <div style="display:flex;gap:6px;margin-top:12px;">
+                        <sc-for list="{{ b.vagas }}" as="v" hint-placeholder-count="4">
+                          <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;padding:7px 9px;border:1px solid #ECECEC;border-radius:7px;">{{ v }}</div>
+                        </sc-for>
+                      </div>
+                      <div style="margin-top:12px;text-align:center;padding:12px;border-radius:9px;background:{{ b.corAtual }};color:#fff;font-weight:700;font-size:13.5px;">Agendar</div>
+                      <div style="margin-top:8px;text-align:center;padding:11px;border-radius:9px;border:1px solid #ECECEC;font-weight:600;font-size:13px;">Entrar na fila · espera 21min</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b.isCheck }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #ECECEC;border-radius:10px;overflow:hidden;">
+                <div style="padding:16px;border-bottom:1px solid #ECECEC;">
+                  <div style="display:flex;align-items:baseline;gap:10px;">
+                    <div style="font-size:16px;font-weight:700;letter-spacing:-0.3px;">{{ b.titulo }}</div>
+                    <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;">{{ b.prog }}</div>
+                  </div>
+                  <div style="font-size:12.5px;color:#71757A;margin-top:3px;">{{ b.sub }}</div>
+                  <div style="display:flex;gap:4px;margin-top:11px;">
+                    <sc-for list="{{ b.passos }}" as="p" hint-placeholder-count="4">
+                      <div style="flex:1;height:6px;border-radius:3px;background:{{ p.barra }};"></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <sc-for list="{{ b.passos }}" as="p" hint-placeholder-count="4">
+                  <div style="display:flex;gap:14px;align-items:flex-start;padding:15px 16px;border-bottom:1px solid #F4F4F5;background:{{ p.bg }};">
+                    <div style="width:22px;height:22px;border-radius:50%;background:{{ p.dotBg }};border:1px solid {{ p.dotBd }};color:{{ p.dotFg }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;flex:none;margin-top:1px;">{{ p.n }}</div>
+                    <div style="min-width:0;flex:1;">
+                      <div style="font-size:13.5px;font-weight:700;">{{ p.titulo }}</div>
+                      <div style="font-size:12px;color:#71757A;margin-top:3px;line-height:1.45;">{{ p.desc }}</div>
+                      <sc-if value="{{ p.vazio }}" hint-placeholder-val="{{ false }}">
+                        <div style="margin-top:11px;border:1px dashed #DCDCDE;border-radius:8px;padding:13px 14px;font-size:12px;color:#71757A;line-height:1.45;">{{ p.vazio }}</div>
+                      </sc-if>
+                    </div>
+                    <div style="cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:7px;background:{{ p.ctaBg }};color:{{ p.ctaFg }};border:1px solid {{ p.ctaBd }};white-space:nowrap;">{{ p.cta }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b.isGrafico }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #ECECEC;border-radius:10px;padding:14px 16px;">
+                <div style="display:flex;align-items:baseline;gap:10px;">
+                  <div style="font-size:14px;font-weight:700;">{{ b.titulo }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#71757A;">{{ b.sub }}</div>
+                </div>
+                <div style="display:flex;align-items:flex-end;gap:3px;height:150px;margin-top:16px;">
+                  <sc-for list="{{ b.barras }}" as="s" hint-placeholder-count="31">
+                    <div title="{{ s.t }}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;">
+                      <div style="height:{{ s.h }}px;background:{{ s.c }};border-radius:2px 2px 0 0;"></div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#A2A5A9;margin-top:6px;">
+                  <sc-for list="{{ b.eixo }}" as="e" hint-placeholder-count="5">
+                    <span>{{ e }}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- a única faixa de camadas que sobrou no sistema -->
+            <sc-if value="{{ b.isCamadas }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #ECECEC;border-radius:10px;padding:14px 16px 16px;">
+                <div style="font-size:14px;font-weight:700;">{{ b.titulo }}</div>
+                <div style="font-size:12px;color:#71757A;margin-top:2px;">{{ b.sub }}</div>
+                <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px;">
+                  <sc-for list="{{ b.camadas }}" as="c" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:14px;">
+                      <div style="width:168px;flex:none;">
+                        <div style="font-size:12.5px;font-weight:600;color:{{ c.labelFg }};">{{ c.label }}</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#A2A5A9;">{{ c.nota }}</div>
+                      </div>
+                      <div style="flex:1;display:flex;gap:2px;">
+                        <sc-for list="{{ c.blocos }}" as="k" hint-placeholder-count="24">
+                          <div style="flex:1;height:{{ c.h }}px;border-radius:2px;background:{{ k.c }};"></div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;margin-top:7px;padding-left:182px;">
+                  <sc-for list="{{ reguaHoras }}" as="h" hint-placeholder-count="7">
+                    <div style="flex:1;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#A2A5A9;">{{ h }}</div>
+                  </sc-for>
+                </div>
+                <div style="background:#F7F7F8;border-radius:8px;padding:12px;margin-top:16px;display:flex;align-items:center;gap:14px;">
+                  <div style="font-size:12.5px;font-weight:700;white-space:nowrap;">Amanhã, quarta 9</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    <sc-for list="{{ b.vagas }}" as="v" hint-placeholder-count="9">
+                      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;padding:6px 9px;background:#fff;border:1px solid #ECECEC;border-radius:6px;">{{ v }}</div>
+                    </sc-for>
+                  </div>
+                  <div style="font-size:11.5px;color:#71757A;margin-left:auto;text-align:right;white-space:nowrap;">É isso que aparece<br />no app do cliente.</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+  </main>
+
+  <!-- ══════ AVISO DE CONFIRMAÇÃO (com desfazer) ══════ -->
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:14px;background:#14171A;color:#fff;padding:13px 16px;border-radius:10px;box-shadow:0 8px 24px rgba(20,23,26,.22);">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M20 6.5L9.5 17 4.5 12"></path></svg>
+      <div>
+        <div style="font-size:13px;font-weight:700;">{{ toast }}</div>
+        <div style="font-size:11.5px;color:#B8BBBE;margin-top:2px;">{{ toastSub }}</div>
+      </div>
+      <div onClick="{{ desfazer }}" style="cursor:pointer;font-size:12.5px;font-weight:700;color:#FF8A6B;padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.2);">Desfazer</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8E9296;">{{ toastSeg }}</div>
+    </div>
+  </sc-if>
+
+  <!-- ══════ PAINEL NOVO AGENDAMENTO ══════ -->
+  <sc-if value="{{ novoAberto }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:60;display:flex;justify-content:flex-end;">
+      <div onClick="{{ tentarFechar }}" style="position:absolute;inset:0;background:rgba(20,23,26,.28);"></div>
+
+      <div style="position:relative;width:432px;height:100vh;background:#fff;border-left:1px solid #ECECEC;box-shadow:-12px 0 32px rgba(20,23,26,.10);display:flex;flex-direction:column;animation:vezSlide .18s ease-out;opacity:{{ painelOpacidade }};pointer-events:{{ painelEventos }};">
+
+        <div style="padding:18px 20px 14px;border-bottom:1px solid #ECECEC;display:flex;align-items:flex-start;gap:10px;">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:0.6px;color:#A2A5A9;">NOVO AGENDAMENTO</div>
+            <div style="font-size:18px;font-weight:700;letter-spacing:-0.4px;margin-top:5px;">{{ novoOrigem }}</div>
+          </div>
+          <div onClick="{{ tentarFechar }}" style="margin-left:auto;cursor:pointer;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#71757A;" style-hover="background:#F7F7F8;">×</div>
+        </div>
+
+        <!-- confirmação de descarte -->
+        <sc-if value="{{ pedirDescarte }}" hint-placeholder-val="{{ false }}">
+          <div style="margin:14px 20px 0;border:1px solid #EFDFB0;background:#FFFBF0;border-radius:9px;padding:13px 14px;">
+            <div style="font-size:13px;font-weight:700;color:#B07E00;">Descartar este agendamento?</div>
+            <div style="font-size:12px;color:#71757A;margin-top:3px;line-height:1.45;">Você já preencheu alguns campos. Fechar agora apaga tudo.</div>
+            <div style="display:flex;gap:8px;margin-top:11px;">
+              <div onClick="{{ confirmarDescarte }}" style="cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:7px;background:#14171A;color:#fff;">Descartar</div>
+              <div onClick="{{ voltarAoPainel }}" style="cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:7px;border:1px solid #ECECEC;color:#71757A;">Continuar preenchendo</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="flex:1;overflow-y:auto;padding:16px 20px 20px;display:flex;flex-direction:column;gap:20px;">
+
+          <!-- 1. CLIENTE -->
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:19px;height:19px;border-radius:50%;background:{{ pCliDotBg }};border:1px solid {{ pCliDotBd }};color:{{ pCliDotFg }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;">{{ pCliDot }}</div>
+              <div style="font-size:13.5px;font-weight:700;">Cliente</div>
+              <sc-if value="{{ pCliTrocar }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ limparCliente }}" style="margin-left:auto;cursor:pointer;font-size:12px;font-weight:600;color:#FF5C3A;">Trocar</div>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{ pCliSelecionado }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #ECECEC;border-radius:9px;padding:12px 13px;margin-top:9px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:34px;height:34px;border-radius:50%;background:#F2F2F3;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#71757A;">{{ pCliIni }}</div>
+                  <div>
+                    <div style="font-size:14px;font-weight:700;letter-spacing:-0.2px;">{{ pCliNome }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#71757A;margin-top:1px;">{{ pCliTel }}</div>
+                  </div>
+                  <div style="margin-left:auto;display:flex;gap:14px;text-align:right;">
+                    <div>
+                      <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;">{{ pCliVisitas }}</div>
+                      <div style="font-size:10.5px;color:#71757A;">visitas</div>
+                    </div>
+                    <div>
+                      <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:{{ pCliFaltasFg }};">{{ pCliFaltas }}</div>
+                      <div style="font-size:10.5px;color:#71757A;">faltas</div>
+                    </div>
+                  </div>
+                </div>
+                <sc-if value="{{ pCliHist }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:11px;padding-top:10px;border-top:1px solid #F4F4F5;">
+                    <div style="font-size:11px;font-weight:600;color:#71757A;margin-bottom:5px;">Histórico recente</div>
+                    <sc-for list="{{ pCliHist }}" as="h" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:baseline;gap:8px;padding:4px 0;">
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;">{{ h.data }}</div>
+                        <div style="font-size:12px;">{{ h.servico }}</div>
+                        <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11.5px;">{{ h.valor }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ pCliBusca }}" hint-placeholder-val="{{ true }}">
+              <div style="margin-top:9px;">
+                <input value="{{ pBuscaCli }}" onInput="{{ digitarCliente }}" placeholder="Buscar por nome ou telefone" style="width:100%;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px;border:1px solid #ECECEC;border-radius:8px;background:#F7F7F8;" />
+
+                <sc-if value="{{ pCliResultados }}" hint-placeholder-val="{{ false }}">
+                  <div style="border:1px solid #ECECEC;border-radius:9px;margin-top:8px;overflow:hidden;">
+                    <sc-for list="{{ pCliResultados }}" as="r" hint-placeholder-count="3">
+                      <div onClick="{{ r.escolher }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #F4F4F5;cursor:pointer;" style-hover="background:#FCFCFD;">
+                        <div style="width:28px;height:28px;border-radius:50%;background:#F2F2F3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#71757A;">{{ r.ini }}</div>
+                        <div style="min-width:0;">
+                          <div style="font-size:13px;font-weight:600;">{{ r.nome }}</div>
+                          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;">{{ r.tel }}</div>
+                        </div>
+                        <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;white-space:nowrap;">{{ r.stats }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ pCliVazio }}" hint-placeholder-val="{{ false }}">
+                  <div style="border:1px dashed #DCDCDE;border-radius:9px;padding:14px;margin-top:8px;text-align:center;">
+                    <div style="font-size:12.5px;font-weight:600;">Nenhum cliente com “{{ pBuscaCli }}”</div>
+                    <div style="font-size:11.5px;color:#71757A;margin-top:3px;line-height:1.4;">Pode cadastrar agora mesmo, sem sair daqui.</div>
+                    <div onClick="{{ abrirCadastro }}" style="cursor:pointer;display:inline-block;margin-top:10px;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:7px;background:#FF5C3A;color:#fff;">Cadastrar “{{ pBuscaCli }}”</div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ pCliOferecerCadastro }}" hint-placeholder-val="{{ true }}">
+                  <div onClick="{{ abrirCadastro }}" style="cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;font-weight:600;color:#FF5C3A;">
+                    <span style="font-size:15px;line-height:1;">+</span> Cadastrar novo cliente
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ pCadastro }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #ECECEC;border-radius:9px;padding:13px;margin-top:9px;background:#FCFCFD;">
+                <div style="font-size:12.5px;font-weight:700;">Cadastrar novo cliente</div>
+                <div style="display:flex;flex-direction:column;gap:9px;margin-top:10px;">
+                  <div>
+                    <div style="font-size:11px;font-weight:600;color:#71757A;margin-bottom:4px;">Nome completo</div>
+                    <input value="{{ pNovoNome }}" onInput="{{ digitarNome }}" placeholder="Nome e sobrenome" style="width:100%;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:9px 11px;border:1px solid #ECECEC;border-radius:8px;background:#fff;" />
+                  </div>
+                  <div>
+                    <div style="font-size:11px;font-weight:600;color:#71757A;margin-bottom:4px;">Telefone com WhatsApp</div>
+                    <input value="{{ pNovoTel }}" onInput="{{ digitarTel }}" placeholder="(11) 90000-0000" style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:9px 11px;border:1px solid #ECECEC;border-radius:8px;background:#fff;" />
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:11px;">
+                  <div onClick="{{ salvarCliente }}" style="cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:7px;background:{{ pSalvarCliBg }};color:#fff;">Salvar cliente</div>
+                  <div onClick="{{ cancelarCadastro }}" style="cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:7px;border:1px solid #ECECEC;color:#71757A;">Cancelar</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- 2. SERVIÇO -->
+          <sc-if value="{{ pMostrarServico }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid #F4F4F5;padding-top:18px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:19px;height:19px;border-radius:50%;background:{{ pSvDotBg }};border:1px solid {{ pSvDotBd }};color:{{ pSvDotFg }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;">{{ pSvDot }}</div>
+                <div style="font-size:13.5px;font-weight:700;">Serviço</div>
+                <sc-if value="{{ pSvEscolhido }}" hint-placeholder-val="{{ false }}">
+                  <div onClick="{{ limparServico }}" style="margin-left:auto;cursor:pointer;font-size:12px;font-weight:600;color:#FF5C3A;">Trocar</div>
+                </sc-if>
+              </div>
+
+              <sc-if value="{{ pSvEscolhido }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px solid #ECECEC;border-radius:9px;padding:11px 13px;margin-top:9px;display:flex;align-items:center;gap:10px;">
+                  <div>
+                    <div style="font-size:13.5px;font-weight:700;">{{ pSvNome }}</div>
+                    <div style="font-size:11.5px;color:#71757A;margin-top:1px;">{{ pSvCat }}</div>
+                  </div>
+                  <div style="margin-left:auto;text-align:right;">
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;">{{ pSvPreco }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#71757A;">{{ pSvDur }}</div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ pSvLista }}" hint-placeholder-val="{{ true }}">
+                <div style="margin-top:9px;">
+                  <input value="{{ pBuscaSv }}" onInput="{{ digitarServico }}" placeholder="Buscar serviço" style="width:100%;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px;border:1px solid #ECECEC;border-radius:8px;background:#F7F7F8;" />
+                  <div style="border:1px solid #ECECEC;border-radius:9px;margin-top:8px;overflow:hidden;">
+                    <sc-for list="{{ pSvCategorias }}" as="cat" hint-placeholder-count="2">
+                      <div>
+                        <div style="padding:7px 12px;background:#F7F7F8;border-bottom:1px solid #ECECEC;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:0.6px;color:#71757A;">{{ cat.nome }}</div>
+                        <sc-for list="{{ cat.itens }}" as="sv" hint-placeholder-count="4">
+                          <div onClick="{{ sv.escolher }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #F4F4F5;cursor:pointer;" style-hover="background:#FCFCFD;">
+                            <div style="font-size:13px;font-weight:600;">{{ sv.nome }}</div>
+                            <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#71757A;">{{ sv.dur }}</div>
+                            <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;width:62px;text-align:right;">{{ sv.preco }}</div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- 3. PROFISSIONAL -->
+          <sc-if value="{{ pMostrarPro }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid #F4F4F5;padding-top:18px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:19px;height:19px;border-radius:50%;background:{{ pProDotBg }};border:1px solid {{ pProDotBd }};color:{{ pProDotFg }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;">{{ pProDot }}</div>
+                <div style="font-size:13.5px;font-weight:700;">Profissional</div>
+                <div style="margin-left:auto;font-size:11.5px;color:#71757A;">{{ pProNota }}</div>
+              </div>
+
+              <sc-if value="{{ pProSemHabilitado }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px solid #F2C7C2;background:#FEF3F2;border-radius:9px;padding:13px;margin-top:9px;">
+                  <div style="font-size:12.5px;font-weight:700;color:#D92D20;">Nenhum profissional habilitado para {{ pSvNome }}</div>
+                  <div style="font-size:12px;color:#71757A;margin-top:3px;line-height:1.45;">Esse serviço está ativo, mas não tem ninguém marcado para executá-lo. Sem isso o horário não pode ser vendido.</div>
+                  <div onClick="{{ irServicos }}" style="cursor:pointer;display:inline-block;margin-top:10px;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:7px;border:1px solid #F2C7C2;color:#D92D20;background:#fff;">Corrigir em Serviços</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ pProOpcoes }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:6px;margin-top:9px;">
+                  <sc-for list="{{ pProOpcoes }}" as="p" hint-placeholder-count="4">
+                    <div onClick="{{ p.escolher }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid {{ p.bd }};background:{{ p.bg }};border-radius:9px;cursor:pointer;">
+                      <div style="width:26px;height:26px;border-radius:50%;background:#F2F2F3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#71757A;">{{ p.ini }}</div>
+                      <div>
+                        <div style="font-size:13px;font-weight:600;">{{ p.nome }}</div>
+                        <div style="font-size:11px;color:#71757A;">{{ p.nota }}</div>
+                      </div>
+                      <div style="margin-left:auto;width:17px;height:17px;border-radius:50%;border:1px solid {{ p.radioBd }};background:{{ p.radioBg }};display:flex;align-items:center;justify-content:center;">
+                        <div style="width:7px;height:7px;border-radius:50%;background:{{ p.radioDot }};"></div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- 4. DATA E HORÁRIO -->
+          <sc-if value="{{ pMostrarData }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid #F4F4F5;padding-top:18px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:19px;height:19px;border-radius:50%;background:{{ pDtDotBg }};border:1px solid {{ pDtDotBd }};color:{{ pDtDotFg }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;">{{ pDtDot }}</div>
+                <div style="font-size:13.5px;font-weight:700;">Data e horário</div>
+                <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;">{{ pDtNota }}</div>
+              </div>
+
+              <div style="display:flex;gap:6px;margin-top:10px;">
+                <sc-for list="{{ pDatas }}" as="d" hint-placeholder-count="6">
+                  <div onClick="{{ d.escolher }}" style="flex:1;cursor:pointer;text-align:center;padding:8px 0 9px;border:1px solid {{ d.bd }};background:{{ d.bg }};border-radius:8px;">
+                    <div style="font-size:10.5px;color:{{ d.subFg }};font-weight:600;">{{ d.dow }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:{{ d.fg }};margin-top:2px;">{{ d.dia }}</div>
+                    <div style="font-size:9.5px;color:{{ d.subFg }};margin-top:2px;">{{ d.nota }}</div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:flex;align-items:baseline;gap:8px;margin-top:14px;">
+                <div style="font-size:12px;font-weight:600;">Horários livres</div>
+                <div style="font-size:11.5px;color:#71757A;">{{ pHorariosNota }}</div>
+              </div>
+
+              <sc-if value="{{ pHorariosCarregando }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">
+                  <sc-for list="{{ pSkeleton }}" as="k" hint-placeholder-count="8">
+                    <div style="width:70px;height:34px;border-radius:7px;background:#F2F2F3;"></div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:9px;">
+                  <div style="width:12px;height:12px;border-radius:50%;border:2px solid #ECECEC;border-top-color:#FF5C3A;animation:vezSpin .7s linear infinite;"></div>
+                  <div style="font-size:11.5px;color:#71757A;">Calculando o que sobra depois da escala e do que já está agendado…</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ pHorarios }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">
+                  <sc-for list="{{ pHorarios }}" as="h" hint-placeholder-count="9">
+                    <div onClick="{{ h.escolher }}" title="{{ h.tip }}" style="cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;padding:9px 11px;border-radius:7px;border:1px solid {{ h.bd }};background:{{ h.bg }};color:{{ h.fg }};">{{ h.label }}</div>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ pConflitoMsg }}" hint-placeholder-val="{{ false }}">
+                  <div style="border:1px solid #F2C7C2;background:#FEF3F2;border-radius:9px;padding:12px 13px;margin-top:10px;">
+                    <div style="font-size:12.5px;font-weight:700;color:#D92D20;">Esse horário acabou de ser ocupado</div>
+                    <div style="font-size:12px;color:#71757A;margin-top:3px;line-height:1.45;">{{ pConflitoMsg }}</div>
+                  </div>
+                </sc-if>
+              </sc-if>
+
+              <sc-if value="{{ pDiaLotado }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px dashed #DCDCDE;border-radius:9px;padding:14px;margin-top:9px;">
+                  <div style="font-size:12.5px;font-weight:700;">{{ pDiaLotadoTitulo }}</div>
+                  <div style="font-size:11.5px;color:#71757A;margin-top:3px;line-height:1.45;">{{ pDiaLotadoTexto }}</div>
+                  <sc-if value="{{ pSugestoes }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:11px;font-weight:600;color:#71757A;margin-top:11px;">Próximos dias com vaga</div>
+                    <div style="display:flex;gap:6px;margin-top:7px;">
+                      <sc-for list="{{ pSugestoes }}" as="s" hint-placeholder-count="3">
+                        <div onClick="{{ s.escolher }}" style="cursor:pointer;border:1px solid #ECECEC;border-radius:7px;padding:8px 11px;">
+                          <div style="font-size:12px;font-weight:600;">{{ s.dia }}</div>
+                          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#71757A;margin-top:1px;">{{ s.vagas }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ pSemSugestao }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:11.5px;color:#B07E00;margin-top:11px;line-height:1.45;">{{ pSemSugestao }}</div>
+                  </sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- 5. PAGAMENTO -->
+          <sc-if value="{{ pMostrarPgto }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid #F4F4F5;padding-top:18px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:19px;height:19px;border-radius:50%;background:#F2F2F3;border:1px solid #E4E5E6;color:#71757A;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;">5</div>
+                <div style="font-size:13.5px;font-weight:700;">Pagamento</div>
+                <div style="margin-left:auto;font-size:11.5px;color:#71757A;">{{ pPgtoRegra }}</div>
+              </div>
+
+              <div style="border:1px solid #ECECEC;border-radius:9px;margin-top:10px;">
+                <sc-for list="{{ pValores }}" as="v" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:baseline;gap:10px;padding:9px 12px;border-bottom:1px solid #F4F4F5;">
+                    <div style="font-size:12px;color:#71757A;">{{ v.k }}</div>
+                    <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:600;color:{{ v.fg }};font-variant-numeric:tabular-nums;">{{ v.v }}</div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:6px;margin-top:9px;">
+                <sc-for list="{{ pPgtoOpcoes }}" as="o" hint-placeholder-count="2">
+                  <div onClick="{{ o.escolher }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid {{ o.bd }};background:{{ o.bg }};border-radius:9px;cursor:pointer;">
+                    <div>
+                      <div style="font-size:13px;font-weight:600;">{{ o.label }}</div>
+                      <div style="font-size:11px;color:#71757A;margin-top:1px;">{{ o.nota }}</div>
+                    </div>
+                    <div style="margin-left:auto;width:17px;height:17px;border-radius:50%;border:1px solid {{ o.radioBd }};display:flex;align-items:center;justify-content:center;">
+                      <div style="width:7px;height:7px;border-radius:50%;background:{{ o.radioDot }};"></div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- 6. OBSERVAÇÃO INTERNA -->
+          <sc-if value="{{ pMostrarObs }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid #F4F4F5;padding-top:18px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:19px;height:19px;border-radius:50%;background:#F2F2F3;border:1px solid #E4E5E6;color:#71757A;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;">6</div>
+                <div style="font-size:13.5px;font-weight:700;">Observação interna</div>
+              </div>
+              <div style="font-size:11.5px;color:#71757A;margin-top:5px;line-height:1.4;">Só a equipe vê. O cliente não recebe e não enxerga esta anotação em nenhum lugar do app.</div>
+              <textarea value="{{ pObs }}" onInput="{{ digitarObs }}" placeholder="Ex.: máquina 2 nas laterais, costuma chegar antes" style="width:100%;min-height:64px;resize:vertical;margin-top:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;line-height:1.45;padding:10px 12px;border:1px solid #ECECEC;border-radius:8px;background:#fff;"></textarea>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- RODAPÉ FIXO -->
+        <div style="border-top:1px solid #ECECEC;padding:13px 20px 16px;background:#FCFCFD;">
+          <sc-if value="{{ pErroMsg }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid #F2C7C2;background:#FEF3F2;border-radius:8px;padding:10px 12px;margin-bottom:11px;display:flex;align-items:center;gap:10px;">
+              <div>
+                <div style="font-size:12.5px;font-weight:700;color:#D92D20;">Não foi possível salvar</div>
+                <div style="font-size:11.5px;color:#71757A;margin-top:2px;">{{ pErroMsg }}</div>
+              </div>
+              <div onClick="{{ criar }}" style="margin-left:auto;cursor:pointer;font-size:12px;font-weight:600;padding:7px 11px;border-radius:7px;border:1px solid #F2C7C2;color:#D92D20;background:#fff;white-space:nowrap;">Tentar de novo</div>
+            </div>
+          </sc-if>
+
+          <div style="font-size:12px;color:{{ pResumoFg }};line-height:1.45;">{{ pResumo }}</div>
+
+          <div style="display:flex;gap:8px;margin-top:11px;align-items:center;">
+            <div onClick="{{ criar }}" title="{{ pCriarTitle }}" style="flex:1;cursor:{{ pCriarCursor }};text-align:center;background:{{ pCriarBg }};color:{{ pCriarFg }};font-weight:700;font-size:13.5px;padding:12px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:9px;">
+              <sc-if value="{{ pSalvando }}" hint-placeholder-val="{{ false }}">
+                <div style="width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;animation:vezSpin .7s linear infinite;"></div>
+              </sc-if>
+              {{ pCriarLabel }}
+            </div>
+            <div onClick="{{ tentarFechar }}" style="cursor:pointer;text-align:center;border:1px solid #ECECEC;background:#fff;font-weight:600;font-size:13px;padding:12px 16px;border-radius:8px;color:#71757A;">Cancelar</div>
+          </div>
+
+          <sc-if value="{{ pFaltando }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:11.5px;color:#B07E00;margin-top:8px;">{{ pFaltando }}</div>
+          </sc-if>
+
+          <div style="display:flex;gap:14px;margin-top:11px;padding-top:10px;border-top:1px dashed #ECECEC;">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:0.5px;color:#C4C6C9;">SIMULAR RESPOSTA DO SERVIDOR</div>
+            <sc-for list="{{ pSimular }}" as="x" hint-placeholder-count="3">
+              <div onClick="{{ x.go }}" style="cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:0.5px;font-weight:600;color:{{ x.fg }};">{{ x.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+const MONO = "'IBM Plex Mono',monospace";
+const SANS = "'Plus Jakarta Sans',sans-serif";
+const G = "#12A150", A = "#E0A200", R = "#D92D20", C = "#FF5C3A";
+
+const ICO = {
+  visao: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+  agenda: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
+  fila: "M4 7h16M4 12h11M4 17h6",
+  clientes: "M12 11a4 4 0 100-8 4 4 0 000 8M4 21c0-4 3.6-6 8-6s8 2 8 6",
+  servicos: "M13.5 3H5v8.5l8 8L21 12zM8.5 8.5h.01",
+  equipe: "M9 11a4 4 0 100-8 4 4 0 000 8M2 21c0-3.4 3-5.5 7-5.5s7 2.1 7 5.5M17 7.5a3 3 0 010 6M18 21c0-2 0-3.2-1-4.4",
+  horarios: "M12 21a9 9 0 100-18 9 9 0 000 18M12 7.5V12l3.5 2",
+  financeiro: "M4 20h16M7.5 17V9M12 17V5M16.5 17v-6",
+  perfil: "M12 21a9 9 0 100-18 9 9 0 000 18M3 12h18M12 3c3 3.6 3 14.4 0 18",
+  config: "M4 7h9M17 7h3M4 17h4M12 17h8M15 4v6M8 14v6",
+  plano: "M3 7h18v11H3zM3 11h18M6.5 15h3",
+  onboarding: "M12 21a9 9 0 100-18 9 9 0 000 18M8.5 12.3l2.4 2.4 4.6-5.1"
+};
+const ICO_PAGO = "M2 5h12v7H2zM2 7.5h12M4.5 10h2.5";
+const ICO_BLOQ = "M5 7V5.2a3 3 0 016 0V7M3.6 7h8.8v6H3.6z";
+
+function cel(v, o) { return Object.assign({ v: v, a: "left", ff: SANS, fs: "13px", w: "500", fg: "#14171A", sub: "", subFf: SANS, barra: null }, o || {}); }
+function num(v, o) { return cel(v, Object.assign({ a: "right", ff: MONO, fs: "12.5px" }, o || {})); }
+
+const PROS = [["Bruno", "B"], ["Léo", "L"], ["Ana", "A"], ["Sérgio", "S"]];
+const CLIENTES = ["Marcos Vieira","Diego Salles","Henrique Paz","Tiago Ramos","Jonas Bonfim","Rui Antunes","Caio Bertoldo","Everton Lima","Pedro Aguiar","Fábio Duarte","Gustavo Mota","Nelson Castro","Ana Lúcia Prado","Sandro Beltrão","Ivo Menezes","Rogério Lyra"];
+const SERV = [
+  ["Corte social", 1, "R$ 55"], ["Corte + barba", 1.5, "R$ 90"], ["Barba na navalha", 1, "R$ 45"],
+  ["Máquina", 0.5, "R$ 35"], ["Pezinho", 0.5, "R$ 20"], ["Platinado", 2, "R$ 210"],
+  ["Luzes", 1.5, "R$ 180"], ["Coloração completa", 1.5, "R$ 150"]
+];
+const OCUP = [[86,91,78,95,96,88],[62,74,80,71,90,84],[55,68,0,0,0,0],[48,52,0,61,58,44]];
+const DIAS6 = [["Seg","07"],["Ter","08"],["Qua","09"],["Qui","10"],["Sex","11"],["Sáb","12"]];
+const BUFFER = 1 / 6; // 10 minutos
+
+const CAT_SERV = [
+  { nome: "CORTES E BARBA", itens: [
+    { nome: "Corte social", dur: 1, durLabel: "30min", preco: 55, pros: [0, 1, 3] },
+    { nome: "Corte + barba", dur: 1.5, durLabel: "50min", preco: 90, pros: [0, 1] },
+    { nome: "Barba na navalha", dur: 1, durLabel: "30min", preco: 45, pros: [0, 3] },
+    { nome: "Máquina", dur: 0.5, durLabel: "20min", preco: 35, pros: [0, 1, 3] },
+    { nome: "Pezinho", dur: 0.5, durLabel: "15min", preco: 20, pros: [0, 1, 3] },
+    { nome: "Barba desenhada", dur: 1, durLabel: "40min", preco: 65, pros: [] }
+  ] },
+  { nome: "COLORAÇÃO E QUÍMICA", itens: [
+    { nome: "Platinado", dur: 2, durLabel: "1h40", preco: 210, pros: [2] },
+    { nome: "Luzes", dur: 1.5, durLabel: "1h30", preco: 180, pros: [2] },
+    { nome: "Coloração completa", dur: 1.5, durLabel: "1h20", preco: 150, pros: [1, 2] },
+    { nome: "Matização", dur: 1, durLabel: "40min", preco: 90, pros: [2] }
+  ] }
+];
+
+const BASE_CLIENTES = [
+  { nome: "Marcos Vieira", tel: "(11) 98812-4471", visitas: 18, faltas: 0, hist: [["12 ago","Corte + barba","R$ 90"],["22 jul","Corte social","R$ 55"],["28 jun","Corte + barba","R$ 85"]] },
+  { nome: "Ana Lúcia Prado", tel: "(11) 99730-2210", visitas: 26, faltas: 1, hist: [["29 ago","Luzes","R$ 180"],["01 ago","Matização","R$ 90"],["04 jul","Platinado","R$ 210"]] },
+  { nome: "Henrique Paz", tel: "(11) 97441-8865", visitas: 9, faltas: 2, hist: [["03 jul","Barba na navalha","R$ 45"],["19 mai","Corte social","R$ 55"]] },
+  { nome: "Caio Bertoldo", tel: "(11) 98115-9032", visitas: 14, faltas: 0, hist: [["08 set","Corte social","R$ 55"],["11 ago","Corte social","R$ 55"]] },
+  { nome: "Tiago Ramos", tel: "(11) 98330-7742", visitas: 21, faltas: 0, hist: [["30 ago","Platinado","R$ 210"],["02 ago","Matização","R$ 90"]] },
+  { nome: "Everton Lima", tel: "(11) 97788-0091", visitas: 12, faltas: 0, hist: [["08 set","Barba na navalha","R$ 45"]] },
+  { nome: "Jonas Bonfim", tel: "(11) 96633-1200", visitas: 16, faltas: 0, hist: [["05 set","Corte + barba","R$ 90"]] },
+  { nome: "Nelson Castro", tel: "(11) 98844-2091", visitas: 4, faltas: 1, hist: [["14 mar","Barba na navalha","R$ 45"]] }
+];
+
+const TIPOS = {
+  ok: { bg: "#F2F2F3", bd: "#E4E5E6", fg: "#3F4347", ico: "" },
+  pend: { bg: "#FFFBF0", bd: "#EFDFB0", fg: "#B07E00", ico: "" },
+  conf: { bg: "#FEF3F2", bd: "#F2C7C2", fg: R, ico: "" },
+  pago: { bg: "#F2F2F3", bd: "#E4E5E6", fg: "#3F4347", ico: ICO_PAGO },
+  bloq: { bg: "#FAFAFB", bd: "#DCDCDE", fg: "#A2A5A9", ico: ICO_BLOQ }
+};
+
+class Component extends DCLogic {
+  state = {
+    sec: "visao", vista: "dia", proSemana: "Bruno", cor: "#1F6FEB",
+    novoAberto: false, nOrigem: "", nCli: null, nBuscaCli: "", nCadastro: false, nNome: "", nTel: "",
+    nSv: null, nBuscaSv: "", nPro: null, nData: 1, nHora: null, nPgto: "balcao", nObs: "",
+    nCarregando: false, nSalvando: false, nErro: "", nConflito: null, nDescarte: false, nSim: "ok",
+    criados: [], flash: null, toast: null, toastSeg: 5
+  };
+
+  go(sec) { return () => { this.setState({ sec: sec }); window.scrollTo(0, 0); }; }
+
+  componentDidMount() {
+    this._key = (e) => {
+      if (e.key === "Escape" && this.state.novoAberto) this.tentarFechar();
+      const tag = (e.target && e.target.tagName) || "";
+      if ((e.key === "n" || e.key === "N") && !this.state.novoAberto && tag !== "INPUT" && tag !== "TEXTAREA") this.abrirNovo();
+    };
+    window.addEventListener("keydown", this._key);
+  }
+  componentWillUnmount() {
+    window.removeEventListener("keydown", this._key);
+    clearInterval(this._tick); clearTimeout(this._calc); clearTimeout(this._save);
+  }
+
+  // ── abertura / fechamento
+  abrirNovo(pre) {
+    const p = pre || {};
+    this.setState({
+      novoAberto: true, nDescarte: false, nErro: "", nConflito: null, nSalvando: false,
+      nOrigem: p.origem || "Começando do zero",
+      nCli: null, nBuscaCli: "", nCadastro: false, nNome: "", nTel: "",
+      nSv: null, nBuscaSv: "", nPro: p.pro != null ? p.pro : null,
+      nData: p.data != null ? p.data : 1, nHora: p.hora != null ? p.hora : null,
+      nPgto: "balcao", nObs: "", nCarregando: false, nSim: "ok"
+    });
+  }
+  temDados() {
+    const s = this.state;
+    return !!(s.nCli || s.nSv || s.nHora || s.nObs || s.nBuscaCli || s.nNome);
+  }
+  tentarFechar() {
+    if (this.temDados()) this.setState({ nDescarte: true });
+    else this.setState({ novoAberto: false });
+  }
+  recalcular(extra) {
+    clearTimeout(this._calc);
+    this.setState(Object.assign({ nCarregando: true, nConflito: null }, extra || {}));
+    this._calc = setTimeout(() => this.setState({ nCarregando: false }), 700);
+  }
+
+  // ── disponibilidade real: funcionamento − escala − agendado − buffer
+  ocupados(di, pi) {
+    const out = this.agsDe(di, pi).map((a) => [a.ini, a.ini + a.dur]);
+    this.state.criados.forEach((c) => { if (c.di === di && c.pi === pi) out.push([c.ini, c.ini + c.dur]); });
+    return out;
+  }
+  livres(di, pi, dur) {
+    if (!OCUP[pi][di]) return [];
+    const occ = this.ocupados(di, pi);
+    const out = [];
+    for (let t = 1; t + dur <= 12; t += 0.5) {
+      const conflita = occ.some((o) => t < o[1] + BUFFER && t + dur > o[0]);
+      if (!conflita) out.push(t);
+    }
+    return out;
+  }
+  rotuloHora(t) {
+    const hh = 8 + Math.floor(t), mm = t % 1 ? "30" : "00";
+    return (hh < 10 ? "0" + hh : hh) + ":" + mm;
+  }
+
+  // ── criação
+  criar() {
+    const s = this.state;
+    if (!this.completo() || s.nSalvando) return;
+    this.setState({ nSalvando: true, nErro: "", nConflito: null });
+    clearTimeout(this._save);
+    this._save = setTimeout(() => {
+      if (s.nSim === "conflito") {
+        this.setState({ nSalvando: false, nConflito: s.nHora, nHora: null,
+          nErro: "" });
+        return;
+      }
+      if (s.nSim === "erro") {
+        this.setState({ nSalvando: false, nErro: "A conexão caiu no meio do envio. Nada foi salvo e seu preenchimento continua aqui." });
+        return;
+      }
+      const pi = s.nPro === -1 ? 0 : s.nPro;
+      const sv = this.servico();
+      const novo = { di: s.nData, pi: pi, ini: s.nHora, dur: sv.dur, cliente: this.clienteNome(), servico: sv.nome };
+      this.setState({
+        novoAberto: false, nSalvando: false, criados: s.criados.concat([novo]),
+        sec: "agenda", vista: s.nData === 1 ? "dia" : "semana", proSemana: PROS[pi][0],
+        flash: novo, toast: "Agendamento criado", toastSeg: 5
+      });
+      window.scrollTo(0, 0);
+      clearInterval(this._tick);
+      this._tick = setInterval(() => {
+        const seg = this.state.toastSeg - 1;
+        if (seg <= 0) { clearInterval(this._tick); this.setState({ toast: null, flash: null }); }
+        else this.setState({ toastSeg: seg });
+      }, 1000);
+    }, 1100);
+  }
+  desfazer() {
+    clearInterval(this._tick);
+    const c = this.state.criados.slice(0, -1);
+    this.setState({ criados: c, toast: null, flash: null });
+  }
+  servico() {
+    const nome = this.state.nSv;
+    let found = null;
+    CAT_SERV.forEach((c) => c.itens.forEach((i) => { if (i.nome === nome) found = i; }));
+    return found;
+  }
+  clienteNome() {
+    const c = this.state.nCli;
+    return c ? c.nome : "";
+  }
+  completo() {
+    const s = this.state;
+    return !!(s.nCli && s.nSv && s.nPro != null && s.nHora != null);
+  }
+
+  // agendamentos de um profissional num dia: linha do tempo 08h–20h, hora = 60px
+  agsDe(di, pi) {
+    const pool = pi === 2 ? [5, 6, 7, 2] : [0, 1, 2, 3, 4, 1];
+    const out = [];
+    let cur = ((di + pi) % 3) * 0.5;
+    let k = 0;
+    // sexta e sábado ficam cheios de propósito (estado "dia sem vaga"); nos outros dias sobra folga
+    const maxAgs = di >= 4 ? 8 : 5;
+    while (cur < 11.5 && k < maxAgs) {
+      if (cur >= 4 && cur < 5) { // almoço
+        out.push({ ini: 4, dur: 1, kind: "bloq", cliente: "Almoço", servico: "estação fechada" });
+        cur = 5; continue;
+      }
+      const sv = SERV[pool[(di * 3 + pi * 2 + k) % pool.length]];
+      if (cur + sv[1] > 12) break;
+      const seed = di * 7 + pi * 5 + k * 3;
+      let kind = "ok";
+      if (seed % 19 === 0) kind = "conf";
+      else if (seed % 6 === 0) kind = "pend";
+      else if (seed % 5 === 0) kind = "pago";
+      out.push({ ini: cur, dur: sv[1], kind: kind, cliente: CLIENTES[(di * 5 + pi * 3 + k) % CLIENTES.length], servico: sv[0] });
+      cur += sv[1] + (di >= 4 ? [0.5, 0.5, 1, 0.5][(di + k) % 4] : [1, 1.5, 1, 2][(di + k) % 4]);
+      k++;
+    }
+    return out;
+  }
+
+  agsComCriados(di, pi) {
+    const f = this.state.flash;
+    const extras = this.state.criados.filter((c) => c.di === di && c.pi === pi).map((c) => ({
+      ini: c.ini, dur: c.dur, kind: "ok", cliente: c.cliente, servico: c.servico,
+      novo: !!(f && f.di === di && f.pi === pi && f.ini === c.ini)
+    }));
+    return this.agsDe(di, pi).concat(extras);
+  }
+
+  blocosDeAgs(ags, estreito) {
+    return ags.map((a) => {
+      // colunas de semana têm ~100px: nome encurtado e, nos blocos de 30min, sem a hora
+      const partes = a.cliente.split(" ");
+      const nome = estreito && partes.length > 1 ? partes[0] + " " + partes[1].charAt(0) + "." : a.cliente;
+      const t = TIPOS[a.kind];
+      const hh = 8 + Math.floor(a.ini), mm = a.ini % 1 ? "30" : "00";
+      const fim = a.ini + a.dur, fh = 8 + Math.floor(fim), fm = fim % 1 ? "30" : "00";
+      const hora = (hh < 10 ? "0" + hh : hh) + ":" + mm;
+      return {
+        top: Math.round(a.ini * 60) + 2, h: Math.round(a.dur * 60) - 5,
+        bg: t.bg, bd: t.bd, fg: t.fg, ico: t.ico || null,
+        hora: hora, cliente: nome, servico: a.servico,
+        // bloco de 30min tem 25px: hora e nome dividem uma única linha
+        compacto: a.dur < 1,
+        mostrarHora: !(estreito && a.dur < 1),
+        mostrarNome: a.dur >= 1,
+        mostrarServico: a.dur >= 1.5 && !estreito,
+        pad: a.dur < 1 ? "3px 8px" : "5px 8px",
+        tip: hora + " — " + ((fh < 10 ? "0" + fh : fh) + ":" + fm) + " · " + a.cliente + " · " + a.servico,
+        anim: a.novo ? "vezFlash 1.1s ease-out 1" : "none",
+        sel: (e) => { if (e && e.stopPropagation) e.stopPropagation(); }
+      };
+    });
+  }
+
+  renderVals() {
+    const s = this.state.sec;
+    const meta = {
+      visao: ["Visão geral", "terça-feira, 8 de setembro de 2026"],
+      agenda: ["Agenda", "terça, 8 de setembro · 4 profissionais"],
+      fila: ["Fila de espera", "aberta desde 08:00 · 5 na fila"],
+      clientes: ["Clientes", "412 cadastrados · 38 novos em agosto"],
+      servicos: ["Serviços", "14 serviços em 3 categorias"],
+      equipe: ["Equipe", "4 profissionais · 1 convite pendente"],
+      horarios: ["Horários", "funcionamento, escalas e exceções"],
+      financeiro: ["Financeiro", "agosto de 2026 · comparado com julho"],
+      perfil: ["Perfil público", "publicado · última alteração há 6 dias"],
+      config: ["Configurações", "regras de agendamento, fila e pagamento"],
+      plano: ["Plano e assinatura", "Vez Profissional · cobrança recusada"],
+      onboarding: ["Primeiros passos", "3 de 4 concluídos"]
+    };
+    const atual = meta[s] || meta.visao;
+
+    const item = (id, label, badge, crit) => {
+      const on = id === s;
+      return {
+        label: label, go: this.go(id), ico: ICO[id],
+        w: on ? "700" : "500",
+        fg: on ? "#14171A" : "#3F4347",
+        icoFg: on ? C : "#8E9296",
+        bg: on ? "#FFFFFF" : "transparent",
+        sh: on ? "0 1px 2px rgba(20,23,26,.07)" : "none",
+        bar: on ? C : "transparent",
+        badge: badge || null,
+        bBg: crit ? "#FEF3F2" : "#FFF1ED",
+        bFg: crit ? R : "#D9451F"
+      };
+    };
+    const grupos = [
+      { label: "OPERAÇÃO", itens: [item("visao", "Visão geral"), item("agenda", "Agenda"), item("fila", "Fila de espera", "5"), item("clientes", "Clientes")] },
+      { label: "CADASTRO", itens: [item("servicos", "Serviços"), item("equipe", "Equipe"), item("horarios", "Horários")] },
+      { label: "NEGÓCIO", itens: [item("financeiro", "Financeiro"), item("perfil", "Perfil público"), item("config", "Configurações"), item("plano", "Plano e assinatura", "!", true)] },
+      { label: "COMEÇANDO", itens: [item("onboarding", "Primeiros passos")] }
+    ];
+
+    const vals = {
+      grupos: grupos,
+      titulo: atual[0],
+      subtitulo: atual[1],
+      goPlano: this.go("plano"),
+      goFila: this.go("fila"),
+      reguaHoras: ["08", "10", "12", "14", "16", "18", "20"],
+      secVisao: s === "visao",
+      secAgenda: s === "agenda",
+      secFila: s === "fila",
+      secGenerica: ["clientes","servicos","equipe","horarios","financeiro","perfil","config","plano","onboarding"].indexOf(s) >= 0
+    };
+
+    // ═══ VISÃO GERAL
+    vals.kpis = [
+      { label: "Atendimentos hoje", valor: "19", delta: "+3", dFg: G, nota: "de 24 vagas do dia" },
+      { label: "Faturamento hoje", valor: "R$ 1.480", delta: "+12%", dFg: G, nota: "média de terça: R$ 1.320" },
+      { label: "Ocupação da agenda", valor: "78%", delta: "−4%", dFg: A, nota: "2h15 livres até 20:00" },
+      { label: "Na fila agora", valor: "5", delta: "21min", dFg: A, nota: "espera média de hoje" },
+      { label: "Não comparecimento", valor: "6,2%", delta: "+1,8", dFg: R, nota: "últimos 30 dias" }
+    ];
+    vals.alertas = [
+      { tag: "CONFLITO", titulo: "Dois agendamentos às 16:30 com o Bruno", texto: "Alguém marcou pelo app enquanto você lançava no balcão.", acao: "Resolver na agenda", go: this.go("agenda"), fg: R, bd: "#F2C7C2" },
+      { tag: "COBRANÇA", titulo: "Assinatura com pendência", texto: "O cartão foi recusado na cobrança de 05/09.", acao: "Atualizar pagamento", go: this.go("plano"), fg: A, bd: "#EFDFB0" }
+    ];
+    vals.pendentes = [
+      { cliente: "Marcos Vieira", nota: "cliente desde 2024 · 18 visitas", servico: "Corte + barba", pro: "Bruno", dur: "50min", quando: "hoje 17:30", valor: "R$ 90", aprovar: this.go("agenda"), recusar: this.go("visao") },
+      { cliente: "Diego Salles", nota: "primeira vez aqui", servico: "Corte social", pro: "Léo", dur: "30min", quando: "qua 09:00", valor: "R$ 55", aprovar: this.go("agenda"), recusar: this.go("visao") },
+      { cliente: "Henrique Paz", nota: "2 faltas nos últimos 6 meses", servico: "Barba na navalha", pro: "Bruno", dur: "30min", quando: "qua 11:30", valor: "R$ 45", aprovar: this.go("agenda"), recusar: this.go("visao") },
+      { cliente: "Tiago Ramos", nota: "sinal de R$ 20 já pago", servico: "Platinado", pro: "Ana", dur: "1h40", quando: "qui 14:00", valor: "R$ 210", aprovar: this.go("agenda"), recusar: this.go("visao") }
+    ];
+    const bloco = (l, w, rot, tipo) => {
+      const m = { atend: { bg: "#F2F2F3", bd: "#E4E5E6", fg: "#3F4347" }, agora: { bg: "#FFF1ED", bd: "#FFCDC0", fg: "#D9451F" }, bloq: { bg: "#FAFAFB", bd: "#DCDCDE", fg: "#A2A5A9" } };
+      const cabeCompleto = w >= 24, cabeHora = w >= 8;
+      return Object.assign({ l: l, w: w, t: rot, rot: cabeCompleto ? rot : cabeHora ? rot.slice(0, 5) : "", mostrar: cabeHora }, m[tipo]);
+    };
+    vals.trilhas = [
+      { nome: "Bruno", blocos: [bloco(0, 12, "08:00 Corte", "atend"), bloco(13, 8, "09:30 Barba", "atend"), bloco(33, 8, "12:00 Almoço", "bloq"), bloco(46, 14, "13:30 Corte+barba", "agora"), bloco(75, 12, "17:00 Corte", "atend")] },
+      { nome: "Léo", blocos: [bloco(4, 8, "08:30 Corte", "atend"), bloco(25, 12, "11:00 Corte", "atend"), bloco(50, 8, "14:00 Barba", "agora"), bloco(62, 20, "15:30 Coloração", "atend")] },
+      { nome: "Ana", blocos: [bloco(0, 20, "08:00 Luzes", "atend"), bloco(33, 8, "12:00 Almoço", "bloq"), bloco(58, 16, "15:00 Platinado", "atend")] },
+      { nome: "Sérgio", blocos: [bloco(8, 10, "09:00 Corte", "atend"), bloco(29, 30, "11:30 Folga", "bloq"), bloco(70, 14, "16:30 Corte+barba", "atend")] }
+    ];
+    vals.semanas = [3.9, 4.2, 4.0, 4.6, 4.3, 5.1, 4.8, 5.4].map((f, i) => ({ sem: "s" + (31 + i), fat: "R$ " + f.toFixed(1).replace(".", ",") + "k", h: Math.round(46 + f * 11), linha: Math.round(46 + f * 11) - Math.round(f * 9) }));
+    vals.filaResumo = [
+      { pos: "1", nome: "Caio Bertoldo", servico: "Corte social", origem: "QR code no balcão", espera: "31min", fg: R },
+      { pos: "2", nome: "Everton Lima", servico: "Barba", origem: "balcão", espera: "18min", fg: A },
+      { pos: "3", nome: "Rui Antunes", servico: "Corte + barba", origem: "app remoto", espera: "9min", fg: "#14171A" }
+    ];
+
+    // ═══ AGENDA
+    const v = this.state.vista;
+    vals.vistas = [["dia", "Dia"], ["semana", "Semana"], ["equipe", "Equipe"]].map((x) => ({
+      label: x[1], go: () => this.setState({ vista: x[0] }),
+      fg: v === x[0] ? "#14171A" : "#71757A", bg: v === x[0] ? "#F7F7F8" : "#fff"
+    }));
+    vals.horas = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00"];
+    vals.legenda = [
+      { label: "confirmado", bg: "#F2F2F3", bd: "#E4E5E6" },
+      { label: "aguardando aprovação", bg: "#FFFBF0", bd: "#EFDFB0" },
+      { label: "conflito", bg: "#FEF3F2", bd: "#F2C7C2" }
+    ];
+    vals.legendaIcones = [{ label: "pago pelo app", ico: ICO_PAGO }, { label: "bloqueado", ico: ICO_BLOQ }];
+    vals.mostrarLegenda = v !== "equipe";
+    vals.mostrarGrade = v !== "equipe";
+    vals.mostrarEquipeGrade = v === "equipe";
+    vals.pedeProfissional = v === "semana";
+    vals.periodoLabel = v === "dia" ? "terça, 8 de setembro" : "7 — 12 de setembro";
+    vals.dicaGrade = v === "dia" ? "arraste um bloco para remarcar · clique para abrir o detalhe" : "uma pessoa por vez, para caber o nome do cliente";
+
+    const proAtivo = this.state.proSemana;
+    vals.proChips = PROS.map((p) => ({
+      nome: p[0], go: () => this.setState({ proSemana: p[0] }),
+      dot: proAtivo === p[0] ? C : "#C4C6C9",
+      bd: proAtivo === p[0] ? "#14171A" : "#ECECEC",
+      bg: proAtivo === p[0] ? "#F7F7F8" : "#fff",
+      fg: proAtivo === p[0] ? "#14171A" : "#71757A"
+    }));
+
+    const dNomes = [["Seg","07"],["Ter","08"],["Qua","09"],["Qui","10"],["Sex","11"],["Sáb","12"]];
+    const ocupDia = [[86,91,78,95,96,88],[62,74,80,71,90,84],[55,68,0,0,0,0],[48,52,0,61,58,44]];
+
+    if (v === "dia") {
+      vals.tituloGrade = null; vals.tituloGradeIni = ""; vals.tituloGradeSub = "";
+      vals.colunas = PROS.map((p, pi) => ({
+        titulo: p[0], sub: pi === 2 ? "química" : "barbeiro",
+        ocup: ocupDia[pi][1] + "%", ocupFg: ocupDia[pi][1] > 80 ? "#0E7C3E" : ocupDia[pi][1] < 60 ? A : "#71757A",
+        hdBg: "#F7F7F8", hoje: true, ags: this.blocosDeAgs(this.agsComCriados(1, pi)),
+        novoAqui: (e) => {
+          const y = e.nativeEvent ? e.nativeEvent.offsetY : 0;
+          const t = Math.max(1, Math.round((y / 60) * 2) / 2);
+          this.abrirNovo({ origem: "Terça 8, " + this.rotuloHora(t) + " · " + p[0], pro: pi, data: 1, hora: t });
+        }
+      }));
+    } else if (v === "semana") {
+      const pi = PROS.findIndex((p) => p[0] === proAtivo);
+      vals.tituloGrade = proAtivo + ", semana inteira";
+      vals.tituloGradeIni = PROS[pi][1];
+      vals.tituloGradeSub = pi === 2 ? "química · em férias de quarta a sábado" : "barbeiro · 6 dias na escala";
+      vals.colunas = dNomes.map((dn, di) => ({
+        titulo: dn[0], sub: dn[1],
+        ocup: ocupDia[pi][di] ? ocupDia[pi][di] + "%" : "folga",
+        ocupFg: !ocupDia[pi][di] ? "#A2A5A9" : ocupDia[pi][di] > 80 ? "#0E7C3E" : ocupDia[pi][di] < 60 ? A : "#71757A",
+        hdBg: di === 1 ? "#FFFFFF" : "#F7F7F8", hoje: di === 1,
+        ags: ocupDia[pi][di] ? this.blocosDeAgs(this.agsComCriados(di, pi), true) : [],
+        novoAqui: (e) => {
+          const y = e.nativeEvent ? e.nativeEvent.offsetY : 0;
+          const t = Math.max(1, Math.round((y / 60) * 2) / 2);
+          this.abrirNovo({ origem: dn[0] + " " + dn[1] + ", " + this.rotuloHora(t) + " · " + proAtivo, pro: pi, data: di, hora: t });
+        }
+      }));
+    } else {
+      vals.colunas = [];
+      vals.equipeDias = dNomes.map((d) => d[0] + " " + d[1]);
+      vals.equipeGrade = PROS.map((p, pi) => {
+        const arr = ocupDia[pi];
+        const ativos = arr.filter((x) => x > 0);
+        const media = Math.round(ativos.reduce((a, b) => a + b, 0) / (ativos.length || 1));
+        return {
+          nome: p[0], ini: p[1],
+          media: media + "%", mediaFg: media > 80 ? "#0E7C3E" : media < 60 ? A : "#14171A",
+          horas: ativos.length + " dias na escala",
+          dias: arr.map((x, di) => ({
+            pct: x ? x + "%" : "—",
+            fg: !x ? "#C4C6C9" : x > 85 ? "#0E7C3E" : x < 60 ? A : "#14171A",
+            barra: !x ? "#F2F2F3" : x > 85 ? "#12A150" : x < 60 ? A : "#8E9296",
+            w: x || 0,
+            nota: !x ? (pi === 2 ? "férias" : "folga") : Math.round(x * 0.11) + " atend.",
+            go: () => this.setState({ vista: "semana", proSemana: p[0] })
+          }))
+        };
+      });
+    }
+
+    vals.selLinhas = [
+      { k: "Quando", v: "hoje, 17:30 — 18:20", ff: MONO, fg: "#14171A" },
+      { k: "Serviço", v: "Corte + barba", ff: SANS, fg: "#14171A" },
+      { k: "Profissional", v: "Bruno", ff: SANS, fg: "#14171A" },
+      { k: "Valor", v: "R$ 90,00", ff: MONO, fg: "#14171A" },
+      { k: "Sinal", v: "R$ 20,00 pago no app", ff: MONO, fg: G },
+      { k: "Restante", v: "R$ 70,00 no balcão", ff: MONO, fg: A }
+    ];
+    vals.selResumo = [
+      { k: "visitas em 12 meses", v: "12", fg: "#14171A" },
+      { k: "faltas", v: "1", fg: A },
+      { k: "gasto no ano", v: "R$ 980", fg: "#14171A" }
+    ];
+    vals.selHist = [
+      { data: "12 ago", servico: "Corte + barba", valor: "R$ 90" },
+      { data: "22 jul", servico: "Corte social", valor: "R$ 55" },
+      { data: "28 jun", servico: "Corte + barba", valor: "R$ 85" }
+    ];
+
+    // ═══ FILA
+    const or = { balcao: ["balcão", "#3F4347"], qr: ["QR code no local", "#0E7C3E"], app: ["app remoto", C] };
+    vals.fila = [
+      ["1", "Caio Bertoldo", "Corte social", "Léo", "14:01", "31min", "qr", true],
+      ["2", "Everton Lima", "Barba na navalha", "Bruno", "14:14", "18min", "balcao", false],
+      ["3", "Rui Antunes", "Corte + barba", "qualquer um", "14:23", "9min", "app", false],
+      ["4", "Jonas Bonfim", "Corte social", "Sérgio", "14:27", "5min", "balcao", false],
+      ["5", "Pedro Aguiar", "Máquina", "qualquer um", "14:30", "2min", "qr", false]
+    ].map((q) => ({
+      pos: q[0], nome: q[1], servico: q[2], pro: q[3], entrou: q[4], espera: q[5],
+      origem: or[q[6]][0], origemFg: or[q[6]][1],
+      rowBg: q[7] ? "#FFFBF7" : "#fff",
+      posFg: q[7] ? C : "#A2A5A9",
+      esperaFg: q[7] ? R : parseInt(q[5]) > 15 ? A : "#14171A"
+    }));
+    vals.preFila = [
+      { nome: "Fábio Duarte", servico: "Corte + barba", prazo: "confirma até 14:45", avisado: "14:20" },
+      { nome: "Nelson Castro", servico: "Barba", prazo: "confirma até 15:10", avisado: "14:28" }
+    ];
+    vals.filaHist = [
+      ["seg 07","24","23","19min","38min","18:30",false],
+      ["sáb 05","41","38","34min","1h12","11:00",true],
+      ["sex 04","33","33","26min","54min","18:00",true],
+      ["qui 03","22","22","14min","29min","19:00",false],
+      ["qua 02","19","18","12min","24min","12:30",false],
+      ["ter 01","21","20","17min","31min","17:30",false]
+    ].map((h) => ({
+      dia: h[0], entraram: h[1], atendidos: h[2], media: h[3], pico: h[4], horaPico: h[5],
+      mFg: h[6] ? R : "#14171A", pFg: h[6] ? R : "#71757A"
+    }));
+    vals.origens = [
+      { label: "QR code no balcão", n: "14", pct: 52, c: "#0E7C3E" },
+      { label: "Atendente no balcão", n: "8", pct: 30, c: "#3F4347" },
+      { label: "App, antes de chegar", n: "5", pct: 18, c: C }
+    ];
+
+    Object.assign(vals, this.painelVals());
+    vals.blocos = this.blocosDa(s);
+    return vals;
+  }
+
+  painelVals() {
+    const s = this.state;
+    const v = {
+      novoAberto: s.novoAberto,
+      abrirNovo: () => this.abrirNovo(),
+      tentarFechar: () => this.tentarFechar(),
+      pedirDescarte: s.nDescarte,
+      confirmarDescarte: () => this.setState({ novoAberto: false, nDescarte: false }),
+      voltarAoPainel: () => this.setState({ nDescarte: false }),
+      novoOrigem: s.nOrigem,
+      painelOpacidade: s.nSalvando ? "0.72" : "1",
+      painelEventos: s.nSalvando ? "none" : "auto",
+      toast: s.toast, toastSeg: s.toastSeg + "s",
+      toastSub: s.criados.length ? s.criados[s.criados.length - 1].cliente + " foi avisado pelo app." : "",
+      desfazer: () => this.desfazer(),
+      irServicos: () => this.setState({ novoAberto: false, sec: "servicos" })
+    };
+    if (!s.novoAberto) return v;
+
+    // ── 1. cliente
+    const cli = s.nCli;
+    v.pCliSelecionado = !!cli;
+    v.pCliTrocar = !!cli;
+    v.limparCliente = () => this.setState({ nCli: null, nBuscaCli: "" });
+    if (cli) {
+      v.pCliNome = cli.nome; v.pCliTel = cli.tel;
+      v.pCliIni = cli.nome.split(" ").map((x) => x.charAt(0)).slice(0, 2).join("");
+      v.pCliVisitas = String(cli.visitas);
+      v.pCliFaltas = String(cli.faltas);
+      v.pCliFaltasFg = cli.faltas >= 2 ? R : cli.faltas === 1 ? A : "#14171A";
+      v.pCliHist = cli.hist.map((h) => ({ data: h[0], servico: h[1], valor: h[2] }));
+    } else { v.pCliHist = null; }
+
+    const q = s.nBuscaCli.trim().toLowerCase();
+    const achados = q.length >= 2 ? BASE_CLIENTES.filter((c) => c.nome.toLowerCase().indexOf(q) >= 0 || c.tel.indexOf(q) >= 0) : [];
+    v.pCliBusca = !cli && !s.nCadastro;
+    v.pBuscaCli = s.nBuscaCli;
+    v.digitarCliente = (e) => this.setState({ nBuscaCli: e.target.value });
+    v.pCliResultados = achados.length ? achados.map((c) => ({
+      nome: c.nome, tel: c.tel,
+      ini: c.nome.split(" ").map((x) => x.charAt(0)).slice(0, 2).join(""),
+      stats: c.visitas + " visitas · " + c.faltas + (c.faltas === 1 ? " falta" : " faltas"),
+      escolher: () => this.setState({ nCli: c, nBuscaCli: "" })
+    })) : null;
+    v.pCliVazio = !cli && !s.nCadastro && q.length >= 2 && achados.length === 0;
+    v.pCliOferecerCadastro = !cli && !s.nCadastro && !v.pCliVazio;
+    v.pCadastro = s.nCadastro;
+    v.abrirCadastro = () => this.setState({ nCadastro: true, nNome: q.length >= 2 ? s.nBuscaCli : "" });
+    v.cancelarCadastro = () => this.setState({ nCadastro: false, nNome: "", nTel: "" });
+    v.pNovoNome = s.nNome; v.pNovoTel = s.nTel;
+    v.digitarNome = (e) => this.setState({ nNome: e.target.value });
+    v.digitarTel = (e) => this.setState({ nTel: e.target.value });
+    const podeSalvarCli = s.nNome.trim().length > 2 && s.nTel.trim().length >= 8;
+    v.pSalvarCliBg = podeSalvarCli ? C : "#DCDCDE";
+    v.salvarCliente = () => {
+      if (!podeSalvarCli) return;
+      this.setState({ nCli: { nome: s.nNome.trim(), tel: s.nTel.trim(), visitas: 0, faltas: 0, hist: [] }, nCadastro: false, nBuscaCli: "" });
+    };
+    v.pCliDot = cli ? "✓" : "1";
+    v.pCliDotBg = cli ? G : "#fff"; v.pCliDotBd = cli ? G : C; v.pCliDotFg = cli ? "#fff" : C;
+
+    // ── 2. serviço
+    const sv = this.servico();
+    v.pMostrarServico = !!cli;
+    v.pSvEscolhido = !!sv;
+    v.pSvLista = !sv;
+    v.limparServico = () => this.recalcular({ nSv: null, nPro: null, nHora: null });
+    v.pBuscaSv = s.nBuscaSv;
+    v.digitarServico = (e) => this.setState({ nBuscaSv: e.target.value });
+    if (sv) {
+      let cat = "";
+      CAT_SERV.forEach((c) => c.itens.forEach((i) => { if (i.nome === sv.nome) cat = c.nome.charAt(0) + c.nome.slice(1).toLowerCase(); }));
+      v.pSvNome = sv.nome; v.pSvCat = cat; v.pSvPreco = "R$ " + sv.preco; v.pSvDur = sv.durLabel;
+    }
+    const qs = s.nBuscaSv.trim().toLowerCase();
+    v.pSvCategorias = CAT_SERV.map((c) => ({
+      nome: c.nome,
+      itens: c.itens.filter((i) => !qs || i.nome.toLowerCase().indexOf(qs) >= 0).map((i) => ({
+        nome: i.nome, dur: i.durLabel, preco: "R$ " + i.preco,
+        escolher: () => this.recalcular({ nSv: i.nome, nBuscaSv: "", nPro: i.pros.length === 1 ? i.pros[0] : null, nHora: null })
+      }))
+    })).filter((c) => c.itens.length);
+    v.pSvDot = sv ? "✓" : "2";
+    v.pSvDotBg = sv ? G : "#fff"; v.pSvDotBd = sv ? G : C; v.pSvDotFg = sv ? "#fff" : C;
+
+    // ── 3. profissional
+    v.pMostrarPro = !!sv;
+    const habil = sv ? sv.pros : [];
+    v.pProSemHabilitado = !!sv && habil.length === 0;
+    v.pProNota = sv ? (habil.length ? habil.length + " habilitados" : "nenhum habilitado") : "";
+    const marcaRadio = (on) => ({ radioBd: on ? C : "#DCDCDE", radioBg: "#fff", radioDot: on ? C : "transparent", bd: on ? C : "#ECECEC", bg: on ? "#FFFBF7" : "#fff" });
+    v.pProOpcoes = habil.length ? [{ i: -1, nome: "Qualquer disponível", ini: "★", nota: "quem tiver o horário livre primeiro" }].concat(
+      habil.map((pi) => ({ i: pi, nome: PROS[pi][0], ini: PROS[pi][1], nota: OCUP[pi][s.nData] ? OCUP[pi][s.nData] + "% da agenda ocupada" : (pi === 2 ? "de férias nesta data" : "de folga nesta data") }))
+    ).map((o) => Object.assign({
+      nome: o.nome, ini: o.ini, nota: o.nota,
+      escolher: () => this.recalcular({ nPro: o.i, nHora: null })
+    }, marcaRadio(s.nPro === o.i))) : null;
+    v.pProDot = s.nPro != null ? "✓" : "3";
+    v.pProDotBg = s.nPro != null ? G : "#fff"; v.pProDotBd = s.nPro != null ? G : C; v.pProDotFg = s.nPro != null ? "#fff" : C;
+
+    // ── 4. data e horário
+    v.pMostrarData = !!sv && s.nPro != null;
+    const pi = s.nPro === -1 ? 0 : (s.nPro == null ? 0 : s.nPro);
+    const temPro = !!sv && s.nPro != null;
+    v.pDatas = DIAS6.map((d, di) => {
+      const on = s.nData === di;
+      const oc = temPro ? OCUP[pi][di] : 0;
+      return {
+        dow: d[0], dia: d[1], nota: oc ? oc + "%" : "folga",
+        bd: on ? "#14171A" : "#ECECEC", bg: on ? "#F7F7F8" : "#fff",
+        fg: on ? "#14171A" : "#3F4347", subFg: on ? "#71757A" : "#A2A5A9",
+        escolher: () => this.recalcular({ nData: di, nHora: null })
+      };
+    });
+    const dur = sv ? sv.dur : 1;
+    const livres = temPro ? this.livres(s.nData, pi, dur) : [];
+    v.pDtNota = sv ? sv.durLabel + " · buffer 10min" : "";
+    v.pHorariosCarregando = s.nCarregando;
+    v.pSkeleton = [1,2,3,4,5,6,7,8].map((x) => ({ x: x }));
+    v.pHorariosNota = !temPro || s.nCarregando ? "" : (livres.length ? livres.length + " vagas para " + (s.nPro === -1 ? "quem estiver livre" : PROS[pi][0]) : "");
+    const lista = s.nConflito != null && livres.indexOf(s.nConflito) < 0 ? livres.concat([s.nConflito]).sort((a, b) => a - b) : livres;
+    v.pHorarios = temPro && !s.nCarregando && lista.length ? lista.map((t) => {
+      const confl = s.nConflito === t;
+      const on = s.nHora === t;
+      return {
+        label: this.rotuloHora(t), tip: this.rotuloHora(t) + " — " + this.rotuloHora(t + dur),
+        bd: confl ? "#F2C7C2" : on ? C : "#ECECEC",
+        bg: confl ? "#FEF3F2" : on ? "#FFF1ED" : "#fff",
+        fg: confl ? R : on ? "#D9451F" : "#14171A",
+        escolher: confl ? () => {} : () => this.setState({ nHora: t, nErro: "" })
+      };
+    }) : null;
+    v.pConflitoMsg = temPro && s.nConflito != null ? "Enquanto você preenchia, alguém marcou " + this.rotuloHora(s.nConflito) + " com " + PROS[pi][0] + " pelo app. Escolha outro horário — o resto continua preenchido." : null;
+    const semVaga = temPro && !s.nCarregando && lista.length === 0;
+    v.pDiaLotado = semVaga;
+    if (semVaga) {
+      const oc = OCUP[pi][s.nData];
+      v.pDiaLotadoTitulo = !oc ? (pi === 2 ? PROS[pi][0] + " está de férias neste dia" : PROS[pi][0] + " não está na escala neste dia") : "Dia sem vaga para " + sv.durLabel;
+      v.pDiaLotadoTexto = !oc ? "Fora da escala não existe vaga, mesmo com o estabelecimento aberto." : "A agenda está " + oc + "% ocupada e os vãos livres são menores que a duração deste serviço, contando o buffer de 10 minutos.";
+      const sug = DIAS6.map((d, di) => ({ di: di, d: d })).filter((x) => x.di !== s.nData && this.livres(x.di, pi, dur).length)
+        .slice(0, 3).map((x) => ({
+          dia: x.d[0] + " " + x.d[1], vagas: this.livres(x.di, pi, dur).length + " vagas",
+          escolher: () => this.recalcular({ nData: x.di, nHora: null })
+        }));
+      v.pSugestoes = sug.length ? sug : null;
+      v.pSemSugestao = sug.length ? null : "Nenhum dia desta semana tem vaga para " + sv.durLabel + (s.nPro === -1 ? "" : " com " + PROS[pi][0]) + ". Tente outro profissional ou avance para a semana seguinte.";
+    }
+    v.pDtDot = s.nHora != null ? "✓" : "4";
+    v.pDtDotBg = s.nHora != null ? G : "#fff"; v.pDtDotBd = s.nHora != null ? G : C; v.pDtDotFg = s.nHora != null ? "#fff" : C;
+
+    // ── 5. pagamento
+    v.pMostrarPgto = s.nHora != null && !!sv;
+    if (v.pMostrarPgto) {
+      const exigeSinal = sv.preco > 100;
+      const sinal = exigeSinal ? Math.round(sv.preco * 0.3) : 0;
+      v.pPgtoRegra = exigeSinal ? "sinal de 30% para serviços acima de R$ 100" : "sem sinal para este valor";
+      v.pValores = [
+        { k: "Total do serviço", v: "R$ " + sv.preco + ",00", fg: "#14171A" },
+        { k: exigeSinal ? "Sinal (30%)" : "Sinal", v: exigeSinal ? "R$ " + sinal + ",00" : "não exigido", fg: exigeSinal ? G : "#A2A5A9" },
+        { k: "Restante no balcão", v: "R$ " + (sv.preco - sinal) + ",00", fg: "#14171A" }
+      ];
+      const ops = exigeSinal
+        ? [["cobrar", "Cobrar sinal agora", "Link de pagamento enviado no app; expira em 2 horas."], ["pendente", "Registrar sinal como pendente", "Fica marcado como não pago e o cliente é lembrado."]]
+        : [["app", "Pagar pelo app", "A Vez recebe e repassa em até 2 dias úteis, taxa de 4%."], ["balcao", "Pagar no balcão", "Você recebe direto, sem taxa."]];
+      v.pPgtoOpcoes = ops.map((o) => ({
+        label: o[1], nota: o[2],
+        radioBd: s.nPgto === o[0] ? C : "#DCDCDE", radioDot: s.nPgto === o[0] ? C : "transparent",
+        bd: s.nPgto === o[0] ? C : "#ECECEC", bg: s.nPgto === o[0] ? "#FFFBF7" : "#fff",
+        escolher: () => this.setState({ nPgto: o[0] })
+      }));
+    }
+
+    // ── 6. observação
+    v.pMostrarObs = s.nHora != null;
+    v.pObs = s.nObs;
+    v.digitarObs = (e) => this.setState({ nObs: e.target.value });
+
+    // ── rodapé
+    const falta = [];
+    if (!cli) falta.push("cliente");
+    if (!sv) falta.push("serviço");
+    if (s.nPro == null) falta.push("profissional");
+    if (s.nHora == null) falta.push("horário");
+    const ok = falta.length === 0;
+    v.pResumo = ok
+      ? (cli.nome + " · " + sv.nome + " · " + (s.nPro === -1 ? "qualquer disponível" : PROS[pi][0]) + " · " + DIAS6[s.nData][0] + " " + DIAS6[s.nData][1] + ", " + this.rotuloHora(s.nHora) + " — " + this.rotuloHora(s.nHora + sv.dur))
+      : "Preencha as seções acima para montar o agendamento.";
+    v.pResumoFg = ok ? "#14171A" : "#A2A5A9";
+    v.pCriarLabel = s.nSalvando ? "Salvando…" : ok ? "Criar agendamento" : "Falta " + falta[0];
+    v.pCriarBg = ok && !s.nSalvando ? C : "#EDEDEF";
+    v.pCriarFg = ok || s.nSalvando ? "#fff" : "#A2A5A9";
+    v.pCriarCursor = ok ? "pointer" : "not-allowed";
+    v.pCriarTitle = ok ? "Criar agendamento" : "Ainda falta: " + falta.join(", ");
+    v.pFaltando = ok ? null : "Ainda falta escolher: " + falta.join(", ") + ".";
+    v.pSalvando = s.nSalvando;
+    v.pErroMsg = s.nErro || null;
+    v.criar = () => this.criar();
+    v.pSimular = [["ok", "SUCESSO"], ["conflito", "CONFLITO"], ["erro", "ERRO"]].map((x) => ({
+      label: x[1], fg: s.nSim === x[0] ? C : "#C4C6C9", go: () => this.setState({ nSim: x[0], nErro: "", nConflito: null })
+    }));
+    return v;
+  }
+
+  blocosDa(s) {
+    const self = this;
+    const chip = (l, on, r) => ({ label: l, bd: on ? "#14171A" : "#ECECEC", bg: on ? "#F7F7F8" : "#fff", fg: on ? "#14171A" : "#71757A", r: r || "20px" });
+    const K = (label, valor, delta, dFg, nota) => ({ label, valor, delta, dFg, nota });
+
+    if (s === "clientes") return [
+      { isBarra: true, chips: [chip("Todos", true), chip("Não voltam há 90 dias", false), chip("Maiores gastos", false), chip("Mais faltas", false)], nota: "412 clientes · 38 novos em agosto", cta: "Exportar CSV" },
+      { isTabela: true, gc: "1.7fr 1.1fr .9fr .9fr 1.1fr 1fr .8fr",
+        cols: [{t:"CLIENTE ↑",a:"left"},{t:"CONTATO",a:"left"},{t:"VISITAS 12M",a:"right"},{t:"ATEND. TOTAL",a:"right"},{t:"ÚLTIMO ATENDIMENTO",a:"right"},{t:"ACUMULADO",a:"right"},{t:"FALTAS",a:"right"}],
+        linhas: [
+          ["Marcos Vieira","cliente desde 2024","(11) 98812-4471","12","18","12 ago 2026","R$ 1.420","0"],
+          ["Ana Lúcia Prado","assina o combo mensal","(11) 99730-2210","19","26","29 ago 2026","R$ 2.680","1"],
+          ["Henrique Paz","2 faltas recentes","(11) 97441-8865","5","9","03 jul 2026","R$ 480","2"],
+          ["Caio Bertoldo","prefere o Léo","(11) 98115-9032","11","14","08 set 2026","R$ 990","0"],
+          ["Diego Salles","primeira visita hoje","(11) 96620-1177","1","1","08 set 2026","R$ 55","0"],
+          ["Rui Antunes","vem de dois em dois meses","(11) 99012-4488","6","7","19 jun 2026","R$ 560","1"],
+          ["Tiago Ramos","sempre paga pelo app","(11) 98330-7742","17","21","30 ago 2026","R$ 3.150","0"],
+          ["Everton Lima","só barba","(11) 97788-0091","10","12","08 set 2026","R$ 540","0"],
+          ["Jonas Bonfim","indicou 3 amigos","(11) 96633-1200","13","16","05 set 2026","R$ 1.180","0"],
+          ["Nelson Castro","não volta desde março","(11) 98844-2091","2","4","14 mar 2026","R$ 260","1"]
+        ].map((c) => ({ cels: [
+          cel(c[0], { w: "600", sub: c[1] }),
+          cel(c[2], { ff: MONO, fs: "12px", fg: "#71757A" }),
+          num(c[3], { w: "600", fs: "13.5px" }),
+          num(c[4], { fg: "#71757A" }),
+          num(c[5], { fg: c[5].indexOf("mar") >= 0 || c[5].indexOf("jun") >= 0 ? A : "#14171A" }),
+          num(c[6], { w: "600" }),
+          num(c[7], { fg: c[7] === "2" ? R : c[7] === "1" ? A : "#71757A" })
+        ] }))
+      }
+    ];
+
+    if (s === "servicos") return [
+      { isBarra: true, chips: [chip("3 selecionados", true, "8px"), chip("Reajustar preço", false, "8px"), chip("Ativar", false, "8px"), chip("Desativar", false, "8px")], nota: "14 serviços · ticket médio R$ 74", cta: "Novo serviço" },
+      { isTabela: true, titulo: "Cortes e barba", sub: "6 serviços · ticket médio R$ 68", gc: "2.2fr .8fr .9fr 1.4fr .9fr",
+        cols: [{t:"SERVIÇO",a:"left"},{t:"PREÇO",a:"right"},{t:"DURAÇÃO",a:"right"},{t:"QUEM EXECUTA",a:"left"},{t:"SITUAÇÃO",a:"right"}],
+        linhas: [
+          ["Corte social","máquina e tesoura, sem barba","R$ 55","30min","Bruno · Léo · Sérgio","ativo"],
+          ["Corte + barba","o mais vendido da casa","R$ 90","50min","Bruno · Léo","ativo"],
+          ["Barba na navalha","toalha quente e balm","R$ 45","30min","Bruno · Sérgio","ativo"],
+          ["Máquina","um comprimento só","R$ 35","20min","todos","ativo"],
+          ["Pezinho","retoque entre cortes","R$ 20","15min","todos","ativo"],
+          ["Corte infantil","até 10 anos","R$ 45","30min","Léo","pausado"]
+        ].map((r) => ({ cels: [
+          cel(r[0], { w: "600", sub: r[1] }),
+          num(r[2], { fs: "13.5px", w: "600" }), num(r[3], { fg: "#71757A" }),
+          cel(r[4], { ff: MONO, fs: "11.5px", fg: "#71757A" }),
+          cel(r[5], { a: "right", w: "600", fs: "12px", fg: r[5] === "ativo" ? G : A })
+        ] }))
+      },
+      { isTabela: true, titulo: "Coloração e química", sub: "5 serviços · ticket médio R$ 186", gc: "2.2fr .8fr .9fr 1.4fr .9fr",
+        cols: [{t:"SERVIÇO",a:"left"},{t:"PREÇO",a:"right"},{t:"DURAÇÃO",a:"right"},{t:"QUEM EXECUTA",a:"left"},{t:"SITUAÇÃO",a:"right"}],
+        linhas: [
+          ["Platinado","descoloração e matização","R$ 210","1h40","Ana","ativo"],
+          ["Luzes","papel alumínio","R$ 180","1h30","Ana","ativo"],
+          ["Coloração completa","cobertura de brancos","R$ 150","1h20","Ana · Léo","ativo"],
+          ["Matização","manutenção do loiro","R$ 90","40min","Ana","ativo"],
+          ["Relaxamento","alisamento sem formol","R$ 220","2h","Ana","desativado"]
+        ].map((r) => ({ cels: [
+          cel(r[0], { w: "600", sub: r[1] }),
+          num(r[2], { fs: "13.5px", w: "600" }), num(r[3], { fg: "#71757A" }),
+          cel(r[4], { ff: MONO, fs: "11.5px", fg: "#71757A" }),
+          cel(r[5], { a: "right", w: "600", fs: "12px", fg: r[5] === "ativo" ? G : "#71757A" })
+        ] }))
+      }
+    ];
+
+    if (s === "equipe") return [{ isCards: true, itens: [
+      { ini: "B", nome: "Bruno Salvador", funcao: "Barbeiro · sócio", acesso: "Acesso total", acFg: "#14171A", acBd: "#ECECEC", bd: "#ECECEC", bs: "solid",
+        stats: [{k:"horas na semana",v:"38h",fg:"#14171A"},{k:"ocupação",v:"91%",fg:"#0E7C3E"},{k:"faturou no mês",v:"R$ 9.240",fg:"#14171A"}],
+        tags: ["Corte social","Corte + barba","Barba na navalha","Máquina"].map((t) => ({ t })) },
+      { ini: "L", nome: "Léo Ferraz", funcao: "Barbeiro", acesso: "Só a própria agenda", acFg: "#71757A", acBd: "#ECECEC", bd: "#ECECEC", bs: "solid",
+        stats: [{k:"horas na semana",v:"36h",fg:"#14171A"},{k:"ocupação",v:"74%",fg:"#14171A"},{k:"faturou no mês",v:"R$ 6.810",fg:"#14171A"}],
+        tags: ["Corte social","Corte + barba","Corte infantil","Coloração completa"].map((t) => ({ t })) },
+      { ini: "A", nome: "Ana Rocha", funcao: "Cabeleireira · química", acesso: "Agenda e clientes", acFg: "#71757A", acBd: "#ECECEC", bd: "#ECECEC", bs: "solid",
+        stats: [{k:"horas na semana",v:"30h",fg:"#14171A"},{k:"ocupação",v:"68%",fg:A},{k:"faturou no mês",v:"R$ 7.520",fg:"#14171A"}],
+        tags: ["Platinado","Luzes","Coloração completa","Matização"].map((t) => ({ t })) },
+      { ini: "S", nome: "Sérgio Alcântara", funcao: "Barbeiro · meio período", acesso: "Só a própria agenda", acFg: "#71757A", acBd: "#ECECEC", bd: "#ECECEC", bs: "solid",
+        stats: [{k:"horas na semana",v:"20h",fg:"#14171A"},{k:"ocupação",v:"52%",fg:A},{k:"faturou no mês",v:"R$ 3.150",fg:"#14171A"}],
+        tags: ["Corte social","Barba na navalha","Pezinho"].map((t) => ({ t })) },
+      { ini: "", nome: "Convidar profissional", funcao: "Ele recebe um e-mail, cria a senha e já aparece na agenda. Começa vendo só a própria agenda.", bd: "#DCDCDE", bs: "dashed", cta: "Enviar convite", ph: "email@exemplo.com" }
+    ] }];
+
+    if (s === "horarios") {
+      const dias = ["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"];
+      const faixas = ["09:00 — 20:00","09:00 — 20:00","09:00 — 20:00","09:00 — 21:00","09:00 — 21:00","08:00 — 18:00","fechado"];
+      const c34 = (faixa, nota, tipo) => {
+        const m = { on: { bg: "#F2F2F3", bd: "#E4E5E6", fg: "#3F4347" }, folga: { bg: "#FAFAFB", bd: "#DCDCDE", fg: "#A2A5A9" }, meio: { bg: "#FFFBF0", bd: "#EFDFB0", fg: "#B07E00" }, fer: { bg: "#FFF1ED", bd: "#FFCDC0", fg: "#D9451F" } };
+        return Object.assign({ faixa, nota }, m[tipo]);
+      };
+      return [
+        { isLista: true, titulo: "Funcionamento do estabelecimento", sub: "Ninguém consegue agendar fora destes horários.",
+          itens: dias.map((d, i) => ({ label: d, desc: i === 6 ? "Fechado. Nem fila, nem agendamento." : "Intervalo de almoço 12:00 — 13:00 fica bloqueado automaticamente.", valor: faixas[i], fg: i === 6 ? "#A2A5A9" : "#14171A", temSw: true, swBg: i === 6 ? "#DCDCDE" : G, swL: i === 6 ? 2 : 18, toggle: () => {} })) },
+        { isLista: true, titulo: "Intervalo entre atendimentos", sub: "Tempo de respiro para limpar a estação e receber o próximo.",
+          itens: [{ label: "Buffer padrão", desc: "Aplica a todos os serviços. Dá para mudar serviço por serviço.", valor: "10 minutos", fg: "#14171A" }] },
+        { isEscala: true, titulo: "Escala da equipe, semana de 7 a 12 de setembro",
+          legenda: [{c:"#E4E5E6",label:"trabalha"},{c:"#FAFAFB",label:"folga"},{c:"#EFDFB0",label:"meio período"},{c:"#FFCDC0",label:"férias ou feriado"}],
+          dias: ["Seg 07","Ter 08","Qua 09","Qui 10","Sex 11","Sáb 12"],
+          linhas: [
+            { nome: "Bruno", dias: [c34("09—20","","on"),c34("09—20","","on"),c34("09—20","","on"),c34("09—21","","on"),c34("09—21","","on"),c34("08—18","","on")] },
+            { nome: "Léo", dias: [c34("—","folga","folga"),c34("09—20","","on"),c34("09—20","","on"),c34("09—21","","on"),c34("09—21","","on"),c34("08—18","","on")] },
+            { nome: "Ana", dias: [c34("13—20","meio","meio"),c34("09—20","","on"),c34("—","férias","fer"),c34("—","férias","fer"),c34("—","férias","fer"),c34("—","férias","fer")] },
+            { nome: "Sérgio", dias: [c34("14—20","meio","meio"),c34("14—20","meio","meio"),c34("—","folga","folga"),c34("14—21","meio","meio"),c34("14—21","meio","meio"),c34("08—14","meio","meio")] }
+          ] },
+        { isCamadas: true, titulo: "O que o cliente vê como vaga", sub: "Funcionamento, menos quem não está na escala, menos o que já está agendado. Bruno, quarta 9.",
+          camadas: [
+            { label: "Funcionamento", nota: "09:00 — 20:00", labelFg: "#71757A", h: 16, blocos: Array.from({length:24}).map((_,i)=>({ c: i < 2 ? "#F2F2F3" : "#DCDCDE" })) },
+            { label: "Escala do Bruno", nota: "integral, almoço 12h", labelFg: "#71757A", h: 16, blocos: Array.from({length:24}).map((_,i)=>({ c: (i < 2 || i === 8 || i === 9) ? "#F2F2F3" : "#B8BBBE" })) },
+            { label: "Já agendado", nota: "7 atendimentos", labelFg: "#71757A", h: 16, blocos: Array.from({length:24}).map((_,i)=>({ c: [4,5,6,10,11,14,15,18,19,20].indexOf(i)>=0 ? "#8E9296" : "#F2F2F3" })) },
+            { label: "Sobra para o cliente", nota: "9 vagas de 30min", labelFg: C, h: 24, blocos: Array.from({length:24}).map((_,i)=>({ c: (i>=2 && i!==8 && i!==9 && [4,5,6,10,11,14,15,18,19,20].indexOf(i)<0) ? C : "#F7F7F8" })) }
+          ],
+          vagas: ["09:30","10:00","11:30","13:30","14:00","16:30","17:00","18:30","19:00"] }
+      ];
+    }
+
+    if (s === "financeiro") {
+      const dias31 = Array.from({ length: 31 }).map((_, i) => {
+        const dow = (i + 1) % 7;
+        const base = dow === 0 ? 8 : dow === 6 ? 122 : dow === 5 ? 108 : 70 + ((i * 17) % 30);
+        return { h: Math.round(base * 1.15), c: dow === 0 ? "#EDEDEF" : dow >= 5 ? C : "#C4C6C9", t: "dia " + (i + 1) + " · R$ " + (base * 14) };
+      });
+      return [
+        { isBarra: true, chips: [chip("Semana", false, "8px"), chip("Mês", true, "8px"), chip("Trimestre", false, "8px"), chip("Ano", false, "8px")], nota: "01 ago — 31 ago 2026 · comparado com julho", cta: "Exportar CSV" },
+        { isKpis: true, gc: "repeat(4,minmax(0,1fr))", itens: [
+          K("Faturamento do mês", "R$ 38.720", "+14,2%", G, "julho: R$ 33.910"),
+          K("Ticket médio", "R$ 74", "+R$ 6", G, "523 atendimentos"),
+          K("Recebido pelo app", "R$ 12.480", "32%", "#71757A", "do faturamento total"),
+          K("A caminho da conta", "R$ 2.910", "cai 11/09", A, "repasse em até 2 dias úteis")
+        ] },
+        { isGrafico: true, titulo: "Faturamento dia a dia", sub: "coral = sexta e sábado, os dois dias que carregam o mês", barras: dias31, eixo: ["01","07","14","21","28","31"] },
+        { isTabela: true, titulo: "Desempenho por profissional", sub: "agosto de 2026", gc: "1.7fr .8fr .9fr 1.1fr 1fr",
+          cols: [{t:"PROFISSIONAL",a:"left"},{t:"ATEND.",a:"right"},{t:"TICKET",a:"right"},{t:"FATUROU",a:"right"},{t:"OCUPAÇÃO",a:"right"}],
+          linhas: [
+            ["Bruno Salvador","178","R$ 74","R$ 13.170","91%"],
+            ["Ana Rocha","61","R$ 168","R$ 10.248","68%"],
+            ["Léo Ferraz","149","R$ 63","R$ 9.387","74%"],
+            ["Sérgio Alcântara","135","R$ 44","R$ 5.915","52%"]
+          ].map((r) => ({ cels: [
+            cel(r[0], { w: "600" }), num(r[1]), num(r[2]),
+            num(r[3], { w: "600", fs: "13.5px" }),
+            num(r[4], { fg: parseInt(r[4]) > 80 ? G : parseInt(r[4]) < 60 ? A : "#14171A" })
+          ] }))
+        },
+        { isTabela: true, titulo: "Serviços mais vendidos", sub: "e o quanto cada um pesa no faturamento", gc: "2fr .8fr 1fr 1fr 1.6fr",
+          cols: [{t:"SERVIÇO",a:"left"},{t:"VEZES",a:"right"},{t:"FATUROU",a:"right"},{t:"% DO TOTAL",a:"right"},{t:"",a:"right"}],
+          linhas: [
+            ["Corte + barba","201","R$ 18.090","46,7%",47],
+            ["Corte social","166","R$ 9.130","23,6%",24],
+            ["Platinado","38","R$ 7.980","20,6%",21],
+            ["Barba na navalha","72","R$ 3.240","8,4%",8]
+          ].map((r) => ({ cels: [
+            cel(r[0], { w: "600" }), num(r[1]), num(r[2], { w: "600" }), num(r[3]),
+            cel("", { a: "right", barra: { pct: r[4], c: "#8E9296" } })
+          ] }))
+        },
+        { isTabela: true, titulo: "Recebimentos do app", sub: "o que a Vez já repassou e o que ainda está a caminho", gc: "1.2fr 1fr 1fr 1.2fr 1.2fr",
+          cols: [{t:"PERÍODO",a:"left"},{t:"BRUTO",a:"right"},{t:"TAXA",a:"right"},{t:"LÍQUIDO",a:"right"},{t:"SITUAÇÃO",a:"right"}],
+          linhas: [
+            ["01 — 07 set","R$ 2.910","R$ 116","R$ 2.794","a caminho, cai 11/09",A],
+            ["25 — 31 ago","R$ 3.180","R$ 127","R$ 3.053","repassado 04/09",G],
+            ["18 — 24 ago","R$ 2.740","R$ 110","R$ 2.630","repassado 28/08",G],
+            ["11 — 17 ago","R$ 3.410","R$ 136","R$ 3.274","repassado 21/08",G]
+          ].map((r) => ({ cels: [
+            cel(r[0], { ff: MONO, w: "600" }), num(r[1]), num(r[2], { fg: "#71757A" }),
+            num(r[3], { w: "600", fs: "13.5px" }),
+            cel(r[4], { a: "right", w: "600", fs: "12px", fg: r[5] })
+          ] }))
+        }
+      ];
+    }
+
+    if (s === "perfil") return [{
+      isPerfil: true,
+      fotos: [{rot:"fachada"},{rot:"cadeira 1"},{rot:"corte pronto"},{rot:"+ adicionar"}],
+      campos: [
+        { label: "Descrição que aparece no app", valor: "Corte clássico e barba feita à navalha. Sem enrolação, no horário. Estamos na Vila Mariana desde 2019." },
+        { label: "Endereço", valor: "Rua Joaquim Távora, 412 — Vila Mariana, São Paulo" },
+        { label: "Telefone e WhatsApp", valor: "(11) 3271-0088 · (11) 99730-2210" },
+        { label: "Instagram", valor: "@cortereto.sp" }
+      ],
+      cores: ["#1F6FEB","#14171A","#0E7C3E","#8B3A1E","#6D3AC7"].map((c) => ({ c: c, bd: c === this.state.cor ? "#14171A" : "transparent", go: () => self.setState({ cor: c }) })),
+      corAtual: this.state.cor,
+      vagas: ["09:30","10:00","11:30","13:30"]
+    }];
+
+    if (s === "config") return [
+      { isLista: true, titulo: "Regras de agendamento", sub: "Como os pedidos de horário chegam até você.", itens: [
+        { label: "Aprovar cada pedido na mão", desc: "Nada entra na sua agenda sem você dizer sim. Se desligar, o horário é confirmado na hora.", temSw: true, swBg: G, swL: 18, toggle: () => {} },
+        { label: "Antecedência mínima", desc: "O cliente não consegue marcar para daqui a menos de 2 horas.", valor: "2 horas", fg: "#14171A" },
+        { label: "Cancelar sem custo até", desc: "Depois desse prazo, o sinal não volta.", valor: "12 horas antes", fg: "#14171A" },
+        { label: "Pedir sinal para reservar", desc: "Cobrado no app na hora de marcar. Vale para serviços acima de R$ 100.", valor: "30% · reembolsável", fg: "#14171A", temSw: true, swBg: G, swL: 18, toggle: () => {} }
+      ] },
+      { isLista: true, titulo: "Regras de pagamento", sub: "Onde o dinheiro entra.", itens: [
+        { label: "Aceitar pagamento pelo app", desc: "A Vez recebe e repassa para sua conta em até 2 dias úteis, com taxa de 4%.", temSw: true, swBg: G, swL: 18, toggle: () => {} },
+        { label: "Aceitar somente presencial", desc: "O cliente marca pelo app e paga no balcão.", temSw: true, swBg: "#DCDCDE", swL: 2, toggle: () => {} }
+      ] },
+      { isLista: true, titulo: "Regras de fila", sub: "Vale para quem chega sem hora marcada.", itens: [
+        { label: "Usar fila neste estabelecimento", desc: "Sem isso, só funciona agendamento com hora marcada.", temSw: true, swBg: G, swL: 18, toggle: () => {} },
+        { label: "Deixar entrar na fila antes de chegar", desc: "A pessoa entra pelo app de casa e vai vindo. Fica na pré-fila até confirmar chegada.", temSw: true, swBg: G, swL: 18, toggle: () => {} },
+        { label: "Exigir confirmação de chegada", desc: "Quem entrou remotamente só assume a posição depois de confirmar que está aqui.", temSw: true, swBg: G, swL: 18, toggle: () => {} },
+        { label: "QR code no balcão", desc: "Quem chega lê o código e entra sozinho, sem passar pelo atendente.", temSw: true, swBg: G, swL: 18, toggle: () => {} },
+        { label: "Fila única ou por profissional", desc: "Na fila única, atende quem chegou primeiro com quem estiver livre.", valor: "fila única", fg: "#14171A" },
+        { label: "Fechar a fila quando a espera passar de", desc: "Evita gente esperando uma hora e meia na porta.", valor: "45 minutos", fg: "#14171A" },
+        { label: "Pular quem não responde à chamada", desc: "Depois de chamar duas vezes, a pessoa vai para o fim.", valor: "após 2 chamadas", fg: "#14171A" },
+        { label: "Avisar o cliente por", desc: "Aviso quando falta pouco e quando chegar a vez.", valor: "app e WhatsApp", fg: "#14171A" }
+      ] },
+      { isLista: true, titulo: "Avisos que a equipe recebe", sub: "Cada profissional escolhe os dele no app.", itens: [
+        { label: "Novo pedido de horário", desc: "Chega para você e para os gerentes.", temSw: true, swBg: G, swL: 18, toggle: () => {} },
+        { label: "Cancelamento em cima da hora", desc: "Menos de 4 horas antes do atendimento.", temSw: true, swBg: G, swL: 18, toggle: () => {} },
+        { label: "Resumo do dia às 20h", desc: "Faturamento, atendimentos e faltas do dia por e-mail.", temSw: true, swBg: "#DCDCDE", swL: 2, toggle: () => {} }
+      ] },
+      { isLista: true, titulo: "Dados do estabelecimento", sub: "Usados na nota e no contrato com a Vez.", itens: [
+        { label: "Razão social", desc: "Corte Reto Barbearia Ltda", valor: "CNPJ 41.882.001/0001-16", fg: "#71757A" },
+        { label: "Responsável", desc: "Rafael Nunes · rafael@cortereto.com.br", valor: "dono", fg: "#71757A" }
+      ] }
+    ];
+
+    if (s === "plano") return [
+      { isLista: true, titulo: "Cobrança recusada em 05/09", sub: "Você continua usando a Vez normalmente até 12/09. Depois disso o perfil sai do app do cliente e a agenda fica só para leitura.", itens: [
+        { label: "Cartão terminado em 4471", desc: "O banco recusou a cobrança. Pode ser limite ou cartão vencido.", valor: "atualizar agora", fg: R },
+        { label: "Tentaremos de novo em 09/09", desc: "Se quiser, pague agora por Pix e a tentativa é cancelada.", valor: "R$ 149,00", fg: "#14171A" }
+      ] },
+      { isKpis: true, gc: "repeat(4,minmax(0,1fr))", itens: [
+        K("Plano", "Profissional", "até 6 profissionais", "#71757A", "mensal, sem fidelidade"),
+        K("Mensalidade", "R$ 149", "+ 4% por venda no app", "#71757A", "cobrado dia 5"),
+        K("Próxima cobrança", "09/09", "em 1 dia", R, "nova tentativa no cartão"),
+        K("Cliente desde", "mar/2024", "30 meses", "#71757A", "R$ 4.470 pagos até hoje")
+      ] },
+      { isTabela: true, titulo: "Histórico de pagamentos", sub: "", gc: "1fr 1.6fr 1fr 1.1fr 1.2fr",
+        cols: [{t:"DATA",a:"left"},{t:"DESCRIÇÃO",a:"left"},{t:"VALOR",a:"right"},{t:"FORMA",a:"right"},{t:"SITUAÇÃO",a:"right"}],
+        linhas: [
+          ["05/09/2026","Mensalidade setembro","R$ 149,00","cartão 4471","recusado",R],
+          ["05/08/2026","Mensalidade agosto","R$ 149,00","cartão 4471","pago",G],
+          ["05/07/2026","Mensalidade julho","R$ 149,00","cartão 4471","pago",G],
+          ["05/06/2026","Mensalidade junho","R$ 149,00","Pix","pago",G],
+          ["05/05/2026","Mensalidade maio","R$ 129,00","cartão 4471","pago",G]
+        ].map((r) => ({ cels: [
+          cel(r[0], { ff: MONO }), cel(r[1]), num(r[2], { w: "600" }),
+          cel(r[3], { a: "right", ff: MONO, fs: "12px", fg: "#71757A" }),
+          cel(r[4], { a: "right", w: "600", fs: "12px", fg: r[5] })
+        ] }))
+      }
+    ];
+
+    if (s === "onboarding") return [
+      { isCheck: true, titulo: "Falta pouco para você aparecer no app", sub: "Publique o perfil e a Barbearia Corte Reto entra na busca dos clientes da sua região.", prog: "3 de 4",
+        passos: [
+          { n: "✓", titulo: "Cadastrar serviços", desc: "14 serviços em 3 categorias. Você pode ajustar preço a qualquer momento.", cta: "Revisar", barra: G, bg: "#fff", dotBg: G, dotBd: G, dotFg: "#fff", ctaBg: "#fff", ctaFg: "#71757A", ctaBd: "#ECECEC" },
+          { n: "✓", titulo: "Montar horários", desc: "Funcionamento de segunda a sábado, com almoço bloqueado e buffer de 10 minutos.", cta: "Revisar", barra: G, bg: "#fff", dotBg: G, dotBd: G, dotFg: "#fff", ctaBg: "#fff", ctaFg: "#71757A", ctaBd: "#ECECEC" },
+          { n: "✓", titulo: "Adicionar equipe", desc: "4 profissionais na agenda. 1 convite ainda não foi aceito.", cta: "Revisar", barra: G, bg: "#fff", dotBg: G, dotBd: G, dotFg: "#fff", ctaBg: "#fff", ctaFg: "#71757A", ctaBd: "#ECECEC" },
+          { n: "4", titulo: "Publicar o perfil público", desc: "Falta a galeria de fotos. Sem foto, o perfil aparece bem abaixo na busca.", vazio: "Nenhuma foto ainda. Suba de 3 a 8 fotos da fachada, do salão e de cortes prontos — é o que o cliente olha primeiro.", cta: "Subir fotos", barra: "#EDEDEF", bg: "#FFFBF7", dotBg: "#fff", dotBd: C, dotFg: C, ctaBg: C, ctaFg: "#fff", ctaBd: C }
+        ] },
+      { isKpis: true, gc: "repeat(3,minmax(0,1fr))", itens: [
+        K("Agenda", "vazia", "primeira semana", "#71757A", "Assim que publicar, os pedidos começam a chegar aqui"),
+        K("Fila", "desligada", "opcional", "#71757A", "Ligue em Configurações quando quiser atender sem hora marcada"),
+        K("Perfil", "rascunho", "não publicado", A, "Só você vê. O cliente ainda não encontra a barbearia")
+      ] }
+    ];
+
+    return [];
+  }
+}
+
+</script>
+</body>
+</html>

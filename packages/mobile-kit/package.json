@@ -1,0 +1,28 @@
+{
+  "name": "@vez/mobile-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./theme": "./src/theme/index.ts",
+    "./format": "./src/format.ts",
+    "./async": "./src/async.ts",
+    "./auth": "./src/auth/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "2.112.4",
+    "react": "19.2.3",
+    "react-native": "0.86.3"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "2.112.4",
+    "@types/react": "19.2.18",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3"
+  }
+}
