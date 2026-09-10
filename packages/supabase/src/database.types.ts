@@ -14,10 +14,12 @@ export type Database = {
           cancellation_reason: string | null
           cancelled_at: string | null
           created_at: string
-          customer_id: string
+          customer_id: string | null
           deposit_cents: number
           ends_at: string
           establishment_id: string
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           notes: string | null
           price_cents: number
@@ -31,10 +33,12 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
-          customer_id: string
+          customer_id?: string | null
           deposit_cents?: number
           ends_at: string
           establishment_id: string
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           notes?: string | null
           price_cents: number
@@ -48,10 +52,12 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
-          customer_id?: string
+          customer_id?: string | null
           deposit_cents?: number
           ends_at?: string
           establishment_id?: string
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           notes?: string | null
           price_cents?: number
@@ -308,6 +314,71 @@ export type Database = {
           },
         ]
       }
+      establishment_settings: {
+        Row: {
+          accept_app_payment: boolean
+          auto_approve: boolean
+          created_at: string
+          deposit_refundable: boolean
+          establishment_id: string
+          queue_arrival_method: Database["public"]["Enums"]["queue_arrival_method"]
+          queue_auto_close: boolean
+          queue_auto_skip: boolean
+          queue_close_after_minutes: number
+          queue_notify_channel: Database["public"]["Enums"]["queue_notify_channel"]
+          queue_notify_enabled: boolean
+          queue_per_professional: boolean
+          queue_qr_enabled: boolean
+          queue_remote_join: boolean
+          queue_require_arrival: boolean
+          updated_at: string
+        }
+        Insert: {
+          accept_app_payment?: boolean
+          auto_approve?: boolean
+          created_at?: string
+          deposit_refundable?: boolean
+          establishment_id: string
+          queue_arrival_method?: Database["public"]["Enums"]["queue_arrival_method"]
+          queue_auto_close?: boolean
+          queue_auto_skip?: boolean
+          queue_close_after_minutes?: number
+          queue_notify_channel?: Database["public"]["Enums"]["queue_notify_channel"]
+          queue_notify_enabled?: boolean
+          queue_per_professional?: boolean
+          queue_qr_enabled?: boolean
+          queue_remote_join?: boolean
+          queue_require_arrival?: boolean
+          updated_at?: string
+        }
+        Update: {
+          accept_app_payment?: boolean
+          auto_approve?: boolean
+          created_at?: string
+          deposit_refundable?: boolean
+          establishment_id?: string
+          queue_arrival_method?: Database["public"]["Enums"]["queue_arrival_method"]
+          queue_auto_close?: boolean
+          queue_auto_skip?: boolean
+          queue_close_after_minutes?: number
+          queue_notify_channel?: Database["public"]["Enums"]["queue_notify_channel"]
+          queue_notify_enabled?: boolean
+          queue_per_professional?: boolean
+          queue_qr_enabled?: boolean
+          queue_remote_join?: boolean
+          queue_require_arrival?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_settings_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: true
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       establishments: {
         Row: {
           accent_color: string | null
@@ -390,6 +461,54 @@ export type Database = {
             columns: ["city_id"]
             isOneToOne: false
             referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_notification_prefs: {
+        Row: {
+          created_at: string
+          establishment_id: string
+          notify_cancellation: boolean
+          notify_daily_summary: boolean
+          notify_new_appointment: boolean
+          notify_queue_join: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          establishment_id: string
+          notify_cancellation?: boolean
+          notify_daily_summary?: boolean
+          notify_new_appointment?: boolean
+          notify_queue_join?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          establishment_id?: string
+          notify_cancellation?: boolean
+          notify_daily_summary?: boolean
+          notify_new_appointment?: boolean
+          notify_queue_join?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_notification_prefs_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_notification_prefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -639,14 +758,17 @@ export type Database = {
           arrived_at: string | null
           called_at: string | null
           created_at: string
-          customer_id: string
+          customer_id: string | null
           establishment_id: string
           finished_at: string | null
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           joined_at: string
           professional_id: string | null
           served_at: string | null
           service_id: string | null
+          source: Database["public"]["Enums"]["queue_source"]
           status: Database["public"]["Enums"]["queue_status"]
           updated_at: string
         }
@@ -654,14 +776,17 @@ export type Database = {
           arrived_at?: string | null
           called_at?: string | null
           created_at?: string
-          customer_id: string
+          customer_id?: string | null
           establishment_id: string
           finished_at?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           joined_at?: string
           professional_id?: string | null
           served_at?: string | null
           service_id?: string | null
+          source?: Database["public"]["Enums"]["queue_source"]
           status?: Database["public"]["Enums"]["queue_status"]
           updated_at?: string
         }
@@ -669,14 +794,17 @@ export type Database = {
           arrived_at?: string | null
           called_at?: string | null
           created_at?: string
-          customer_id?: string
+          customer_id?: string | null
           establishment_id?: string
           finished_at?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           joined_at?: string
           professional_id?: string | null
           served_at?: string | null
           service_id?: string | null
+          source?: Database["public"]["Enums"]["queue_source"]
           status?: Database["public"]["Enums"]["queue_status"]
           updated_at?: string
         }
@@ -976,6 +1104,9 @@ export type Database = {
         | "partially_refunded"
         | "failed"
         | "cancelled"
+      queue_arrival_method: "qr" | "staff" | "location"
+      queue_notify_channel: "push" | "sms" | "whatsapp"
+      queue_source: "app" | "qr" | "counter"
       queue_status:
         | "waiting"
         | "called"
@@ -1142,6 +1273,9 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
+      queue_arrival_method: ["qr", "staff", "location"],
+      queue_notify_channel: ["push", "sms", "whatsapp"],
+      queue_source: ["app", "qr", "counter"],
       queue_status: [
         "waiting",
         "called",

@@ -4,11 +4,14 @@ import { Pressable, Text, View } from "react-native";
 
 import { supabase } from "../lib/supabase";
 import { AuthShell } from "../src/auth/AuthShell";
-import { authErrorMessage } from "../src/auth/errors";
-import { useCooldown } from "../src/auth/use-cooldown";
-import { MIN_PASSWORD_LENGTH, passwordError } from "../src/auth/validation";
+import {
+  authErrorMessage,
+  useCooldown,
+  MIN_PASSWORD_LENGTH,
+  passwordError,
+} from "@vez/mobile-kit/auth";
 import { color } from "../src/theme/tokens";
-import { sans } from "../src/theme/type";
+import { sans } from "@vez/mobile-kit/theme";
 import { CodeField, Field } from "../src/ui/Field";
 import { Label, PrimaryButton } from "../src/ui/primitives";
 

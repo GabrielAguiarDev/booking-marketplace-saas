@@ -1,5 +1,5 @@
 import { supabase } from "../../lib/supabase";
-import { useAsync } from "./use-async";
+import { useAsync } from "@vez/mobile-kit/async";
 import type { CategoryKey } from "./catalog";
 
 const LIST_COLUMNS =

@@ -7,10 +7,10 @@ import { useSession } from "../src/auth/session";
 import { accentOf } from "../src/data/catalog";
 import { useEstablishment } from "../src/data/establishments";
 import { confirmArrival, leaveQueue, useMyQueueEntry, useQueueState } from "../src/data/queue";
-import { hourMinute } from "../src/format";
+import { hourMinute } from "@vez/mobile-kit/format";
 import { useGoToTab } from "../src/navigation";
 import { color } from "../src/theme/tokens";
-import { mono, sans } from "../src/theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 import {
   BackHeader,
   Card,

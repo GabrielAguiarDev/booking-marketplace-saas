@@ -4,9 +4,10 @@ import { Text, View } from "react-native";
 
 import { supabase } from "../../lib/supabase";
 import { useSession } from "../../src/auth/session";
+import { useProfileStats } from "../../src/data/appointments";
 import { initialsOf, memberSince, useProfile } from "../../src/data/use-profile";
 import { color } from "../../src/theme/tokens";
-import { mono, sans } from "../../src/theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 import { Photo, duo2 } from "../../src/ui/Photo";
 import { Card, Label, OutlineButton, PrimaryButton, Shimmer } from "../../src/ui/primitives";
 import { Screen, ScreenScroll } from "../../src/ui/Screen";
@@ -35,6 +36,7 @@ export default function Perfil() {
   const router = useRouter();
   const { session, user, loading: sessionLoading } = useSession();
   const { profile, loading: profileLoading, error, reload } = useProfile();
+  const stats = useProfileStats(session ? (user?.id ?? null) : null);
   const [signingOut, setSigningOut] = useState(false);
 
   if (sessionLoading) return <PerfilCarregando />;
@@ -99,12 +101,23 @@ export default function Perfil() {
         ) : null}
 
         {/*
-          Os números reais dependem de `appointments`, que ainda não existe
-          (fase 4 do roadmap). Mostrar "24 agendamentos" para uma conta recém
-          criada seria mentir para o dono da conta — o traço diz "ainda não".
+          Enquanto carrega, ou se a busca falhar, o traço fica: um número
+          errado no próprio perfil é pior que nenhum (R7). Conta nova mostra
+          zero de verdade; nota sem avaliação nenhuma continua traço.
         */}
         <View style={{ flexDirection: "row", gap: 9 }}>
-          {["AGENDAMENTOS", "LOJAS", "SUA NOTA"].map((rotulo) => (
+          {(
+            [
+              ["AGENDAMENTOS", stats.data ? String(stats.data.bookings) : null],
+              ["LOJAS", stats.data ? String(stats.data.establishments) : null],
+              [
+                "SUA NOTA",
+                stats.data?.averageGiven != null
+                  ? stats.data.averageGiven.toFixed(1).replace(".", ",")
+                  : null,
+              ],
+            ] as const
+          ).map(([rotulo, valor]) => (
             <View
               key={rotulo}
               style={{
@@ -116,7 +129,11 @@ export default function Perfil() {
                 gap: 5,
               }}
             >
-              <Text style={mono(22, 600, { ls: -0.03, color: color.chevron })}>—</Text>
+              <Text
+                style={mono(22, 600, { ls: -0.03, color: valor === null ? color.chevron : color.ink })}
+              >
+                {valor ?? "—"}
+              </Text>
               <Text style={mono(9, 600, { ls: 0.08, color: color.muted })}>{rotulo}</Text>
             </View>
           ))}

@@ -7,7 +7,7 @@ import { CATEGORY, CATEGORY_KEYS, type CategoryKey } from "../../src/data/catalo
 import { useCategoryCounts } from "../../src/data/establishments";
 import { useCurrentCity } from "../../src/data/use-cities";
 import { color, radius } from "../../src/theme/tokens";
-import { mono, sans } from "../../src/theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 import { Card, Label, Shimmer } from "../../src/ui/primitives";
 import { Screen, ScreenScroll } from "../../src/ui/Screen";
 

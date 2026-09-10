@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { City } from "../data/use-cities";
 import { color } from "../theme/tokens";
-import { mono, sans } from "../theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 
 /**
  * Escolha de cidade como folha inferior.

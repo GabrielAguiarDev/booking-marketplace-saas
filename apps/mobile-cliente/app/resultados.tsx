@@ -5,7 +5,7 @@ import { accentOf, CATEGORY, type CategoryKey, initialsOfName, shade } from "../
 import { type EstablishmentRow, useEstablishments } from "../src/data/establishments";
 import { useCurrentCity } from "../src/data/use-cities";
 import { color } from "../src/theme/tokens";
-import { mono, sans } from "../src/theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 import { duo2, Photo } from "../src/ui/Photo";
 import { BackHeader, Card, PrimaryButton, Shimmer } from "../src/ui/primitives";
 import { Screen, ScreenScroll } from "../src/ui/Screen";

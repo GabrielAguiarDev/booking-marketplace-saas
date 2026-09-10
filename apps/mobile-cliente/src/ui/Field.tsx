@@ -3,7 +3,7 @@ import { type ComponentProps, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
 import { color, radius } from "../theme/tokens";
-import { mono, sans } from "../theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 
 /**
  * Campo de texto do app.

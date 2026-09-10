@@ -108,6 +108,16 @@ Deno.serve(async (req) => {
   const depositCents = Math.round((priceCents * establishment.deposit_percent) / 100);
   const endsAt = new Date(startsAt.getTime() + service.duration_minutes * 60_000);
 
+  // "Aprovar agendamentos automaticamente", da tela de regras do app do
+  // estabelecimento. Desligado (o padrão), a reserva nasce 'scheduled' e espera
+  // o sim da loja; ligado, já nasce 'confirmed'. A decisão é da loja e por isso
+  // é lida aqui, no servidor — o app do cliente não escolhe o próprio status.
+  const { data: settings } = await admin
+    .from("establishment_settings")
+    .select("auto_approve")
+    .eq("establishment_id", establishment_id)
+    .maybeSingle();
+
   const { data: appointment, error: insertError } = await admin
     .from("appointments")
     .insert({
@@ -119,6 +129,7 @@ Deno.serve(async (req) => {
       ends_at: endsAt.toISOString(),
       price_cents: priceCents,
       deposit_cents: depositCents,
+      status: settings?.auto_approve ? "confirmed" : "scheduled",
       notes: notes ?? null,
     })
     .select("id, starts_at, ends_at, price_cents, deposit_cents, status")

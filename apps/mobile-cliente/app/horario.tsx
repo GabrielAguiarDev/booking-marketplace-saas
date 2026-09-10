@@ -6,10 +6,17 @@ import { AuthGate } from "../src/auth/AuthGate";
 import { nextDays, type Slot, useAvailabilitySummary, useSlots } from "../src/data/availability";
 import { accentOf } from "../src/data/catalog";
 import { useEstablishment } from "../src/data/establishments";
-import { dayNumber, duration, hourMinute, isoDate, moneyShort, weekdayShort } from "../src/format";
+import {
+  dayNumber,
+  duration,
+  hourMinute,
+  isoDate,
+  moneyShort,
+  weekdayShort,
+} from "@vez/mobile-kit/format";
 import { useAppState } from "../src/state/app-state";
 import { color } from "../src/theme/tokens";
-import { mono, sans } from "../src/theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 import { Card, Label, PrimaryButton, Shimmer, StickyFooter } from "../src/ui/primitives";
 import { Screen } from "../src/ui/Screen";
 

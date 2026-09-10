@@ -1,6 +1,6 @@
 import { supabase } from "../../lib/supabase";
 import { useAppState } from "../state/app-state";
-import { useAsync } from "./use-async";
+import { useAsync } from "@vez/mobile-kit/async";
 
 export type City = {
   id: string;

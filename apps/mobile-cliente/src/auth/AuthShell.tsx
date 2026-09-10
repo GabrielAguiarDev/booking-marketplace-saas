@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 
 import { color, radius } from "../theme/tokens";
-import { sans } from "../theme/type";
+import { sans } from "@vez/mobile-kit/theme";
 import { BackHeader } from "../ui/primitives";
 import { Screen } from "../ui/Screen";
 

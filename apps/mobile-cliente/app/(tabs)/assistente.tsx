@@ -20,10 +20,10 @@ import {
 } from "../../src/data/assistant";
 import { accentOf, CATEGORY, initialsOfName, shade } from "../../src/data/catalog";
 import { useCurrentCity } from "../../src/data/use-cities";
-import { hourMinute, slotLabel } from "../../src/format";
+import { hourMinute, slotLabel } from "@vez/mobile-kit/format";
 import { useAppState } from "../../src/state/app-state";
 import { color, radius } from "../../src/theme/tokens";
-import { mono, sans } from "../../src/theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 import { duo2, Photo } from "../../src/ui/Photo";
 import { Card, PrimaryButton } from "../../src/ui/primitives";
 import { Screen } from "../../src/ui/Screen";

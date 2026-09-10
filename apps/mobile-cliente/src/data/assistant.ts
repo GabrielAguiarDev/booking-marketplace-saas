@@ -1,6 +1,6 @@
 import { supabase } from "../../lib/supabase";
 import type { CategoryKey } from "./catalog";
-import { useAsync } from "./use-async";
+import { useAsync } from "@vez/mobile-kit/async";
 
 /** Cartões que a resposta pode trazer — o app desenha nativo, não em texto. */
 export type EstablishmentCard = {

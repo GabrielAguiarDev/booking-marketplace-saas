@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { DimensionValue, StyleProp, ViewStyle } from "react-native";
 import { Text } from "react-native";
 
-import { sans } from "../theme/type";
+import { sans } from "@vez/mobile-kit/theme";
 
 /**
  * Campo de fotografia: duotom da marca com monograma.

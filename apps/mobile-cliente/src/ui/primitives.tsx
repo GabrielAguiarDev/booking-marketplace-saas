@@ -12,7 +12,7 @@ import {
 } from "react-native";
 
 import { cardShadow, color, segmentShadow } from "../theme/tokens";
-import { mono, sans } from "../theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 
 /** Card branco separado do fundo por hairline — o padrão de superfície do design. */
 export function Card({

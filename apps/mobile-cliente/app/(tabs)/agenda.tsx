@@ -10,9 +10,9 @@ import {
 } from "../../src/data/appointments";
 import { accentOf, initialsOfName, shade } from "../../src/data/catalog";
 import { useMyQueueEntry } from "../../src/data/queue";
-import { hourMinute, money, slotLabel } from "../../src/format";
+import { hourMinute, money, slotLabel } from "@vez/mobile-kit/format";
 import { color } from "../../src/theme/tokens";
-import { mono, sans } from "../../src/theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 import { duo2, Photo } from "../../src/ui/Photo";
 import { Card, OutlineButton, PrimaryButton, Segmented, Shimmer } from "../../src/ui/primitives";
 import { Screen, ScreenScroll } from "../../src/ui/Screen";

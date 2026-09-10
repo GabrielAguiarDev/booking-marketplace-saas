@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Vez Staff",
+    "name": "Vez Estabelecimento",
     "slug": "vez-staff",
     "scheme": "vezstaff",
     "version": "0.1.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,

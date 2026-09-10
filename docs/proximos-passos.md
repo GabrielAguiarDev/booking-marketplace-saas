@@ -5,34 +5,42 @@ cobria uma superfície só e está quase todo riscado; este cobre o produto.
 
 ## O diagnóstico, sem otimismo
 
-O app do cliente sabe comprar. **Ninguém sabe vender.**
+O cliente sabe comprar e a loja sabe atender. **Ninguém sabe entrar, e ninguém
+paga nada.**
 
-| Superfície       | Linhas de código | Estado                                   |
-| ---------------- | ---------------: | ---------------------------------------- |
-| `mobile-cliente` |            5.880 | Funcional ponta a ponta                  |
-| `portal`         |              593 | Página que confirma conexão com Supabase |
-| `admin`          |              593 | Idem                                     |
-| `landing`        |              593 | Idem                                     |
-| `mobile-staff`   |               64 | Idem                                     |
+| Superfície       | Linhas de código | Estado                         |
+| ---------------- | ---------------: | ------------------------------ |
+| `mobile-cliente` |            5.475 | Funcional ponta a ponta        |
+| `mobile-staff`   |            9.568 | Funcional ponta a ponta        |
+| `portal`         |            8.071 | Canvas implementado, dado fixo |
+| `admin`          |            6.958 | Canvas implementado, dado fixo |
+| `landing`        |            3.229 | Canvas implementado, dado fixo |
 
-Isso não é "falta polir as outras telas". É que o ciclo do produto **não fecha**:
+`packages/mobile-kit` (460 linhas) é o que os dois apps Expo usam igual.
+
+O que **fechou** com o app do estabelecimento:
+
+- A fila anda: chamar, sentar, concluir, marcar ausência e reordenar são ações
+  de verdade, com Realtime dos dois lados.
+- Reserva vira atendimento: aprovar, recusar com motivo, remarcar, concluir e
+  marcar falta. Isso destravou **avaliar** — a política de `reviews` exigia
+  `status = 'completed'`, e agora existe quem marque.
+- Quem chega sem app entra na fila e na agenda ([decisão 0006](decisions/0006-cliente-sem-conta.md)).
+  Sem isso o caderno do balcão continuaria em paralelo, e o número que o app
+  mostra ao cliente seria mentira.
+
+O que **continua sem fechar**:
 
 - **Nenhum estabelecimento consegue se cadastrar.** `establishments` não tem
-  política de INSERT para `authenticated` — só admin de plataforma escreve. A
-  Edge Function que valida a cota da cidade foi documentada e nunca escrita.
-- **Nenhuma loja sai de `pending`.** O status nasce pendente e só loja `active`
-  aparece na busca. Não existe tela que aprove.
-- **Ninguém marca uma reserva como atendida.** A política existe
-  (`appointments_update_establishment`), o app que a usaria não. Consequência
-  direta: **avaliar é inalcançável** — a política de `reviews` exige
-  `status = 'completed'`.
-- **A fila não anda.** Entrar funciona; chamar o próximo é ação da equipe, e não
-  há equipe no sistema.
+  política de INSERT para `authenticated`. A Edge Function que valida a cota da
+  cidade foi documentada e nunca escrita.
+- **Nenhuma loja sai de `pending`.** E agora ela também não consegue se aprovar
+  sozinha por SQL — o buraco foi fechado na
+  [decisão 0008](decisions/0008-loja-nao-se-aprova-sozinha.md). Falta o admin.
 - **O negócio não cobra nada.** Zero linhas sobre cota por cidade, mensalidade
   ou comissão — que é o modelo do brief.
-
-Hoje, para testar uma avaliação, é preciso rodar `update appointments set
-status='completed'` no Studio. Isso mede a distância que falta.
+- **Notificação push não existe.** É o que mais dói na operação: a fila só se
+  move na tela com o app aberto, que é justamente quando ninguém está olhando.
 
 ---
 
@@ -41,23 +49,22 @@ status='completed'` no Studio. Isso mede a distância que falta.
 Ordenada por dependência, não por esforço. Os três primeiros itens fecham o
 ciclo; sem eles, o resto melhora um produto que não funciona.
 
-### 1. App da equipe — `mobile-staff`
+### 1. App da equipe — `mobile-staff` ✅ **entregue**
 
-**Por que primeiro:** é o que faz o dia acontecer. Sem ele a fila não anda,
-reserva não vira atendimento, e avaliação nunca existe.
+18 telas, cinco abas, o canvas `Vez Estabelecimento.dc.html` implementado. O que
+existe e o que deliberadamente não existe está em
+[mobile-estabelecimento.md](mobile-estabelecimento.md).
 
-Telas mínimas:
+Quatro migrations vieram junto: `establishment_settings` e
+`member_notification_prefs` (0007), cliente de balcão (0006), fila que respeita
+confirmação de chegada (0007) e o gatilho que impede a loja de se aprovar (0008).
 
-- Entrar (reaproveita `packages/supabase` e o padrão de `mobile-cliente`)
-- Agenda do dia do profissional
-- Chamar próximo / marcar sentado / concluir — a fila viva do outro lado
-- Marcar atendido, não compareceu, cancelar pela loja
+`packages/mobile-kit` nasceu aqui, cumprindo a R8.
 
-**Reaproveitável direto:** `src/auth/` inteiro, `src/ui/`, `src/theme/`,
-`src/data/use-async.ts`. Vale mover para `packages/` **quando o segundo app
-consumir de fato** — não antes, pela regra do projeto.
-
-**Pronto quando:** dá para atender alguém do começo ao fim sem tocar no Studio.
+**Ficou de fora, e continua valendo como trabalho:** cadastrar profissional,
+editar escala e ligar serviço a pessoa — é trabalho do portal (item 2). Envio de
+foto depende do Storage. E os sete interruptores marcados como "ainda não atua"
+esperam a peça que vai lê-los.
 
 ### 2. Portal do estabelecimento — `portal`
 
@@ -119,7 +126,9 @@ Ver [decisions/0004](decisions/0004-catalogo-disponibilidade-fila.md), decisão 
 - **Crédito da OpenAI.** A chave está configurada e válida; a conta está sem
   saldo. Ver [assistente.md](assistente.md).
 - **Notificações push.** A fila só atualiza com o app aberto — que é justamente
-  quando o usuário não está olhando. Vale também para lembrete de reserva.
+  quando o usuário não está olhando. Vale também para lembrete de reserva. Do
+  lado da loja, é o que destrava sete interruptores já gravados: aviso na vez,
+  canal do aviso e as quatro preferências de `member_notification_prefs`.
 - **Excluir conta (LGPD).** Precisa de Edge Function (RLS não apaga
   `auth.users`) e de uma decisão sobre o histórico de reservas.
 - **Deep links.** Quando houver domínio, dá para somar o link mágico ao lado do
@@ -140,7 +149,13 @@ Nenhuma bloqueia o ciclo; todas incomodam.
 
 ### 8. Landing
 
-Deixada por último de propósito: ela vende um produto que precisa existir antes.
+O canvas está implementado ([funcionalidades.md](funcionalidades.md#landing--landing)).
+Falta o que a liga ao resto:
+
+| Falta                           | Depende de                                            |
+| ------------------------------- | ----------------------------------------------------- |
+| Formulário gravar o interessado | tabela de interessados ou a Edge Function de cadastro |
+| "Entrar" levar ao portal        | login no portal                                       |
 
 ---
 
@@ -158,9 +173,10 @@ Do [roadmap](roadmap-mobile-cliente.md#as-regras), e nenhuma mudou:
 
 Duas que este documento acrescenta:
 
-- **R8 — `packages/` só quando o segundo consumidor existir.** `mobile-staff`
-  vai querer `auth/`, `ui/` e `theme/` do cliente. Mova quando ele consumir, não
-  quando parecer que vai consumir.
+- **R8 — `packages/` só quando o segundo consumidor existir.** Cumprida:
+  `packages/mobile-kit` nasceu com o app do estabelecimento, com tokens,
+  tipografia, formatação, `useAsync` e sessão. **Componente de UI ficou fora** —
+  dois canvases diferentes num componente só viram `if (app === …)`.
 - **R9 — mudança de agenda não invalida venda em silêncio.** Editar duração,
   jornada ou funcionamento pode derrubar reserva já feita. Quem edita precisa
   ver o que vai quebrar.
@@ -178,11 +194,19 @@ Duas que este documento acrescenta:
 ## Estado para retomar
 
 ```bash
-pnpm db:start && pnpm db:demo     # 2 lojas em Joinville
-cd apps/mobile-cliente && npx expo start
+pnpm db:start && pnpm db:reset && pnpm db:demo   # 2 lojas, 1 equipe, o dia de hoje
+cd apps/mobile-cliente && npx expo start         # cliente, porta 8081
+cd apps/mobile-staff   && npx expo start         # estabelecimento, porta 8082
 ```
 
-Conta de teste: `teste@vez.local` / `senha-forte-123`.
+Contas de teste, todas com senha `senha-forte-123`:
+
+| Conta               | Papel                                            |
+| ------------------- | ------------------------------------------------ |
+| `rafael@vez.local`  | dono da Barbearia Meia-Nove — acesso total       |
+| `diego@vez.local`   | equipe — vê a agenda, não edita cadastro da loja |
+| `cliente@vez.local` | cliente, com reserva pendente e lugar na fila    |
+
 E-mails locais em http://127.0.0.1:54324 · Studio em http://127.0.0.1:54323
 
 **Decisões suas que destravam trabalho:** monetização (item 4), provedor de

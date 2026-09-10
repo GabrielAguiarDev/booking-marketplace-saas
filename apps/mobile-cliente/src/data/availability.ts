@@ -1,6 +1,6 @@
 import { supabase } from "../../lib/supabase";
-import { addDays, isoDate } from "../format";
-import { useAsync } from "./use-async";
+import { addDays, isoDate } from "@vez/mobile-kit/format";
+import { useAsync } from "@vez/mobile-kit/async";
 
 export type Slot = { professional_id: string; slot_start: string; slot_end: string };
 

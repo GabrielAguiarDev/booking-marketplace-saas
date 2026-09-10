@@ -68,8 +68,29 @@ pnpm --filter @vez/mobile-cliente dev  # Metro em 8081
 pnpm --filter @vez/mobile-staff dev    # Metro em 8082
 ```
 
-Cada app abre numa tela única que consulta `cities` e mostra o resultado. Se
-aparecer a lista de cidades, a conexão com o Supabase está de pé.
+Os três apps web ainda abrem numa tela única que consulta `cities`: se aparecer
+a lista de cidades, a conexão com o Supabase está de pé. Os dois apps mobile são
+produtos completos — para ter o que ver neles, carregue a demo.
+
+## Dados de demonstração
+
+`seed.sql` guarda só cidades e roda em todo `db:reset`. As lojas, a equipe e o
+dia de hoje ficam separados de propósito:
+
+```bash
+pnpm db:demo
+```
+
+Contas criadas, todas com senha `senha-forte-123`:
+
+| Conta               | Papel                                            |
+| ------------------- | ------------------------------------------------ |
+| `rafael@vez.local`  | dono da Barbearia Meia-Nove — acesso total       |
+| `diego@vez.local`   | equipe — vê a agenda, não edita cadastro da loja |
+| `cliente@vez.local` | cliente, com reserva pendente e lugar na fila    |
+
+Entrar como `rafael` no app do estabelecimento e como `cliente` no app do
+cliente mostra os dois lados da mesma fila, ao vivo.
 
 > **Dispositivo físico:** `127.0.0.1` aponta para o próprio aparelho. Troque
 > pelo IP da sua máquina na rede local no `.env.local` do app mobile.
@@ -92,8 +113,8 @@ do banco estar no ar.
 
 ```bash
 pnpm build       # Next build nos três apps web
-pnpm lint        # ESLint nos 6 workspaces
-pnpm typecheck   # tsc --noEmit nos 6 workspaces
+pnpm lint        # ESLint nos 7 workspaces
+pnpm typecheck   # tsc --noEmit nos 7 workspaces
 pnpm format      # Prettier
 ```
 

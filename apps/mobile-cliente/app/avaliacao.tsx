@@ -7,10 +7,10 @@ import { AuthGate } from "../src/auth/AuthGate";
 import { useSession } from "../src/auth/session";
 import { useAppointments } from "../src/data/appointments";
 import { accentOf } from "../src/data/catalog";
-import { slotLabel } from "../src/format";
+import { slotLabel } from "@vez/mobile-kit/format";
 import { useGoToTab } from "../src/navigation";
 import { color, radius } from "../src/theme/tokens";
-import { mono, sans } from "../src/theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 import { BackHeader, Card, Chip, Label, PrimaryButton, StickyFooter } from "../src/ui/primitives";
 import { Screen, ScreenScroll } from "../src/ui/Screen";
 

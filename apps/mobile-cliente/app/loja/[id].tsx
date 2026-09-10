@@ -7,10 +7,10 @@ import { useAvailabilitySummary } from "../../src/data/availability";
 import { useEstablishment, useReviews } from "../../src/data/establishments";
 import { joinQueue, useMyQueueEntry } from "../../src/data/queue";
 import { useSession } from "../../src/auth/session";
-import { duration, moneyShort, relativeDays } from "../../src/format";
+import { duration, moneyShort, relativeDays } from "@vez/mobile-kit/format";
 import { useAppState } from "../../src/state/app-state";
 import { color } from "../../src/theme/tokens";
-import { mono, sans } from "../../src/theme/type";
+import { mono, sans } from "@vez/mobile-kit/theme";
 import { duo2, Photo } from "../../src/ui/Photo";
 import {
   Card,

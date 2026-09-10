@@ -4,16 +4,16 @@ import { Pressable, Text, View } from "react-native";
 
 import { supabase } from "../lib/supabase";
 import { AuthShell } from "../src/auth/AuthShell";
-import { authErrorMessage } from "../src/auth/errors";
 import {
+  authErrorMessage,
   emailError,
   MIN_PASSWORD_LENGTH,
   nameError,
   normalizeEmail,
   passwordError,
-} from "../src/auth/validation";
+} from "@vez/mobile-kit/auth";
 import { color } from "../src/theme/tokens";
-import { sans } from "../src/theme/type";
+import { sans } from "@vez/mobile-kit/theme";
 import { Field } from "../src/ui/Field";
 import { PrimaryButton } from "../src/ui/primitives";
 

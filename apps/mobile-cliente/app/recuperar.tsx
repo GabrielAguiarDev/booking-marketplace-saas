@@ -4,8 +4,7 @@ import { View } from "react-native";
 
 import { supabase } from "../lib/supabase";
 import { AuthShell } from "../src/auth/AuthShell";
-import { authErrorMessage } from "../src/auth/errors";
-import { emailError, normalizeEmail } from "../src/auth/validation";
+import { authErrorMessage, emailError, normalizeEmail } from "@vez/mobile-kit/auth";
 import { color } from "../src/theme/tokens";
 import { Field } from "../src/ui/Field";
 import { PrimaryButton } from "../src/ui/primitives";

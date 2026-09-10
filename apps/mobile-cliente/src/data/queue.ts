@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { supabase } from "../../lib/supabase";
-import { useAsync } from "./use-async";
+import { useAsync } from "@vez/mobile-kit/async";
 
 export type QueueStatus = "waiting" | "called" | "in_service" | "done" | "left" | "no_show";
 

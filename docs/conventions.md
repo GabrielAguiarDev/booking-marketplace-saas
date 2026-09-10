@@ -101,9 +101,15 @@ migrar para o ESLint 10, subir os dois juntos.
 
 ## Mobile
 
-O app do cliente implementa um canvas do Claude Design; a divisão entre dado
-real e fixture, e as traduções de CSS para React Native, estão em
-[mobile-cliente.md](mobile-cliente.md).
+Os dois apps implementam canvases do Claude Design. A divisão entre dado real e
+protótipo, e as traduções de CSS para React Native, estão em
+[mobile-cliente.md](mobile-cliente.md) e
+[mobile-estabelecimento.md](mobile-estabelecimento.md).
+
+O que os dois usam igual vive em `@vez/mobile-kit` — tokens, tipografia,
+formatação, `useAsync` e sessão. **Componente de UI não vai para lá:** os dois
+canvases desenham cartão, cabeçalho e barra de abas de formas diferentes, e um
+componente com `if (app === …)` é pior que duas cópias.
 
 `experiments.typedRoutes` do Expo Router fica **desligado** nos dois apps: os
 tipos de rota só são gerados quando o Metro roda, o que faria `turbo run

@@ -1,5 +1,5 @@
 import { supabase } from "../../lib/supabase";
-import { useAsync } from "./use-async";
+import { useAsync } from "@vez/mobile-kit/async";
 import type { CategoryKey } from "./catalog";
 
 export type AppointmentStatus =
@@ -147,4 +147,53 @@ async function readErrorBody(error: unknown): Promise<{ code: string; message: s
   } catch {
     return null;
   }
+}
+
+export type ProfileStats = {
+  /** Reservas feitas, sem contar as canceladas. */
+  bookings: number;
+  /** Lojas onde a pessoa já foi atendida. */
+  establishments: number;
+  /** Média das notas que a pessoa deu; nula enquanto ela não avaliou ninguém. */
+  averageGiven: number | null;
+};
+
+const CANCELLED: AppointmentStatus[] = ["cancelled_by_customer", "cancelled_by_establishment"];
+
+/**
+ * Os três números do perfil.
+ *
+ * As reservas passam pela mesma RLS de `useAppointments`
+ * (`appointments_select_own`), então não filtram por cliente. Avaliações são
+ * públicas (`reviews_select_public`) — ali o filtro por autor é obrigatório.
+ * A contagem de reservas sai com `head: true`: só o total, sem as linhas.
+ */
+export function useProfileStats(userId: string | null) {
+  return useAsync(
+    `profile-stats:${userId ?? ""}`,
+    async (): Promise<ProfileStats> => {
+      const [bookings, completed, reviews] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .not("status", "in", `(${CANCELLED.join(",")})`),
+        supabase.from("appointments").select("establishment_id").eq("status", "completed"),
+        supabase.from("reviews").select("rating").eq("customer_id", userId ?? ""),
+      ]);
+
+      const failure = bookings.error ?? completed.error ?? reviews.error;
+      if (failure) throw new Error(failure.message);
+
+      const ratings = (reviews.data ?? []).map((r) => r.rating as number);
+      return {
+        bookings: bookings.count ?? 0,
+        establishments: new Set((completed.data ?? []).map((r) => r.establishment_id as string))
+          .size,
+        averageGiven: ratings.length
+          ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
+          : null,
+      };
+    },
+    { enabled: userId !== null },
+  );
 }

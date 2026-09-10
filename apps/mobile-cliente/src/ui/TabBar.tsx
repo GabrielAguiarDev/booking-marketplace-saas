@@ -5,7 +5,7 @@ import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { color, coralGlow } from "../theme/tokens";
-import { mono } from "../theme/type";
+import { mono } from "@vez/mobile-kit/theme";
 
 type IconProps = { size: number; color: string; strokeWidth: number };
 type TabKey = "inicio" | "explorar" | "assistente" | "agenda" | "perfil";
