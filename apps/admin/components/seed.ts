@@ -40,6 +40,7 @@ import type {
   PanoramaRow,
   Param,
   PlanDef,
+  PlatformRole,
   RecentReview,
   Report,
   Suggestion,
@@ -225,6 +226,7 @@ export function seedState(now = Date.now()): AdminData {
           ? ["corte", "corte de cabelo", "cabelo masculino", "máquina", "social"]
           : [],
       establishments: item.n,
+      cities: Math.min(item.n, 9),
       searchesMonth: item.name === "Corte masculino" ? 48211 : Math.round(item.n * 38),
       appointmentsMonth: item.name === "Corte masculino" ? 31904 : Math.round(item.n * 24),
       averagePriceCents: item.name === "Corte masculino" ? 4890 : null,
@@ -309,13 +311,16 @@ export function seedState(now = Date.now()): AdminData {
   });
 
   const LAST_SEEN = [0, 34, 60 * 20, 180];
+  const TEAM_ROLES: PlatformRole[] = ["admin", "operations", "finance", "support"];
   const team: TeamMember[] = TEAM.map((t, i) => ({
     id: `t${i}`,
     name: t.name,
     email: t.email,
     role: t.role,
+    roleKey: TEAM_ROLES[i] ?? "support",
     scope: t.scope,
     lastSeen: new Date(now - (LAST_SEEN[i] ?? 0) * 60000).toISOString(),
+    pending: false,
   }));
 
   const PARAM_KEYS = [
@@ -342,7 +347,7 @@ export function seedState(now = Date.now()): AdminData {
     accountAccess: a.flag,
   }));
 
-  const me: Me = { id: "t0", name: "Helena Reis", role: "Operações · admin" };
+  const me: Me = { id: "t0", name: "Helena Reis", role: "Operações · admin", roleKey: "admin" };
 
   return {
     overview: {
@@ -407,6 +412,12 @@ export function seedState(now = Date.now()): AdminData {
     customers,
     team,
     params,
+    mfaRequired: false,
     audit,
+    banners: [],
+    tickets: [],
+    accessSessions: [],
+    accountConsoleAccess: true,
+    supportAccess: true,
   };
 }

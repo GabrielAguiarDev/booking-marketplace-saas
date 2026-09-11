@@ -24,14 +24,25 @@ const lateDays = (i: Invoice, now = Date.now()) =>
     ? Math.max(0, Math.floor((now - new Date(i.dueDate).getTime()) / DAY_MS))
     : 0;
 
-/** As etapas do fluxo de carência, contadas a partir do vencimento. */
-const STEPS = [
+/** As etapas do fluxo de carência, contadas a partir do vencimento. A última vem do parâmetro. */
+const BASE_STEPS = [
   { d: 0, label: "Vencimento", meta: "cobrança marcada como vencida", tone: MUTED },
   { d: 3, label: "Primeiro aviso", meta: "e-mail + push no app do estabelecimento", tone: AMBER },
   { d: 7, label: "Segundo aviso", meta: "aviso no painel + contato do time", tone: AMBER },
-  { d: 10, label: "Fim da carência", meta: "perfil perde destaque na busca", tone: RED },
-  { d: 15, label: "Suspensão automática", meta: "perfil sai do app, agenda preservada", tone: RED },
+  { d: 10, label: "Perde o destaque", meta: "perfil sai do destaque na busca", tone: RED },
 ];
+
+function stepsFor(graceDays: number) {
+  return [
+    ...BASE_STEPS.filter((step) => step.d < graceDays),
+    {
+      d: graceDays,
+      label: "Suspensão automática",
+      meta: "perfil sai do app, agenda preservada",
+      tone: RED,
+    },
+  ];
+}
 
 export function Finance({ onOpen }: { onOpen: (id: string) => void }) {
   const { data, actions } = useAdmin();
@@ -44,6 +55,7 @@ export function Finance({ onOpen }: { onOpen: (id: string) => void }) {
   const overdue = data.invoices.filter((i) => i.status === "overdue");
   const sum = (list: Invoice[]) => list.reduce((total, i) => total + i.amountCents, 0);
   const worst = Math.max(0, ...overdue.map((i) => lateDays(i)));
+  const STEPS = stepsFor(data.params.find((p) => p.key === "delinquency_grace_days")?.value ?? 15);
   const revenueRows = data.overview.series.map((point, index, all) => {
     const total = point.monthlyCents + point.commissionCents;
     const previous = index > 0 ? all[index - 1]!.monthlyCents + all[index - 1]!.commissionCents : 0;

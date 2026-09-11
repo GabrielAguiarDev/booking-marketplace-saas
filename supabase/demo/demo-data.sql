@@ -168,6 +168,10 @@ where u.email in ('rafael@vez.local', 'diego@vez.local', 'cliente@vez.local', 'a
 insert into public.platform_admins (user_id, role)
 values ('0d000000-0000-4000-8000-000000000004', 'admin');
 
+-- A demo abre com login simples para não exigir um segredo TOTP compartilhado.
+-- Para validar MFA localmente: update public.platform_settings set admin_mfa_required = true where id;
+update public.platform_settings set admin_mfa_required = false where id;
+
 update public.profiles set phone = '47 99912-4408'
 where id = '0d000000-0000-4000-8000-000000000003';
 

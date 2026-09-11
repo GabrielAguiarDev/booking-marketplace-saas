@@ -6,6 +6,8 @@ import { brlWhole, count, waited } from "./model";
 import { useAdmin } from "./store";
 import { AMBER, GREEN, INK, MUTED, RED } from "./tokens";
 
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
 export function Overview({ go }: { go: (id: NavId) => void }) {
   const { data } = useAdmin();
   const series = data.overview.series.slice(-6);
@@ -47,6 +49,8 @@ export function Overview({ go }: { go: (id: NavId) => void }) {
     .at(0);
   const overdue = data.invoices.filter((i) => i.status === "overdue");
   const overdueCents = overdue.reduce((sum, i) => sum + i.amountCents, 0);
+  const supportQueue = data.tickets.filter((ticket) => ticket.status !== "resolved");
+  const highPriorityTickets = supportQueue.filter((ticket) => ticket.priority === "high");
 
   const queue = [
     {
@@ -57,10 +61,14 @@ export function Overview({ go }: { go: (id: NavId) => void }) {
       to: "approvals" as const,
     },
     {
-      count: "0",
+      count: String(supportQueue.length),
       label: "Chamados de suporte",
-      meta: "módulo ainda não conectado",
-      tone: INK,
+      meta: highPriorityTickets.length
+        ? plural(highPriorityTickets.length, "com prioridade alta", "com prioridade alta")
+        : supportQueue.length
+          ? "nenhum com prioridade alta"
+          : "nenhum na fila",
+      tone: highPriorityTickets.length ? RED : INK,
       to: "support" as const,
     },
     {

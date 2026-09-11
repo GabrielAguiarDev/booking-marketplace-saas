@@ -2,14 +2,42 @@
 
 import { useMemo, useState } from "react";
 
-import { Check, ChevronRight, DocIcon, SearchIcon, StatusChip, TriangleAlert } from "./blocks";
+import {
+  Check,
+  ChevronRight,
+  DocIcon,
+  SearchIcon,
+  Stars,
+  StatusChip,
+  TriangleAlert,
+} from "./blocks";
 import { downloadCsv, toCsv } from "./csv";
-import { ESTAB_TABS, STATUS, USAGE_MONTHS, type Chip, type EstabTab } from "./data";
+import { ESTAB_TABS, STATUS, decimal, signed, type Chip, type EstabTab } from "./data";
 import { DiscountDialog, PlanDialog, TextDialog, useRun } from "./dialogs";
-import { brl, count, day, competence, planText, type Establishment } from "./model";
+import {
+  TICKET_PRIORITY_LABEL,
+  TICKET_STATUS_LABEL,
+  brl,
+  count,
+  day,
+  competence,
+  planText,
+  stamp,
+  type AccessSession,
+  type Establishment,
+} from "./model";
 import { useAdmin } from "./store";
 
 const PAGE = 8;
+
+/** Rótulos dos 12 meses de `usage`, do mais antigo ao atual. */
+function usageMonths(): string[] {
+  const now = new Date();
+  const format = new Intl.DateTimeFormat("pt-BR", { month: "short" });
+  return Array.from({ length: 12 }, (_, i) =>
+    format.format(new Date(now.getFullYear(), now.getMonth() - 11 + i, 1)).replace(".", ""),
+  );
+}
 
 /** A etiqueta de situação: suspensa ganha de inadimplente, que ganha de ativa. */
 function statusChip(e: Establishment): Chip {
@@ -364,10 +392,18 @@ export function EstablishmentDetail({
   estabId,
   onBack,
   onAccess,
+  activeAccess,
+  canAccessAccount,
+  onOpenConsole,
+  onOpenTicket,
 }: {
   estabId: string;
   onBack: () => void;
   onAccess: () => void;
+  activeAccess: AccessSession | null;
+  canAccessAccount: boolean;
+  onOpenConsole: (session: AccessSession) => void;
+  onOpenTicket: (id: string) => void;
 }) {
   const { data, actions } = useAdmin();
   const [tab, setTab] = useState<EstabTab>("visão geral");
@@ -393,6 +429,10 @@ export function EstablishmentDetail({
   const baseline = est.usage.slice(-7, -1);
   const average = baseline.length ? baseline.reduce((a, b) => a + b, 0) / baseline.length : 0;
   const trend = average ? Math.round(((recent - average) / average) * 100) : 0;
+  const months = usageMonths();
+  const reviews = data.panorama.find((p) => p.establishmentId === est.id);
+  const recentReviews = reviews ? (data.recentReviews[reviews.id] ?? []) : [];
+  const tickets = data.tickets.filter((ticket) => ticket.establishmentId === est.id);
 
   return (
     <div className="stack detail">
@@ -454,9 +494,17 @@ export function EstablishmentDetail({
               Suspender
             </button>
           )}
-          <button className="primary" onClick={onAccess} type="button">
-            Registrar acesso
-          </button>
+          {canAccessAccount ? (
+            activeAccess ? (
+              <button className="primary" onClick={() => onOpenConsole(activeAccess)} type="button">
+                Reabrir console
+              </button>
+            ) : (
+              <button className="primary" onClick={onAccess} type="button">
+                Registrar acesso
+              </button>
+            )
+          ) : null}
         </div>
       </div>
 
@@ -467,6 +515,23 @@ export function EstablishmentDetail({
           <div className="spacer" />
           <button className="ghost small danger" onClick={() => setModal("contact")} type="button">
             Registrar contato
+          </button>
+        </div>
+      ) : null}
+
+      {activeAccess ? (
+        <div className="banner account-access-active">
+          <span className="account-console-lock" aria-hidden="true">
+            <svg fill="none" height="15" strokeWidth="1.8" viewBox="0 0 24 24" width="15">
+              <path d="M7 10V7a5 5 0 0110 0v3M5 10h14v10H5z" />
+            </svg>
+          </span>
+          <span>
+            Sessão somente leitura ativa até {stamp(activeAccess.expiresAt)} · {activeAccess.reason}
+          </span>
+          <div className="spacer" />
+          <button className="ghost small" onClick={() => onOpenConsole(activeAccess)} type="button">
+            Abrir console
           </button>
         </div>
       ) : null}
@@ -530,12 +595,12 @@ export function EstablishmentDetail({
                   // mês abaixo de 60% do pico é queda: vermelho, como no canvas
                   const drop = value < usageMax * 0.6;
                   return (
-                    <div key={USAGE_MONTHS[i] ?? i} title={`${value} agendamentos`}>
+                    <div key={months[i] ?? i} title={`${value} agendamentos`}>
                       <span
                         className={drop ? "bar danger" : "bar"}
                         style={{ height: `${Math.max(2, height)}px` }}
                       />
-                      <code>{USAGE_MONTHS[i]}</code>
+                      <code>{months[i]}</code>
                     </div>
                   );
                 })}
@@ -607,18 +672,152 @@ export function EstablishmentDetail({
         </div>
       ) : null}
 
-      {tab === "chamados" || tab === "avaliações" || tab === "uso da plataforma" ? (
-        <div className="empty-card">
-          <DocIcon />
-          <strong>
-            {tab === "chamados"
-              ? "Chamados deste estabelecimento"
-              : tab === "avaliações"
-                ? "Avaliações recebidas"
-                : "Uso detalhado"}
-          </strong>
-          <p>Esta aba reusa os mesmos componentes de lista; não detalhada nesta rodada.</p>
+      {tab === "uso da plataforma" ? (
+        <div className="card clip">
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mês</th>
+                  <th className="right">Agendamentos</th>
+                  <th className="right">Variação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {est.usage
+                  .map((value, i) => ({ value, month: months[i], previous: est.usage[i - 1] }))
+                  .reverse()
+                  .map((row) => (
+                    <tr key={row.month}>
+                      <td className="strong">{row.month}</td>
+                      <td className="right mono">{count(row.value)}</td>
+                      <td className="right mono muted">
+                        {row.previous
+                          ? `${row.value >= row.previous ? "+" : "−"}${Math.abs(Math.round(((row.value - row.previous) / row.previous) * 100))}%`
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+      ) : null}
+
+      {tab === "avaliações" ? (
+        reviews && reviews.total > 0 ? (
+          <div className="stack tight">
+            <div className="kpi-grid three">
+              <div className="card pad">
+                <p className="kpi-label">Nota média</p>
+                <code className="kpi-number sm">{decimal(reviews.average)}</code>
+                <small className="kpi-note">{signed(reviews.delta30)} em 30 dias</small>
+              </div>
+              <div className="card pad">
+                <p className="kpi-label">Avaliações</p>
+                <code className="kpi-number sm">{count(reviews.total)}</code>
+                <small className="kpi-note">{count(reviews.month)} no mês</small>
+              </div>
+              <div className="card pad">
+                <p className="kpi-label">Denúncias abertas pela loja</p>
+                <code className="kpi-number sm">{count(reviews.reports)}</code>
+                <small className="kpi-note">decididas em Avaliações</small>
+              </div>
+            </div>
+            <div className="card pad">
+              <h3 className="card-title">Avaliações recentes</h3>
+              {recentReviews.length ? (
+                <div className="recent-list">
+                  {recentReviews.map((review, i) => (
+                    <div key={`${review.who}-${i}`}>
+                      <div className="recent-head">
+                        <Stars size="sm" value={review.rating} />
+                        <code>{decimal(review.rating)}</code>
+                        <small>
+                          {review.who} · {stamp(review.at).slice(0, 6)}
+                        </small>
+                      </div>
+                      <p>{review.text}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="hint">Nenhuma avaliação nos últimos 30 dias.</p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="empty-card">
+            <DocIcon />
+            <strong>Nenhuma avaliação ainda</strong>
+            <p>As avaliações aparecem aqui depois do primeiro atendimento avaliado.</p>
+          </div>
+        )
+      ) : null}
+
+      {tab === "chamados" ? (
+        !data.supportAccess ? (
+          <div className="empty-card">
+            <DocIcon />
+            <strong>Chamados ficam com Suporte e Operações</strong>
+            <p>O seu papel não tem acesso às conversas de suporte desta loja.</p>
+          </div>
+        ) : tickets.length ? (
+          <div className="card clip">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Chamado</th>
+                    <th>Situação</th>
+                    <th>Prioridade</th>
+                    <th>Responsável</th>
+                    <th className="right">Última mensagem</th>
+                    <th className="chevron" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {tickets.map((ticket) => (
+                    <tr key={ticket.id}>
+                      <td>
+                        <button
+                          className="row-link"
+                          onClick={() => onOpenTicket(ticket.id)}
+                          type="button"
+                        >
+                          #{ticket.number} · {ticket.subject}
+                        </button>
+                        <p className="hint">{ticket.requesterName}</p>
+                      </td>
+                      <td>{TICKET_STATUS_LABEL[ticket.status]}</td>
+                      <td>{TICKET_PRIORITY_LABEL[ticket.priority]}</td>
+                      <td>{ticket.assignee ?? "Sem responsável"}</td>
+                      <td className="right mono muted">{stamp(ticket.lastMessageAt)}</td>
+                      <td className="right">
+                        <button
+                          aria-label={`Abrir chamado #${ticket.number}`}
+                          className="icon-button"
+                          onClick={() => onOpenTicket(ticket.id)}
+                          type="button"
+                        >
+                          <ChevronRight />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="empty-card">
+            <DocIcon />
+            <strong>Nenhum chamado desta loja</strong>
+            <p>
+              Quando uma pessoa da loja ou um cliente abrir um pedido relacionado, ele aparece aqui.
+            </p>
+          </div>
+        )
       ) : null}
 
       {modal === "plan" ? (

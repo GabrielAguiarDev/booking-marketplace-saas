@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { FormError, Modal, useRun } from "./dialogs";
-import { brl, count, type CatalogItem, type Suggestion } from "./model";
+import { CATEGORY_LABEL, brl, count, type CatalogItem, type Suggestion } from "./model";
 import { useAdmin } from "./store";
 
 export function Services() {
@@ -88,7 +88,8 @@ export function Services() {
 
       {creating ? (
         <NewItemDialog
-          groups={groups.map(([group]) => group)}
+          // todas as categorias: um catálogo vazio também precisa receber o primeiro item
+          groups={Object.values(CATEGORY_LABEL)}
           onClose={() => setCreating(false)}
           onCreated={(id) => setSelected(id)}
         />
@@ -99,14 +100,13 @@ export function Services() {
 }
 
 function ItemEditor({ item }: { item: CatalogItem }) {
-  const { data, actions } = useAdmin();
+  const { actions } = useAdmin();
   const [name, setName] = useState(item.name);
   const [minutes, setMinutes] = useState(String(item.durationMinutes));
   const [synonyms, setSynonyms] = useState(item.synonyms);
   const [term, setTerm] = useState("");
   const [adding, setAdding] = useState(false);
   const save = useRun();
-  const cities = new Set(data.establishments.map((e) => e.cityId)).size;
 
   const dirty =
     name.trim() !== item.name ||
@@ -130,8 +130,8 @@ function ItemEditor({ item }: { item: CatalogItem }) {
           <h2 className="item-title">{item.name}</h2>
           <p className="detail-sub">
             Oferecido por <code>{count(item.establishments)}</code>{" "}
-            {item.establishments === 1 ? "estabelecimento" : "estabelecimentos"} em {cities}{" "}
-            {cities === 1 ? "cidade" : "cidades"}
+            {item.establishments === 1 ? "estabelecimento" : "estabelecimentos"} em {item.cities}{" "}
+            {item.cities === 1 ? "cidade" : "cidades"}
           </p>
         </div>
         <button
@@ -270,7 +270,7 @@ function Suggestions({ onMerge }: { onMerge: (s: Suggestion) => void }) {
       title: resolution === "approve" ? "Sugestão aprovada" : "Sugestão recusada",
       sub:
         resolution === "approve"
-          ? `${s.name} entrou no catálogo, em Sugeridos.`
+          ? `${s.name} entrou no catálogo, em ${s.group}.`
           : `${s.name} não entra no catálogo; a decisão ficou registrada.`,
     }).finally(() => setBusy(null));
   };
@@ -426,9 +426,16 @@ function MergeDialog({ suggestion, onClose }: { suggestion: Suggestion; onClose:
           </p>
         </div>
         <div className="modal-body">
+          {targets.length === 0 ? (
+            <p className="hint">
+              {suggestion.group} ainda não tem item no catálogo. Aprove a sugestão para criar o
+              primeiro, ou crie um item e volte para mesclar.
+            </p>
+          ) : null}
           <label>
             <span>Mesclar em</span>
             <select
+              disabled={targets.length === 0}
               id="merge-target"
               onChange={(event) => setTarget(event.target.value)}
               value={target}

@@ -146,8 +146,10 @@ begin
     new.status_changed_at := old.status_changed_at;
   end if;
 
+  -- A primeira atribuição (aprovação, backfill) não é troca: o intervalo mínimo
+  -- entre trocas não pode impedir de corrigir o plano logo depois de aprovar.
   if new.plan_id is distinct from old.plan_id then
-    new.plan_changed_at := now();
+    new.plan_changed_at := case when old.plan_id is null then null else now() end;
   else
     new.plan_changed_at := old.plan_changed_at;
   end if;
@@ -903,7 +905,9 @@ returns table (
   quota_total integer,
   quota_used integer,
   monthly_price_cents integer,
-  categories text[]
+  categories text[],
+  -- o que foi buscado ali nos últimos 30 dias sem nenhum resultado
+  gaps text[]
 )
 language plpgsql
 stable
@@ -941,6 +945,14 @@ begin
         from public.establishments e
         where e.city_id = c.id and e.status = 'active'
         order by 1
+      ),
+      array(
+        select se.term
+        from public.search_events se
+        where se.city_id = c.id and se.results = 0 and se.created_at >= now() - interval '30 days'
+        group by se.term
+        order by count(*) desc, se.term
+        limit 8
       )
     from public.cities c
     order by c.name;
@@ -1176,6 +1188,7 @@ returns table (
   duration_minutes integer,
   synonyms text[],
   establishments integer,
+  cities integer,
   searches_month integer,
   appointments_month integer,
   average_price_cents integer
@@ -1196,6 +1209,12 @@ begin
       i.synonyms,
       (
         select count(distinct s.establishment_id)::integer
+        from public.services s
+        join public.establishments e on e.id = s.establishment_id
+        where s.catalog_item_id = i.id and e.status = 'active'
+      ),
+      (
+        select count(distinct e.city_id)::integer
         from public.services s
         join public.establishments e on e.id = s.establishment_id
         where s.catalog_item_id = i.id and e.status = 'active'
@@ -2031,7 +2050,8 @@ begin
   where id = l_city.id;
 
   perform public.admin_write_audit(
-    'Alterou ' || l_city.name || '/' || l_city.state_code || ' para ' || p_status::text,
+    'Alterou ' || l_city.name || '/' || l_city.state_code || ' para '
+      || case p_status when 'active' then 'ativa' when 'pre_launch' then 'pré-lançamento' else 'em avaliação' end,
     case p_status
       when 'active' then 'cidade publicada na busca'
       when 'pre_launch' then 'pré-lançamento; fora da busca'
@@ -2042,7 +2062,9 @@ end;
 $$;
 
 -- `p_totals`: {"<city_id>": total, ...}
-create function public.admin_save_quotas(p_totals jsonb)
+-- `p_totals` e `p_prices`: {"<city_id>": valor, ...}. Cota é de operações ou
+-- financeiro; preço só do financeiro, como na edição do plano.
+create function public.admin_save_quotas(p_totals jsonb, p_prices jsonb default '{}'::jsonb)
 returns void
 language plpgsql
 security definer
@@ -2053,7 +2075,9 @@ declare
   l_city public.cities;
   l_total integer;
   l_used integer;
+  l_price integer;
   l_changes text[] := array[]::text[];
+  l_priced boolean := false;
 begin
   perform public.admin_require(array['operations', 'finance']::public.platform_role[]);
   for l_entry in select key, value from jsonb_each_text(coalesce(p_totals, '{}'::jsonb)) loop
@@ -2075,8 +2099,33 @@ begin
     l_changes := array_append(l_changes, l_city.name || ': ' || l_city.monthly_quota || ' → ' || l_total);
   end loop;
 
+  for l_entry in select key, value from jsonb_each_text(coalesce(p_prices, '{}'::jsonb)) loop
+    select * into l_city from public.cities where id = l_entry.key::uuid for update;
+    if not found then
+      raise exception 'Cidade não encontrada.' using errcode = 'P0002';
+    end if;
+    l_price := l_entry.value::integer;
+    if l_price is null or l_price <= 0 then
+      raise exception 'Preço inválido em %.', l_city.name using errcode = 'P0001';
+    end if;
+    continue when l_price = l_city.monthly_price_cents;
+    if not l_priced then
+      perform public.admin_require(array['finance']::public.platform_role[]);
+      l_priced := true;
+    end if;
+    update public.cities set monthly_price_cents = l_price where id = l_city.id;
+    l_changes := array_append(
+      l_changes,
+      l_city.name || ': ' || case when l_city.monthly_price_cents is null then 'sem preço' else public.admin_brl(l_city.monthly_price_cents) end
+        || ' → ' || public.admin_brl(l_price)
+    );
+  end loop;
+
   if cardinality(l_changes) > 0 then
-    perform public.admin_write_audit('Alterou cotas de mensalidade', array_to_string(l_changes, ' · '));
+    perform public.admin_write_audit(
+      case when l_priced then 'Alterou cotas e preços de mensalidade' else 'Alterou cotas de mensalidade' end,
+      array_to_string(l_changes, ' · ')
+    );
   end if;
 end;
 $$;
@@ -2143,7 +2192,8 @@ begin
       update public.cities set monthly_price_cents = l_price where id = l_city.id;
       l_changes := array_append(
         l_changes,
-        l_city.name || ' ' || public.admin_brl(l_city.monthly_price_cents) || ' → ' || public.admin_brl(l_price)
+        l_city.name || ' ' || case when l_city.monthly_price_cents is null then 'sem preço' else public.admin_brl(l_city.monthly_price_cents) end
+          || ' → ' || public.admin_brl(l_price)
       );
     end loop;
   end if;
@@ -2235,7 +2285,19 @@ begin
     and s.catalog_item_id is null
     and lower(btrim(s.name)) = lower(l_name);
 
-  perform public.admin_write_audit('Criou o item de catálogo ' || l_name, p_category::text);
+  perform public.admin_write_audit(
+    'Criou o item de catálogo ' || l_name,
+    case p_category
+      when 'barbershop' then 'Barbearia'
+      when 'salon' then 'Salão'
+      when 'aesthetic_clinic' then 'Estética'
+      when 'dermatology' then 'Dermatologia'
+      when 'petshop' then 'Petshop'
+      when 'nail_salon' then 'Manicure'
+      when 'dentistry' then 'Odontologia'
+      else 'Massagem'
+    end
+  );
   return l_id;
 end;
 $$;

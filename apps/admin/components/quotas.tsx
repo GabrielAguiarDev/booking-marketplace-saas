@@ -6,8 +6,13 @@ import { CircleAlert, StatusChip } from "./blocks";
 import { STATUS } from "./data";
 import { FormError, useRun } from "./dialogs";
 import { brl, count, type PlanDef } from "./model";
+
+/** "229,00" → 22900 */
+const toCents = (text: string) =>
+  Math.round(Number(text.replace(/[^\d,]/g, "").replace(",", ".")) * 100) || 0;
+const priceText = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 import { useAdmin } from "./store";
-import { AMBER, INK, RED } from "./tokens";
+import { AMBER, FAINT, INK, RED } from "./tokens";
 
 type Feature = readonly [label: string, value: string, tone: string];
 
@@ -39,16 +44,29 @@ function features(plan: PlanDef): Feature[] {
 
 export function Quotas({ onEditPlan }: { onEditPlan: (planId: string) => void }) {
   const { data, actions } = useAdmin();
-  const rows = data.cities.filter((city) => city.quotaTotal > 0);
+  // Todas as cidades entram: é aqui que uma cidade sem cota ou sem preço ganha os dois.
+  const rows = data.cities
+    .slice()
+    .sort((a, b) => b.quotaTotal - a.quotaTotal || a.name.localeCompare(b.name, "pt-BR"));
   const prices = data.cities.map((c) => c.monthlyPriceCents).filter((c): c is number => c !== null);
   const low = prices.length ? Math.min(...prices) : 0;
   const high = prices.length ? Math.max(...prices) : 0;
 
   const [draft, setDraft] = useState<Record<string, string>>({});
-  const dirty = Object.entries(draft).some(
+  const [priceDraft, setPriceDraft] = useState<Record<string, string>>({});
+  const changedQuotas = Object.entries(draft).filter(
     ([id, text]) => Number(text) !== data.cities.find((c) => c.id === id)?.quotaTotal,
   );
-  const save = useRun(() => setDraft({}));
+  const changedPrices = Object.entries(priceDraft).filter(
+    ([id, text]) =>
+      text !== "" && toCents(text) !== data.cities.find((c) => c.id === id)?.monthlyPriceCents,
+  );
+  const dirty = changedQuotas.length > 0 || changedPrices.length > 0;
+  const discard = () => {
+    setDraft({});
+    setPriceDraft({});
+  };
+  const save = useRun(discard);
   const rules = useRun();
 
   const interval = data.params.find((p) => p.key === "plan_change_interval_days");
@@ -129,7 +147,7 @@ export function Quotas({ onEditPlan }: { onEditPlan: (planId: string) => void })
             </div>
             <div className="head-actions">
               {dirty ? (
-                <button className="link muted" onClick={() => setDraft({})} type="button">
+                <button className="link muted" onClick={discard} type="button">
                   Descartar
                 </button>
               ) : null}
@@ -140,13 +158,12 @@ export function Quotas({ onEditPlan }: { onEditPlan: (planId: string) => void })
                   void save.run(
                     () =>
                       actions.saveQuotas(
-                        Object.fromEntries(
-                          Object.entries(draft).map(([id, text]) => [id, Number(text)]),
-                        ),
+                        Object.fromEntries(changedQuotas.map(([id, text]) => [id, Number(text)])),
+                        Object.fromEntries(changedPrices.map(([id, text]) => [id, toCents(text)])),
                       ),
                     {
                       title: "Cotas salvas",
-                      sub: "Os novos totais já valem para os próximos cadastros.",
+                      sub: "Cotas e preços já valem para os próximos cadastros e trocas de plano.",
                     },
                   )
                 }
@@ -165,7 +182,7 @@ export function Quotas({ onEditPlan }: { onEditPlan: (planId: string) => void })
                   <th className="fill">Ocupação</th>
                   <th className="right">Ocupadas</th>
                   <th className="right">Restantes</th>
-                  <th className="right">Preço local</th>
+                  <th className="right total">Preço local (R$)</th>
                   <th className="right total">Total de vagas</th>
                 </tr>
               </thead>
@@ -174,7 +191,7 @@ export function Quotas({ onEditPlan }: { onEditPlan: (planId: string) => void })
                   const text = draft[city.id] ?? String(city.quotaTotal);
                   const total = Number(text) || 0;
                   const left = total - city.quotaUsed;
-                  const tone = left <= 0 ? RED : left <= 3 ? AMBER : INK;
+                  const tone = total === 0 ? FAINT : left <= 0 ? RED : left <= 3 ? AMBER : INK;
                   const invalid = total < city.quotaUsed;
                   return (
                     <tr key={city.id}>
@@ -185,7 +202,7 @@ export function Quotas({ onEditPlan }: { onEditPlan: (planId: string) => void })
                         <div className="meter">
                           <span
                             style={{
-                              width: `${total ? Math.min(100, Math.round((city.quotaUsed / total) * 100)) : 100}%`,
+                              width: `${total ? Math.min(100, Math.round((city.quotaUsed / total) * 100)) : 0}%`,
                               background: left <= 0 ? RED : INK,
                             }}
                           />
@@ -195,8 +212,26 @@ export function Quotas({ onEditPlan }: { onEditPlan: (planId: string) => void })
                       <td className="right mono strong" style={{ color: tone }}>
                         {Math.max(0, left)}
                       </td>
-                      <td className="right mono">
-                        {city.monthlyPriceCents !== null ? brl(city.monthlyPriceCents) : "—"}
+                      <td className="right">
+                        <input
+                          aria-label={`Preço local da mensalidade em ${city.name}`}
+                          className="mono-input price"
+                          id={`price-${city.id}`}
+                          inputMode="decimal"
+                          onChange={(event) =>
+                            setPriceDraft((all) => ({
+                              ...all,
+                              [city.id]: event.target.value.replace(/[^\d,]/g, ""),
+                            }))
+                          }
+                          placeholder="sem preço"
+                          value={
+                            priceDraft[city.id] ??
+                            (city.monthlyPriceCents === null
+                              ? ""
+                              : priceText(city.monthlyPriceCents))
+                          }
+                        />
                       </td>
                       <td className="right">
                         <input
@@ -246,9 +281,13 @@ export function Quotas({ onEditPlan }: { onEditPlan: (planId: string) => void })
                   }
                   value={interval?.value ?? 90}
                 >
-                  <option value={90}>90 dias</option>
-                  <option value={60}>60 dias</option>
-                  <option value={30}>30 dias</option>
+                  {[...new Set([90, 60, 30, interval?.value ?? 90])]
+                    .sort((a, b) => b - a)
+                    .map((days) => (
+                      <option key={days} value={days}>
+                        {days} {days === 1 ? "dia" : "dias"}
+                      </option>
+                    ))}
                 </select>
               </label>
               <p className="hint">

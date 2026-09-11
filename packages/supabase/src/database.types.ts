@@ -14,6 +14,8 @@ export type Database = {
           admin_id: string | null
           admin_name: string
           admin_role: Database["public"]["Enums"]["platform_role"]
+          ended_at: string | null
+          ended_by: string | null
           establishment_id: string | null
           establishment_name: string
           expires_at: string
@@ -25,6 +27,8 @@ export type Database = {
           admin_id?: string | null
           admin_name: string
           admin_role: Database["public"]["Enums"]["platform_role"]
+          ended_at?: string | null
+          ended_by?: string | null
           establishment_id?: string | null
           establishment_name: string
           expires_at: string
@@ -36,6 +40,8 @@ export type Database = {
           admin_id?: string | null
           admin_name?: string
           admin_role?: Database["public"]["Enums"]["platform_role"]
+          ended_at?: string | null
+          ended_by?: string | null
           establishment_id?: string | null
           establishment_name?: string
           expires_at?: string
@@ -50,6 +56,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_access_sessions_ended_by_fkey"
+            columns: ["ended_by"]
+            isOneToOne: false
+            referencedRelation: "platform_admins"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "admin_access_sessions_establishment_id_fkey"
@@ -932,6 +945,7 @@ export type Database = {
       }
       platform_settings: {
         Row: {
+          admin_mfa_required: boolean
           cancellation_window_hours: number
           delinquency_grace_days: number
           id: boolean
@@ -942,6 +956,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          admin_mfa_required?: boolean
           cancellation_window_hours?: number
           delinquency_grace_days?: number
           id?: boolean
@@ -952,6 +967,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          admin_mfa_required?: boolean
           cancellation_window_hours?: number
           delinquency_grace_days?: number
           id?: boolean
@@ -1513,11 +1529,307 @@ export type Database = {
           },
         ]
       }
+      showcase_banners: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          image_path: string
+          is_active: boolean
+          sort_order: number
+          starts_at: string | null
+          subtitle: string
+          target_category:
+            | Database["public"]["Enums"]["establishment_category"]
+            | null
+          target_establishment_id: string | null
+          target_kind: Database["public"]["Enums"]["showcase_target"]
+          target_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          image_path: string
+          is_active?: boolean
+          sort_order?: number
+          starts_at?: string | null
+          subtitle?: string
+          target_category?:
+            | Database["public"]["Enums"]["establishment_category"]
+            | null
+          target_establishment_id?: string | null
+          target_kind: Database["public"]["Enums"]["showcase_target"]
+          target_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          image_path?: string
+          is_active?: boolean
+          sort_order?: number
+          starts_at?: string | null
+          subtitle?: string
+          target_category?:
+            | Database["public"]["Enums"]["establishment_category"]
+            | null
+          target_establishment_id?: string | null
+          target_kind?: Database["public"]["Enums"]["showcase_target"]
+          target_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showcase_banners_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showcase_banners_target_establishment_id_fkey"
+            columns: ["target_establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_messages: {
+        Row: {
+          author_id: string | null
+          author_name: string
+          body: string
+          created_at: string
+          from_staff: boolean
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name: string
+          body: string
+          created_at?: string
+          from_staff: boolean
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string
+          body?: string
+          created_at?: string
+          from_staff?: boolean
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["support_ticket_category"]
+          created_at: string
+          establishment_id: string | null
+          first_response_at: string | null
+          id: string
+          last_message_at: string
+          last_message_from_staff: boolean
+          number: number
+          priority: Database["public"]["Enums"]["support_ticket_priority"]
+          requester_id: string | null
+          requester_kind: Database["public"]["Enums"]["support_requester_kind"]
+          requester_name: string
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          updated_at: string
+          waiting_since: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["support_ticket_category"]
+          created_at?: string
+          establishment_id?: string | null
+          first_response_at?: string | null
+          id?: string
+          last_message_at?: string
+          last_message_from_staff?: boolean
+          number?: never
+          priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          requester_id?: string | null
+          requester_kind: Database["public"]["Enums"]["support_requester_kind"]
+          requester_name: string
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          updated_at?: string
+          waiting_since?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["support_ticket_category"]
+          created_at?: string
+          establishment_id?: string | null
+          first_response_at?: string | null
+          id?: string
+          last_message_at?: string
+          last_message_from_staff?: boolean
+          number?: never
+          priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          requester_id?: string | null
+          requester_kind?: Database["public"]["Enums"]["support_requester_kind"]
+          requester_name?: string
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject?: string
+          updated_at?: string
+          waiting_since?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "platform_admins"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "support_tickets_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      admin_account_agenda: {
+        Args: { p_establishment_id: string; p_session_id: string }
+        Returns: {
+          customer: string
+          ends_at: string
+          id: string
+          price_cents: number
+          professional: string
+          service: string
+          starts_at: string
+          status: Database["public"]["Enums"]["appointment_status"]
+        }[]
+      }
+      admin_account_professionals: {
+        Args: { p_establishment_id: string; p_session_id: string }
+        Returns: {
+          bio: string
+          id: string
+          is_active: boolean
+          name: string
+          services: string[]
+          title: string
+        }[]
+      }
+      admin_account_reviews: {
+        Args: { p_establishment_id: string; p_session_id: string }
+        Returns: {
+          comment: string
+          created_at: string
+          customer: string
+          id: string
+          professional: string
+          rating: number
+          tags: string[]
+        }[]
+      }
+      admin_account_services: {
+        Args: { p_establishment_id: string; p_session_id: string }
+        Returns: {
+          description: string
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          name: string
+          price_cents: number
+          professionals: number
+        }[]
+      }
+      admin_account_settings: {
+        Args: { p_establishment_id: string; p_session_id: string }
+        Returns: {
+          accept_app_payment: boolean
+          auto_approve: boolean
+          booking_mode: Database["public"]["Enums"]["booking_mode"]
+          cancellation_window_minutes: number
+          deposit_percent: number
+          deposit_refundable: boolean
+          min_lead_minutes: number
+          queue_arrival_method: Database["public"]["Enums"]["queue_arrival_method"]
+          queue_auto_close: boolean
+          queue_auto_skip: boolean
+          queue_close_after_minutes: number
+          queue_notify_channel: Database["public"]["Enums"]["queue_notify_channel"]
+          queue_notify_enabled: boolean
+          queue_per_professional: boolean
+          queue_remote_join: boolean
+          queue_require_arrival: boolean
+          slot_interval_minutes: number
+          timezone: string
+        }[]
+      }
+      admin_active_access_sessions: {
+        Args: never
+        Returns: {
+          establishment_id: string
+          establishment_name: string
+          expires_at: string
+          id: string
+          reason: string
+          started_at: string
+        }[]
+      }
+      admin_add_team_member: {
+        Args: {
+          p_email: string
+          p_invited?: boolean
+          p_name: string
+          p_role: Database["public"]["Enums"]["platform_role"]
+        }
+        Returns: string
+      }
       admin_applications: {
         Args: never
         Returns: {
@@ -1542,6 +1854,10 @@ export type Database = {
         Args: { p_ids: string[]; p_months: number; p_percent: number }
         Returns: undefined
       }
+      admin_assign_ticket: {
+        Args: { p_admin_id: string; p_ticket_id: string }
+        Returns: undefined
+      }
       admin_audit: {
         Args: never
         Returns: {
@@ -1560,6 +1876,7 @@ export type Database = {
           appointments_month: number
           average_price_cents: number
           category: Database["public"]["Enums"]["establishment_category"]
+          cities: number
           duration_minutes: number
           establishments: number
           id: string
@@ -1593,6 +1910,7 @@ export type Database = {
           categories: string[]
           customers: number
           establishments: number
+          gaps: string[]
           id: string
           launch_status: Database["public"]["Enums"]["city_launch_status"]
           monthly_price_cents: number
@@ -1653,6 +1971,11 @@ export type Database = {
           who: string
         }[]
       }
+      admin_delete_banner: { Args: { p_id: string }; Returns: string }
+      admin_end_access_session: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
       admin_establishments: {
         Args: never
         Returns: {
@@ -1681,6 +2004,10 @@ export type Database = {
           usage: number[]
         }[]
       }
+      admin_has_active_access_session: {
+        Args: { p_establishment_id: string; p_session_id: string }
+        Returns: boolean
+      }
       admin_me: {
         Args: never
         Returns: {
@@ -1689,6 +2016,7 @@ export type Database = {
           role: Database["public"]["Enums"]["platform_role"]
         }[]
       }
+      admin_mfa_policy: { Args: never; Returns: boolean }
       admin_no_result_searches: {
         Args: never
         Returns: {
@@ -1742,6 +2070,19 @@ export type Database = {
         Args: { p_note: string; p_user_id: string }
         Returns: undefined
       }
+      admin_remove_team_member: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      admin_reorder_banners: { Args: { p_ids: string[] }; Returns: undefined }
+      admin_reply_ticket: {
+        Args: {
+          p_body: string
+          p_status?: Database["public"]["Enums"]["support_ticket_status"]
+          p_ticket_id: string
+        }
+        Returns: undefined
+      }
       admin_request_clarification: {
         Args: { p_message: string; p_report_id: string }
         Returns: undefined
@@ -1750,6 +2091,11 @@ export type Database = {
         Args: { p_roles?: Database["public"]["Enums"]["platform_role"][] }
         Returns: undefined
       }
+      admin_require_active_access_session: {
+        Args: { p_establishment_id: string; p_session_id: string }
+        Returns: undefined
+      }
+      admin_require_team_admin: { Args: never; Returns: undefined }
       admin_resolve_suggestion: {
         Args: { p_key: string; p_resolution: string; p_target_id: string }
         Returns: undefined
@@ -1796,6 +2142,23 @@ export type Database = {
           value_cents: number
         }[]
       }
+      admin_role_label: {
+        Args: { p_role: Database["public"]["Enums"]["platform_role"] }
+        Returns: string
+      }
+      admin_save_banner: {
+        Args: {
+          p_ends_at?: string
+          p_id?: string
+          p_image_path: string
+          p_starts_at?: string
+          p_subtitle: string
+          p_target_kind: Database["public"]["Enums"]["showcase_target"]
+          p_target_value: string
+          p_title: string
+        }
+        Returns: string
+      }
       admin_save_catalog_item: {
         Args: {
           p_duration_minutes: number
@@ -1805,7 +2168,14 @@ export type Database = {
         }
         Returns: undefined
       }
-      admin_save_quotas: { Args: { p_totals: Json }; Returns: undefined }
+      admin_save_quotas: {
+        Args: { p_prices?: Json; p_totals: Json }
+        Returns: undefined
+      }
+      admin_set_banner_active: {
+        Args: { p_active: boolean; p_id: string }
+        Returns: undefined
+      }
       admin_set_city_status: {
         Args: {
           p_city_id: string
@@ -1825,6 +2195,31 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_set_mfa_required: {
+        Args: { p_required: boolean }
+        Returns: undefined
+      }
+      admin_set_team_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["platform_role"]
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      admin_set_ticket_priority: {
+        Args: {
+          p_priority: Database["public"]["Enums"]["support_ticket_priority"]
+          p_ticket_id: string
+        }
+        Returns: undefined
+      }
+      admin_set_ticket_status: {
+        Args: {
+          p_status: Database["public"]["Enums"]["support_ticket_status"]
+          p_ticket_id: string
+        }
+        Returns: undefined
+      }
       admin_settings: {
         Args: never
         Returns: {
@@ -1836,6 +2231,27 @@ export type Database = {
           queue_max_per_professional: number
         }[]
       }
+      admin_showcase_banners: {
+        Args: never
+        Returns: {
+          created_at: string
+          created_by: string
+          ends_at: string
+          id: string
+          image_path: string
+          is_active: boolean
+          is_live: boolean
+          sort_order: number
+          starts_at: string
+          subtitle: string
+          target_available: boolean
+          target_kind: Database["public"]["Enums"]["showcase_target"]
+          target_label: string
+          target_value: string
+          title: string
+          updated_at: string
+        }[]
+      }
       admin_start_access_session: {
         Args: {
           p_establishment_id: string
@@ -1844,13 +2260,52 @@ export type Database = {
         }
         Returns: string
       }
+      admin_support_ticket_messages: {
+        Args: { p_ticket_id: string }
+        Returns: {
+          author_name: string
+          body: string
+          created_at: string
+          from_staff: boolean
+          id: string
+        }[]
+      }
+      admin_support_tickets: {
+        Args: never
+        Returns: {
+          assigned_to: string
+          assignee: string
+          category: Database["public"]["Enums"]["support_ticket_category"]
+          created_at: string
+          establishment: string
+          establishment_id: string
+          first_response_at: string
+          id: string
+          last_message_at: string
+          last_message_from_staff: boolean
+          messages: number
+          number: number
+          preview: string
+          priority: Database["public"]["Enums"]["support_ticket_priority"]
+          requester_email: string
+          requester_id: string
+          requester_kind: Database["public"]["Enums"]["support_requester_kind"]
+          requester_name: string
+          resolved_at: string
+          status: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          waiting_since: string
+        }[]
+      }
       admin_team: {
         Args: never
         Returns: {
           email: string
           id: string
+          invited_at: string
           last_seen_at: string
           name: string
+          pending: boolean
           role: Database["public"]["Enums"]["platform_role"]
         }[]
       }
@@ -1925,6 +2380,19 @@ export type Database = {
         Returns: boolean
       }
       is_platform_admin: { Args: never; Returns: boolean }
+      is_support_agent: { Args: never; Returns: boolean }
+      open_support_ticket: {
+        Args: {
+          p_body: string
+          p_category?: Database["public"]["Enums"]["support_ticket_category"]
+          p_establishment_id?: string
+          p_subject: string
+        }
+        Returns: {
+          id: string
+          number: number
+        }[]
+      }
       queue_state: {
         Args: { p_establishment_id: string }
         Returns: {
@@ -1935,6 +2403,10 @@ export type Database = {
           queue_position: number
           status: Database["public"]["Enums"]["queue_status"]
         }[]
+      }
+      reply_support_ticket: {
+        Args: { p_body: string; p_ticket_id: string }
+        Returns: undefined
       }
       review_in_moderation: { Args: { p_review_id: string }; Returns: boolean }
       search_establishments: {
@@ -1961,6 +2433,44 @@ export type Database = {
       shares_establishment_with: {
         Args: { p_user_id: string }
         Returns: boolean
+      }
+      showcase_banners: {
+        Args: never
+        Returns: {
+          id: string
+          image_path: string
+          subtitle: string
+          target_kind: Database["public"]["Enums"]["showcase_target"]
+          target_value: string
+          title: string
+        }[]
+      }
+      showcase_can_manage: { Args: never; Returns: boolean }
+      showcase_is_live: {
+        Args: {
+          p_banner: Database["public"]["Tables"]["showcase_banners"]["Row"]
+        }
+        Returns: boolean
+      }
+      showcase_target_label: {
+        Args: {
+          p_banner: Database["public"]["Tables"]["showcase_banners"]["Row"]
+        }
+        Returns: string
+      }
+      showcase_window_text: {
+        Args: { p_ends_at: string; p_starts_at: string }
+        Returns: string
+      }
+      support_priority_label: {
+        Args: {
+          p_priority: Database["public"]["Enums"]["support_ticket_priority"]
+        }
+        Returns: string
+      }
+      support_status_label: {
+        Args: { p_status: Database["public"]["Enums"]["support_ticket_status"] }
+        Returns: string
       }
     }
     Enums: {
@@ -2012,6 +2522,17 @@ export type Database = {
         | "awaiting_establishment"
         | "kept"
         | "removed"
+      showcase_target: "establishment" | "category" | "url"
+      support_requester_kind: "establishment" | "customer"
+      support_ticket_category:
+        | "account"
+        | "billing"
+        | "booking"
+        | "payment"
+        | "technical"
+        | "other"
+      support_ticket_priority: "low" | "normal" | "high"
+      support_ticket_status: "open" | "waiting_customer" | "resolved"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2192,6 +2713,18 @@ export const Constants = {
         "kept",
         "removed",
       ],
+      showcase_target: ["establishment", "category", "url"],
+      support_requester_kind: ["establishment", "customer"],
+      support_ticket_category: [
+        "account",
+        "billing",
+        "booking",
+        "payment",
+        "technical",
+        "other",
+      ],
+      support_ticket_priority: ["low", "normal", "high"],
+      support_ticket_status: ["open", "waiting_customer", "resolved"],
     },
   },
 } as const

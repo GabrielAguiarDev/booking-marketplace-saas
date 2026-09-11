@@ -12,7 +12,7 @@ export function Sidebar({ screen, go }: { screen: ScreenId; go: (id: NavId) => v
     approvals: data.applications.length,
     reviews: data.reports.length,
     finance: data.invoices.filter((i) => i.status === "overdue").length,
-    support: 0,
+    support: data.tickets.filter((ticket) => ticket.status !== "resolved").length,
   };
   const initials = data.me.name
     .split(" ")
@@ -38,7 +38,9 @@ export function Sidebar({ screen, go }: { screen: ScreenId; go: (id: NavId) => v
               {group.items.map((item) => {
                 // A ficha do estabelecimento continua sob "Estabelecimentos".
                 const active =
-                  screen === item.id || (item.id === "estab" && screen === "estabDetail");
+                  screen === item.id ||
+                  (item.id === "estab" &&
+                    (screen === "estabDetail" || screen === "accountConsole"));
                 const n = counts[item.id];
                 const badge = n === undefined ? item.badge : n > 0 ? String(n) : undefined;
                 return (

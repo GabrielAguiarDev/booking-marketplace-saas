@@ -22,15 +22,34 @@ import {
 import { useRouter } from "next/navigation";
 
 import type {
+  AccessSession,
+  AccountAppointment,
+  AccountProfessional,
+  AccountReview,
+  AccountService,
+  AccountSettings,
   AdminData,
   AuditEntry,
+  Banner,
+  BannerInput,
   CatalogItem,
   Decision,
   DecisionKind,
   PlanDef,
   PlanKind,
+  PlatformRole,
+  TicketMessage,
+  TicketPriority,
+  TicketStatus,
 } from "./model";
-import { brl, planText } from "./model";
+import {
+  brl,
+  planText,
+  ROLE_LABEL,
+  ROLE_SCOPE,
+  TICKET_PRIORITY_LABEL,
+  TICKET_STATUS_LABEL,
+} from "./model";
 import { createSupabaseActions } from "./supabase-actions";
 
 export type Toast = { title: string; sub: string; tone?: "ok" | "error" };
@@ -49,7 +68,20 @@ export type AdminActions = {
   changePlan: (ids: string[], plan: PlanKind) => Promise<void>;
   applyDiscount: (ids: string[], percent: number, months: number) => Promise<void>;
   registerContact: (establishmentId: string, note: string) => Promise<void>;
-  startAccessSession: (establishmentId: string, reason: string, minutes: number) => Promise<void>;
+  startAccessSession: (
+    establishmentId: string,
+    reason: string,
+    minutes: number,
+  ) => Promise<AccessSession>;
+  endAccessSession: (sessionId: string) => Promise<void>;
+  accountAgenda: (sessionId: string, establishmentId: string) => Promise<AccountAppointment[]>;
+  accountServices: (sessionId: string, establishmentId: string) => Promise<AccountService[]>;
+  accountProfessionals: (
+    sessionId: string,
+    establishmentId: string,
+  ) => Promise<AccountProfessional[]>;
+  accountSettings: (sessionId: string, establishmentId: string) => Promise<AccountSettings>;
+  accountReviews: (sessionId: string, establishmentId: string) => Promise<AccountReview[]>;
   openCity: (input: {
     name: string;
     uf: string;
@@ -57,7 +89,8 @@ export type AdminActions = {
     priceCents: number;
   }) => Promise<void>;
   setCityStatus: (id: string, status: "active" | "pre_launch" | "evaluating") => Promise<void>;
-  saveQuotas: (totals: Record<string, number>) => Promise<void>;
+  /** Cota e preço local da mensalidade, por cidade (centavos). */
+  saveQuotas: (totals: Record<string, number>, prices?: Record<string, number>) => Promise<void>;
   updatePlan: (
     id: string,
     patch: Partial<Omit<PlanDef, "id" | "kind">>,
@@ -85,6 +118,29 @@ export type AdminActions = {
   registerCustomerContact: (id: string, note: string) => Promise<void>;
   setCustomerBlocked: (id: string, blocked: boolean, reason: string) => Promise<void>;
   updateParam: (key: string, value: number) => Promise<void>;
+  setMfaRequired: (required: boolean) => Promise<void>;
+  /** Equipe (só o papel `admin`). `invited`: saiu e-mail de convite; senão a conta já existia. */
+  inviteTeamMember: (input: {
+    email: string;
+    name: string;
+    role: PlatformRole;
+  }) => Promise<{ invited: boolean }>;
+  setTeamRole: (userId: string, role: PlatformRole) => Promise<void>;
+  removeTeamMember: (userId: string) => Promise<void>;
+  /** Vitrine: cria ou edita (com `id`); sobe a imagem quando vem `file`. */
+  saveBanner: (input: BannerInput) => Promise<void>;
+  setBannerActive: (id: string, active: boolean) => Promise<void>;
+  /** Todos os banners, na ordem nova. */
+  reorderBanners: (ids: string[]) => Promise<void>;
+  deleteBanner: (id: string) => Promise<void>;
+  /** Suporte: a conversa é lida sob demanda, ao abrir o chamado. */
+  ticketMessages: (id: string) => Promise<TicketMessage[]>;
+  /** Responde e deixa o chamado na situação escolhida. */
+  replyTicket: (id: string, body: string, status: TicketStatus) => Promise<void>;
+  setTicketStatus: (id: string, status: TicketStatus) => Promise<void>;
+  setTicketPriority: (id: string, priority: TicketPriority) => Promise<void>;
+  /** `null` tira a atribuição. */
+  assignTicket: (id: string, adminId: string | null) => Promise<void>;
 };
 
 type Store = {
@@ -305,11 +361,104 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
     startAccessSession: async (id, reason, minutes) => {
       if (reason.trim().length < 10)
         throw new Error("O motivo precisa explicar o acesso — ao menos 10 letras.");
-      mutate((d) => d, {
-        action: `Autorizou acesso de suporte a ${names([id])}`,
-        meta: `janela de ${minutes} min · motivo: ${reason.trim()}`,
+      const now = new Date();
+      const session: AccessSession = {
+        id: nextId("access"),
+        establishmentId: id,
+        establishment: names([id]),
+        reason: reason.trim(),
+        startedAt: now.toISOString(),
+        expiresAt: new Date(now.getTime() + minutes * 60_000).toISOString(),
+      };
+      mutate((d) => ({
+        ...d,
+        accessSessions: [
+          session,
+          ...d.accessSessions.filter((item) => item.establishmentId !== id),
+        ],
+      }), {
+        action: `Autorizou acesso de suporte à conta de ${names([id])}`,
+        meta: `somente leitura · ${minutes} min · motivo: ${reason.trim()}`,
         accountAccess: true,
       });
+      return session;
+    },
+
+    endAccessSession: async (sessionId) => {
+      const session = get().accessSessions.find((item) => item.id === sessionId);
+      if (!session) throw new Error("Sessão de acesso não encontrada.");
+      mutate(
+        (d) => ({ ...d, accessSessions: d.accessSessions.filter((item) => item.id !== sessionId) }),
+        {
+          action: `Encerrou acesso à conta de ${session.establishment}`,
+          meta: `somente leitura · encerramento antecipado · motivo: ${session.reason}`,
+          accountAccess: true,
+        },
+      );
+    },
+
+    accountAgenda: async (_sessionId, establishmentId) => {
+      mutate((d) => d, {
+        action: `Consultou a agenda da conta de ${names([establishmentId])}`,
+        meta: "somente leitura · seção: Agenda",
+        accountAccess: true,
+      });
+      return [];
+    },
+
+    accountServices: async (_sessionId, establishmentId) => {
+      mutate((d) => d, {
+        action: `Consultou os serviços da conta de ${names([establishmentId])}`,
+        meta: "somente leitura · seção: Serviços",
+        accountAccess: true,
+      });
+      return [];
+    },
+
+    accountProfessionals: async (_sessionId, establishmentId) => {
+      mutate((d) => d, {
+        action: `Consultou os profissionais da conta de ${names([establishmentId])}`,
+        meta: "somente leitura · seção: Profissionais",
+        accountAccess: true,
+      });
+      return [];
+    },
+
+    accountSettings: async (_sessionId, establishmentId) => {
+      mutate((d) => d, {
+        action: `Consultou os ajustes da conta de ${names([establishmentId])}`,
+        meta: "somente leitura · seção: Ajustes",
+        accountAccess: true,
+      });
+      return {
+        timezone: "America/Sao_Paulo",
+        bookingMode: "scheduled",
+        cancellationWindowMinutes: 120,
+        depositPercent: 0,
+        slotIntervalMinutes: 15,
+        minLeadMinutes: 30,
+        queueRemoteJoin: true,
+        queueRequireArrival: false,
+        queueArrivalMethod: "qr",
+        queuePerProfessional: false,
+        queueAutoClose: false,
+        queueCloseAfterMinutes: 60,
+        queueAutoSkip: true,
+        queueNotifyEnabled: true,
+        queueNotifyChannel: "push",
+        autoApprove: false,
+        depositRefundable: true,
+        acceptAppPayment: true,
+      };
+    },
+
+    accountReviews: async (_sessionId, establishmentId) => {
+      mutate((d) => d, {
+        action: `Consultou as avaliações da conta de ${names([establishmentId])}`,
+        meta: "somente leitura · seção: Avaliações",
+        accountAccess: true,
+      });
+      return [];
     },
 
     openCity: async ({ name, uf, quota, priceCents }) => {
@@ -365,9 +514,18 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
       );
     },
 
-    saveQuotas: async (totals) => {
+    saveQuotas: async (totals, prices = {}) => {
       const data = get();
       const changes: string[] = [];
+      for (const [id, cents] of Object.entries(prices)) {
+        const city = data.cities.find((c) => c.id === id);
+        if (!city || city.monthlyPriceCents === cents) continue;
+        if (!Number.isInteger(cents) || cents <= 0)
+          throw new Error(`Preço inválido em ${city.name}.`);
+        changes.push(
+          `${city.name}: ${city.monthlyPriceCents === null ? "sem preço" : brl(city.monthlyPriceCents)} → ${brl(cents)}`,
+        );
+      }
       for (const [id, total] of Object.entries(totals)) {
         const city = data.cities.find((c) => c.id === id);
         if (!city || city.quotaTotal === total) continue;
@@ -384,12 +542,16 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
       mutate(
         (d) => ({
           ...d,
-          cities: d.cities.map((c) =>
-            totals[c.id] !== undefined ? { ...c, quotaTotal: totals[c.id] ?? c.quotaTotal } : c,
-          ),
+          cities: d.cities.map((c) => ({
+            ...c,
+            quotaTotal: totals[c.id] ?? c.quotaTotal,
+            monthlyPriceCents: prices[c.id] ?? c.monthlyPriceCents,
+          })),
         }),
         {
-          action: "Alterou cotas de mensalidade",
+          action: Object.keys(prices).length
+            ? "Alterou cotas e preços de mensalidade"
+            : "Alterou cotas de mensalidade",
           meta: changes.join(" · "),
           accountAccess: false,
         },
@@ -485,6 +647,7 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
               durationMinutes: 30,
               synonyms: [],
               establishments: 0,
+              cities: 0,
               searchesMonth: 0,
               appointmentsMonth: 0,
               averagePriceCents: null,
@@ -511,11 +674,12 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
                   ...d.catalog,
                   {
                     id: nextId("cat"),
-                    group: "Sugeridos",
+                    group: s.group,
                     name: s.name,
                     durationMinutes: 30,
                     synonyms: [],
                     establishments: 1,
+                    cities: 1,
                     searchesMonth: 0,
                     appointmentsMonth: 0,
                     averagePriceCents: null,
@@ -626,6 +790,328 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
         {
           action: `Alterou ${p.label.toLowerCase()}`,
           meta: `${p.value} → ${value}`,
+          accountAccess: false,
+        },
+      );
+    },
+
+    setMfaRequired: async (required) => {
+      if (get().me.roleKey !== "admin") {
+        throw new Error("Só quem é administrador da plataforma altera o segundo fator.");
+      }
+      const before = get().mfaRequired;
+      mutate((d) => ({ ...d, mfaRequired: required }), {
+        action: `${required ? "Ativou" : "Desativou"} o segundo fator administrativo`,
+        meta: before === required ? "a configuração já estava assim" : `${before} → ${required}`,
+        accountAccess: false,
+      });
+    },
+
+    // Sem Auth na camada local: o convite só entra na lista, como pendente.
+    inviteTeamMember: async ({ email, name, role }) => {
+      if (get().me.roleKey !== "admin")
+        throw new Error("Só quem é administrador da plataforma gerencia a equipe.");
+      const cleanEmail = email.trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanEmail))
+        throw new Error("Informe um e-mail válido.");
+      if (name.trim().length < 2) throw new Error("Informe o nome da pessoa.");
+      const existing = get().team.find((m) => m.email.toLowerCase() === cleanEmail);
+      if (existing) {
+        throw new Error(
+          `${existing.name} já faz parte da equipe como ${existing.role}. Para mudar o acesso, troque o papel na lista.`,
+        );
+      }
+      mutate(
+        (d) => ({
+          ...d,
+          team: [
+            ...d.team,
+            {
+              id: nextId("t"),
+              name: name.trim(),
+              email: cleanEmail,
+              role: ROLE_LABEL[role],
+              roleKey: role,
+              scope: ROLE_SCOPE[role],
+              lastSeen: null,
+              pending: true,
+            },
+          ],
+        }),
+        {
+          action: `Convidou ${name.trim()} para a equipe`,
+          meta: `papel: ${ROLE_LABEL[role]} · convite enviado para ${cleanEmail}`,
+          accountAccess: false,
+        },
+      );
+      return { invited: true };
+    },
+
+    setTeamRole: async (userId, role) => {
+      const { me, team } = get();
+      if (me.roleKey !== "admin")
+        throw new Error("Só quem é administrador da plataforma gerencia a equipe.");
+      if (userId === me.id)
+        throw new Error("Você não pode mudar o próprio papel. Peça a outra pessoa administradora.");
+      const member = team.find((m) => m.id === userId);
+      if (!member) throw new Error("Esta pessoa não faz parte da equipe.");
+      if (member.roleKey === role) throw new Error(`${member.name} já tem o papel ${member.role}.`);
+      if (
+        member.roleKey === "admin" &&
+        !team.some((m) => m.roleKey === "admin" && m.id !== userId)
+      )
+        throw new Error("A plataforma precisa de ao menos uma pessoa administradora.");
+      mutate(
+        (d) => ({
+          ...d,
+          team: d.team.map((m) =>
+            m.id === userId
+              ? { ...m, role: ROLE_LABEL[role], roleKey: role, scope: ROLE_SCOPE[role] }
+              : m,
+          ),
+        }),
+        {
+          action: `Mudou o papel de ${member.name} na equipe`,
+          meta: `${member.role} → ${ROLE_LABEL[role]}`,
+          accountAccess: false,
+        },
+      );
+    },
+
+    removeTeamMember: async (userId) => {
+      const { me, team } = get();
+      if (me.roleKey !== "admin")
+        throw new Error("Só quem é administrador da plataforma gerencia a equipe.");
+      if (userId === me.id)
+        throw new Error(
+          "Você não pode remover a si mesmo da equipe. Peça a outra pessoa administradora.",
+        );
+      const member = team.find((m) => m.id === userId);
+      if (!member) throw new Error("Esta pessoa não faz parte da equipe.");
+      if (
+        member.roleKey === "admin" &&
+        !team.some((m) => m.roleKey === "admin" && m.id !== userId)
+      )
+        throw new Error("A plataforma precisa de ao menos uma pessoa administradora.");
+      mutate((d) => ({ ...d, team: d.team.filter((m) => m.id !== userId) }), {
+        action: `Removeu ${member.name} da equipe`,
+        meta: `${member.email} · papel anterior: ${member.role}`,
+        accountAccess: false,
+      });
+    },
+
+    saveBanner: async (input) => {
+      const title = input.title.trim();
+      if (title.length < 2 || title.length > 60)
+        throw new Error("O título do banner tem de 2 a 60 caracteres.");
+      if (!input.targetValue.trim()) throw new Error("Escolha o destino do banner.");
+      if (input.startsAt && input.endsAt && input.endsAt <= input.startsAt)
+        throw new Error("O fim da exibição precisa ser depois do início.");
+      const before = input.id ? get().banners.find((b) => b.id === input.id) : undefined;
+      if (input.id && !before) throw new Error("Banner não encontrado.");
+      if (!before && !input.file) throw new Error("Envie a imagem do banner.");
+      const imageUrl = input.file ? URL.createObjectURL(input.file) : before!.imageUrl;
+      const banner: Banner = {
+        id: before?.id ?? nextId("b"),
+        title,
+        subtitle: input.subtitle.trim(),
+        imagePath: input.file ? `banners/${input.file.name}` : before!.imagePath,
+        imageUrl,
+        targetKind: input.targetKind,
+        targetValue: input.targetValue,
+        targetLabel: input.targetValue,
+        targetAvailable: true,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        sortOrder: before?.sortOrder ?? get().banners.length + 1,
+        active: before?.active ?? true,
+        createdBy: before?.createdBy ?? get().me.name,
+        updatedAt: new Date().toISOString(),
+      };
+      mutate(
+        (d) => ({
+          ...d,
+          banners: before
+            ? d.banners.map((b) => (b.id === banner.id ? banner : b))
+            : [...d.banners, banner],
+        }),
+        {
+          action: `${before ? "Editou" : "Criou"} o banner "${title}" na vitrine`,
+          meta: `destino: ${input.targetValue}`,
+          accountAccess: false,
+        },
+      );
+    },
+
+    setBannerActive: async (id, active) => {
+      const banner = get().banners.find((b) => b.id === id);
+      if (!banner) throw new Error("Banner não encontrado.");
+      mutate(
+        (d) => ({ ...d, banners: d.banners.map((b) => (b.id === id ? { ...b, active } : b)) }),
+        {
+          action: `${active ? "Reativou" : "Pausou"} o banner "${banner.title}" na vitrine`,
+          meta: active ? "volta para a home do app" : "sai da home do app",
+          accountAccess: false,
+        },
+      );
+    },
+
+    reorderBanners: async (ids) => {
+      const byId = new Map(get().banners.map((b) => [b.id, b]));
+      mutate(
+        (d) => ({
+          ...d,
+          banners: ids.flatMap((id, i) => {
+            const b = byId.get(id);
+            return b ? [{ ...b, sortOrder: i + 1 }] : [];
+          }),
+        }),
+        {
+          action: "Reordenou os banners da vitrine",
+          meta: ids.map((id, i) => `${i + 1}. ${byId.get(id)?.title ?? ""}`).join(" · "),
+          accountAccess: false,
+        },
+      );
+    },
+
+    deleteBanner: async (id) => {
+      const banner = get().banners.find((b) => b.id === id);
+      if (!banner) throw new Error("Banner não encontrado.");
+      mutate((d) => ({ ...d, banners: d.banners.filter((b) => b.id !== id) }), {
+        action: `Removeu o banner "${banner.title}" da vitrine`,
+        meta: banner.targetLabel,
+        accountAccess: false,
+      });
+    },
+
+    ...localTicketActions(get, mutate),
+  };
+}
+
+type TicketActions = Pick<
+  AdminActions,
+  "ticketMessages" | "replyTicket" | "setTicketStatus" | "setTicketPriority" | "assignTicket"
+>;
+
+/** Suporte sem banco: a conversa fica na memória da aba. */
+function localTicketActions(get: () => AdminData, mutate: Mutate): TicketActions {
+  const threads = new Map<string, TicketMessage[]>();
+  const find = (id: string) => {
+    const ticket = get().tickets.find((t) => t.id === id);
+    if (!ticket) throw new Error("Chamado não encontrado.");
+    return ticket;
+  };
+  const thread = (id: string) => {
+    const ticket = find(id);
+    return (
+      threads.get(id) ?? [
+        {
+          id: `${id}-0`,
+          author: ticket.requesterName,
+          fromStaff: false,
+          body: ticket.preview,
+          at: ticket.createdAt,
+        },
+      ]
+    );
+  };
+
+  return {
+    ticketMessages: async (id) => thread(id),
+
+    replyTicket: async (id, body, status) => {
+      if (!body.trim()) throw new Error("Escreva a resposta.");
+      const ticket = find(id);
+      const me = get().me;
+      const at = new Date().toISOString();
+      threads.set(id, [
+        ...thread(id),
+        { id: nextId("m"), author: me.name, fromStaff: true, body: body.trim(), at },
+      ]);
+      mutate(
+        (d) => ({
+          ...d,
+          tickets: d.tickets.map((t) =>
+            t.id === id
+              ? {
+                  ...t,
+                  status,
+                  waitingSince: at,
+                  lastMessageAt: at,
+                  lastFromStaff: true,
+                  firstResponseAt: t.firstResponseAt ?? at,
+                  resolvedAt: status === "resolved" ? at : null,
+                  assignedTo: t.assignedTo ?? me.id,
+                  assignee: t.assignee ?? me.name,
+                  messages: t.messages + 1,
+                  preview: body.trim(),
+                }
+              : t,
+          ),
+        }),
+        {
+          action: `Respondeu o chamado #${ticket.number}`,
+          meta: `${ticket.subject} · resposta: ${body.trim().slice(0, 140)}`,
+          accountAccess: false,
+        },
+      );
+    },
+
+    setTicketStatus: async (id, status) => {
+      const ticket = find(id);
+      if (ticket.status === status) return;
+      const at = new Date().toISOString();
+      mutate(
+        (d) => ({
+          ...d,
+          tickets: d.tickets.map((t) =>
+            t.id === id
+              ? { ...t, status, waitingSince: at, resolvedAt: status === "resolved" ? at : null }
+              : t,
+          ),
+        }),
+        {
+          action: `Mudou a situação do chamado #${ticket.number}`,
+          meta: `${ticket.subject} · ${TICKET_STATUS_LABEL[ticket.status].toLowerCase()} → ${TICKET_STATUS_LABEL[status].toLowerCase()}`,
+          accountAccess: false,
+        },
+      );
+    },
+
+    setTicketPriority: async (id, priority) => {
+      const ticket = find(id);
+      if (ticket.status === "resolved")
+        throw new Error("Chamado resolvido não muda de prioridade. Reabra antes.");
+      if (ticket.priority === priority) return;
+      mutate(
+        (d) => ({
+          ...d,
+          tickets: d.tickets.map((t) => (t.id === id ? { ...t, priority } : t)),
+        }),
+        {
+          action: `Mudou a prioridade do chamado #${ticket.number}`,
+          meta: `${ticket.subject} · ${TICKET_PRIORITY_LABEL[ticket.priority].toLowerCase()} → ${TICKET_PRIORITY_LABEL[priority].toLowerCase()}`,
+          accountAccess: false,
+        },
+      );
+    },
+
+    assignTicket: async (id, adminId) => {
+      const ticket = find(id);
+      const member = adminId ? get().team.find((m) => m.id === adminId) : null;
+      if (adminId && !member) throw new Error("Pessoa da equipe não encontrada.");
+      mutate(
+        (d) => ({
+          ...d,
+          tickets: d.tickets.map((t) =>
+            t.id === id ? { ...t, assignedTo: adminId, assignee: member?.name ?? null } : t,
+          ),
+        }),
+        {
+          action: member
+            ? `Atribuiu o chamado #${ticket.number} a ${member.name}`
+            : `Tirou a atribuição do chamado #${ticket.number}`,
+          meta: ticket.subject,
           accountAccess: false,
         },
       );

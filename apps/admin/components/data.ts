@@ -20,6 +20,7 @@ export type ScreenId =
   | "approvals"
   | "estab"
   | "estabDetail"
+  | "accountConsole"
   | "support"
   | "cities"
   | "quotas"
@@ -31,7 +32,7 @@ export type ScreenId =
   | "settings";
 
 /** Item de menu; `estabDetail` só é alcançável a partir da lista. */
-export type NavId = Exclude<ScreenId, "estabDetail">;
+export type NavId = Exclude<ScreenId, "estabDetail" | "accountConsole">;
 
 export const NAV: { label: string; items: { id: NavId; label: string; badge?: string; d: string }[] }[] =
   [
@@ -97,6 +98,7 @@ export const TITLES: Record<ScreenId, [string, string]> = {
   approvals: ["Aprovações", "7 solicitações aguardando"],
   estab: ["Estabelecimentos", "1.284 ativos · 1.361 no total"],
   estabDetail: ["Estabelecimentos", "Ficha do estabelecimento"],
+  accountConsole: ["Acesso à conta", "Console somente leitura"],
   support: ["Suporte", "5 chamados abertos"],
   cities: ["Cidades", "8 ativas · 3 em avaliação"],
   quotas: ["Cotas e planos", "2 planos ativos"],

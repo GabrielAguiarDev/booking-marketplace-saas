@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Approvals } from "./approvals";
+import { AccountConsole } from "./account-console";
 import { Check, SearchIcon } from "./blocks";
 import { Cities } from "./cities";
 import { Customers } from "./customers";
@@ -10,14 +11,16 @@ import { TITLES, type NavId, type ScreenId } from "./data";
 import { EstablishmentDetail, Establishments } from "./establishments";
 import { Finance } from "./finance";
 import { AccessModal, CityModal, PlanImpactModal } from "./modals";
-import { day, type AdminData } from "./model";
+import { bannerState, day, type AccessSession, type AdminData } from "./model";
 import { Overview } from "./overview";
 import { Quotas } from "./quotas";
 import { Reviews } from "./reviews";
 import { Services } from "./services";
 import { Settings } from "./settings";
+import { Showcase } from "./showcase";
 import { Sidebar } from "./sidebar";
 import { AdminProvider, useAdmin } from "./store";
+import { Support } from "./support";
 
 type Modal =
   { kind: "access"; estabId: string } | { kind: "city" } | { kind: "plan"; planId: string } | null;
@@ -41,6 +44,8 @@ function Shell() {
   );
   const [modal, setModal] = useState<Modal>(null);
   const [focus, setFocus] = useState<Focus>(null);
+  const [accessSession, setAccessSession] = useState<AccessSession | null>(null);
+  const [expiredAccess, setExpiredAccess] = useState<Set<string>>(() => new Set());
 
   const [title, fallback] = TITLES[screen];
   const subtitle = subtitleOf(screen, data) ?? fallback;
@@ -54,6 +59,47 @@ function Shell() {
 
   const openEstablishment = (id: string) => {
     setEstabId(id);
+    setAccessSession(null);
+    setScreen("estabDetail");
+    window.scrollTo(0, 0);
+  };
+
+  useEffect(() => {
+    const sessions = accessSession ? [accessSession, ...data.accessSessions] : data.accessSessions;
+    const timers = sessions.map((session) =>
+      window.setTimeout(
+        () => {
+          setExpiredAccess((ids) => new Set(ids).add(session.id));
+          if (accessSession?.id === session.id) {
+            setAccessSession(null);
+            setScreen((current) => (current === "accountConsole" ? "estabDetail" : current));
+          }
+        },
+        Math.max(0, new Date(session.expiresAt).getTime() - Date.now()),
+      ),
+    );
+    return () => timers.forEach(window.clearTimeout);
+  }, [accessSession, data.accessSessions]);
+
+  const activeAccess =
+    accessSession?.establishmentId === estabId && !expiredAccess.has(accessSession.id)
+      ? accessSession
+      : data.accessSessions.find(
+          (session) =>
+            session.establishmentId === estabId && !expiredAccess.has(session.id),
+        ) ?? null;
+
+  const openConsole = (session: AccessSession) => {
+    setEstabId(session.establishmentId);
+    setAccessSession(session);
+    setModal(null);
+    setScreen("accountConsole");
+    window.scrollTo(0, 0);
+  };
+
+  const leaveConsole = (expired = false) => {
+    if (expired && activeAccess) setExpiredAccess((ids) => new Set(ids).add(activeAccess.id));
+    setAccessSession(null);
     setScreen("estabDetail");
     window.scrollTo(0, 0);
   };
@@ -64,8 +110,6 @@ function Shell() {
     setScreen(target);
     window.scrollTo(0, 0);
   };
-
-  const isStub = screen === "support" || screen === "showcase";
 
   return (
     <div className="shell">
@@ -99,6 +143,17 @@ function Shell() {
               estabId={estabId}
               onAccess={() => setModal({ kind: "access", estabId })}
               onBack={() => setScreen("estab")}
+              activeAccess={activeAccess}
+              canAccessAccount={data.accountConsoleAccess}
+              onOpenConsole={openConsole}
+              onOpenTicket={(id) => openWith("support", id)}
+            />
+          ) : null}
+          {screen === "accountConsole" && activeAccess ? (
+            <AccountConsole
+              onBack={() => leaveConsole(false)}
+              onExpired={() => leaveConsole(true)}
+              session={activeAccess}
             />
           ) : null}
           {screen === "cities" ? (
@@ -121,12 +176,23 @@ function Shell() {
             />
           ) : null}
           {screen === "settings" ? <Settings /> : null}
-          {isStub ? <Stub title={title} /> : null}
+          {screen === "showcase" ? <Showcase /> : null}
+          {screen === "support" ? (
+            <Support
+              focusId={focus?.screen === "support" ? focus.id : undefined}
+              key={focus?.screen === "support" ? focus.id : "support"}
+              onOpenEstablishment={openEstablishment}
+            />
+          ) : null}
         </div>
       </main>
 
       {modal?.kind === "access" ? (
-        <AccessModal estabId={modal.estabId} onClose={() => setModal(null)} />
+        <AccessModal
+          estabId={modal.estabId}
+          onClose={() => setModal(null)}
+          onStarted={openConsole}
+        />
       ) : null}
       {modal?.kind === "city" ? <CityModal onClose={() => setModal(null)} /> : null}
       {modal?.kind === "plan" ? (
@@ -182,8 +248,20 @@ function subtitleOf(screen: ScreenId, data: AdminData): string | null {
       return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(
         new Date(),
       );
-    case "support":
-      return "Módulo aguardando o backend de atendimento";
+    case "showcase": {
+      const live = data.banners.filter((b) => bannerState(b) === "live").length;
+      return `${plural(live, "banner no ar", "banners no ar")} · ${data.banners.length} na vitrine`;
+    }
+    case "support": {
+      if (!data.supportAccess) return "Chamados atendidos por Suporte e Operações";
+      const open = data.tickets.filter((t) => t.status === "open").length;
+      const waiting = data.tickets.filter((t) => t.status === "waiting_customer").length;
+      return open || waiting
+        ? `${plural(open, "chamado aberto", "chamados abertos")} · ${waiting} aguardando cliente`
+        : "Nenhum chamado em andamento";
+    }
+    case "accountConsole":
+      return "Somente leitura · acesso temporário e auditado";
     default:
       return null;
   }
@@ -191,7 +269,7 @@ function subtitleOf(screen: ScreenId, data: AdminData): string | null {
 
 type Hit = { key: string; label: string; meta: string; screen: ScreenId; id: string };
 
-/** Busca do cabeçalho: estabelecimentos, solicitações, cidades e clientes. */
+/** Busca do cabeçalho: estabelecimentos, solicitações, cidades, clientes e chamados. */
 function GlobalSearch({ onPick }: { onPick: (screen: ScreenId, id: string) => void }) {
   const { data } = useAdmin();
   const [query, setQuery] = useState("");
@@ -247,6 +325,16 @@ function GlobalSearch({ onPick }: { onPick: (screen: ScreenId, id: string) => vo
           screen: "customers" as const,
           id: c.id,
         })),
+      // "#4417", "4417" ou parte do assunto
+      ...data.tickets
+        .filter((t) => match(`#${t.number}`) || match(t.subject))
+        .map((t) => ({
+          key: `t-${t.id}`,
+          label: `#${t.number} · ${t.subject}`,
+          meta: `Chamado · ${t.establishment ?? t.requesterName}`,
+          screen: "support" as const,
+          id: t.id,
+        })),
     ].slice(0, 8);
   }, [query, data]);
 
@@ -264,7 +352,7 @@ function GlobalSearch({ onPick }: { onPick: (screen: ScreenId, id: string) => vo
           aria-autocomplete="list"
           aria-controls="global-search-results"
           aria-expanded={open && hits.length > 0}
-          aria-label="Buscar estabelecimento, cidade ou cliente"
+          aria-label="Buscar estabelecimento, cidade, cliente ou chamado"
           id="global-search"
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onChange={(event) => {
@@ -276,7 +364,7 @@ function GlobalSearch({ onPick }: { onPick: (screen: ScreenId, id: string) => vo
             if (event.key === "Enter" && hits[0]) pick(hits[0]);
             if (event.key === "Escape") setOpen(false);
           }}
-          placeholder="Buscar estabelecimento, cidade, cliente"
+          placeholder="Buscar estabelecimento, cidade, cliente ou #chamado"
           role="combobox"
           value={query}
         />
@@ -301,23 +389,6 @@ function GlobalSearch({ onPick }: { onPick: (screen: ScreenId, id: string) => vo
           ))}
         </div>
       ) : null}
-    </div>
-  );
-}
-
-/** Suporte e Vitrine ficaram fora desta rodada do canvas. */
-function Stub({ title }: { title: string }) {
-  return (
-    <div className="stub">
-      <svg fill="none" height="34" strokeWidth="1.4" viewBox="0 0 24 24" width="34">
-        <rect height="16" rx="2" width="18" x="3" y="4" />
-        <path d="M7 9h10M7 13h6" />
-      </svg>
-      <strong>{title}</strong>
-      <p>
-        Fora do escopo desta rodada. A tela reusa os mesmos componentes de fila, tabela e painel de
-        inspeção já definidos aqui.
-      </p>
     </div>
   );
 }

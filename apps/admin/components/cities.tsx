@@ -204,18 +204,24 @@ export function Cities({ focusId, onNewCity }: { focusId?: string; onNewCity: ()
         </div>
 
         <div className="inspector-block last">
-          <p className="field-group-label amber">Sem nenhum estabelecimento</p>
-          <div className="tag-row">
-            {city.gaps.map((gap) => (
-              <span className="tag amber" key={gap}>
-                {gap}
-              </span>
-            ))}
-          </div>
-          <p className="hint">
-            Essas lacunas orientam a prospecção: nenhum estabelecimento local atende a busca por
-            esses serviços.
-          </p>
+          <p className="field-group-label amber">Buscado sem resultado · 30 dias</p>
+          {city.gaps.length ? (
+            <>
+              <div className="tag-row">
+                {city.gaps.map((gap) => (
+                  <span className="tag amber" key={gap}>
+                    {gap}
+                  </span>
+                ))}
+              </div>
+              <p className="hint">
+                Essas lacunas orientam a prospecção: nenhum estabelecimento local atende a busca por
+                esses serviços.
+              </p>
+            </>
+          ) : (
+            <p className="hint">Toda busca feita aqui nos últimos 30 dias encontrou algo.</p>
+          )}
         </div>
       </aside>
     </div>

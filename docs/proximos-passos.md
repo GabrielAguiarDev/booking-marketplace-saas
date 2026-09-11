@@ -3,6 +3,11 @@
 Documento de continuidade. O [roadmap do app do cliente](roadmap-mobile-cliente.md)
 cobria uma superfície só e está quase todo riscado; este cobre o produto.
 
+> **Admin concluído em 2026-09-11** (equipe, suporte, vitrine, console de
+> leitura da conta e MFA), feito por agentes em paralelo coordenados pelo Orca.
+> A próxima leva — começando por **tirar a cidade do app cliente** — está em
+> [orquestracao-admin.md](orquestracao-admin.md#depois-do-admin--a-próxima-leva).
+
 ## O diagnóstico, sem otimismo
 
 O cliente sabe comprar, a loja sabe atender e a equipe da plataforma já opera o
@@ -13,7 +18,7 @@ admin. **A loja ainda não consegue nascer sozinha e o negócio não cobra nada.
 | `mobile-cliente` |            5.475 | Funcional ponta a ponta        |
 | `mobile-staff`   |            9.568 | Funcional ponta a ponta        |
 | `portal`         |            8.071 | Canvas implementado, dado fixo |
-| `admin`          |                — | Funcional no Supabase          |
+| `admin`          |                — | Completo no Supabase           |
 | `landing`        |            3.229 | Canvas implementado, dado fixo |
 
 `packages/mobile-kit` (460 linhas) é o que os dois apps Expo usam igual.
@@ -40,8 +45,11 @@ O que **continua sem fechar**:
   faltam assinatura, fatura, webhook e repasse.
 - **Notificação push não existe.** É o que mais dói na operação: a fila só se
   move na tela com o app aberto, que é justamente quando ninguém está olhando.
-- **MFA do admin ainda não é obrigatório.** Papéis e RPCs já limitam cada área,
-  mas ações sensíveis precisam de segundo fator antes de produção.
+- **As filas do admin só enchem pelo banco.** Aprovações, denúncias e chamados
+  esperam o onboarding da loja e os botões no portal e nos apps (N1, N3, N4 em
+  [orquestracao-admin.md](orquestracao-admin.md)).
+- **O app cliente ainda mostra cidade** (seletor na home, "nesta cidade" no
+  Explorar, "sua cidade" no Assistente) — contraria a regra do MVP.
 
 ---
 

@@ -44,12 +44,13 @@ export function useRun(onDone?: () => void) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const run = async (action: () => Promise<unknown>, success: Toast) => {
+  /** `success` pode depender do resultado — "convite enviado" ou "conta já existia". */
+  const run = async <T,>(action: () => Promise<T>, success: Toast | ((result: T) => Toast)) => {
     setPending(true);
     setError(null);
     try {
-      await action();
-      notify(success);
+      const result = await action();
+      notify(typeof success === "function" ? success(result) : success);
       onDone?.();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "A ação falhou. Tente de novo.");

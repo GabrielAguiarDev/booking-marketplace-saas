@@ -41,7 +41,24 @@ export function categoryValue(label: string): EstablishmentCategory {
   return (entry?.[0] as EstablishmentCategory | undefined) ?? "barbershop";
 }
 
-export type Me = { id: string; name: string; role: string };
+/** Papel na equipe da plataforma (`platform_role` no banco). */
+export type PlatformRole = "admin" | "operations" | "finance" | "support";
+
+export const ROLE_LABEL: Record<PlatformRole, string> = {
+  admin: "Administrador da plataforma",
+  operations: "Operações e moderação",
+  finance: "Financeiro",
+  support: "Suporte",
+};
+
+export const ROLE_SCOPE: Record<PlatformRole, string> = {
+  admin: "Toda a plataforma",
+  operations: "Cadastros, catálogo e avaliações",
+  finance: "Planos, cobrança e repasses",
+  support: "Contas e atendimento",
+};
+
+export type Me = { id: string; name: string; role: string; roleKey: PlatformRole };
 
 export type City = {
   id: string;
@@ -157,6 +174,8 @@ export type CatalogItem = {
   synonyms: string[];
   /** Lojas que oferecem um serviço ligado a este item. */
   establishments: number;
+  /** Cidades dessas lojas. */
+  cities: number;
   searchesMonth: number;
   appointmentsMonth: number;
   averagePriceCents: number | null;
@@ -231,8 +250,11 @@ export type TeamMember = {
   name: string;
   email: string;
   role: string;
+  roleKey: PlatformRole;
   scope: string;
   lastSeen: string | null;
+  /** Convidada e ainda não aceitou o convite. */
+  pending: boolean;
 };
 
 export type Param = {
@@ -366,6 +388,78 @@ export function paramText(p: Param): string {
   return `${p.value} ${p.unit}`;
 }
 
+/* ── console de leitura da conta ───────────────────────────── */
+
+export type AccessSession = {
+  id: string;
+  establishmentId: string;
+  establishment: string;
+  reason: string;
+  startedAt: string;
+  expiresAt: string;
+};
+
+export type AccountAppointment = {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  status: string;
+  customer: string;
+  service: string;
+  professional: string;
+  priceCents: number;
+};
+
+export type AccountService = {
+  id: string;
+  name: string;
+  description: string | null;
+  durationMinutes: number;
+  priceCents: number;
+  active: boolean;
+  professionals: number;
+};
+
+export type AccountProfessional = {
+  id: string;
+  name: string;
+  title: string | null;
+  bio: string | null;
+  active: boolean;
+  services: string[];
+};
+
+export type AccountSettings = {
+  timezone: string;
+  bookingMode: string;
+  cancellationWindowMinutes: number;
+  depositPercent: number;
+  slotIntervalMinutes: number;
+  minLeadMinutes: number;
+  queueRemoteJoin: boolean;
+  queueRequireArrival: boolean;
+  queueArrivalMethod: string;
+  queuePerProfessional: boolean;
+  queueAutoClose: boolean;
+  queueCloseAfterMinutes: number;
+  queueAutoSkip: boolean;
+  queueNotifyEnabled: boolean;
+  queueNotifyChannel: string;
+  autoApprove: boolean;
+  depositRefundable: boolean;
+  acceptAppPayment: boolean;
+};
+
+export type AccountReview = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  tags: string[];
+  customer: string;
+  professional: string | null;
+  createdAt: string;
+};
+
 /** Tudo o que o painel lê. Uma carga só; as ações devolvem o painel atualizado. */
 export type AdminData = {
   overview: OverviewStats;
@@ -386,5 +480,128 @@ export type AdminData = {
   customers: Customer[];
   team: TeamMember[];
   params: Param[];
+  /** Exigência de TOTP para qualquer RPC administrativa. */
+  mfaRequired: boolean;
   audit: AuditEntry[];
+  banners: Banner[];
+  tickets: Ticket[];
+  accessSessions: AccessSession[];
+  /** Só Suporte/Admin pode abrir a conta; Operações continua atendendo chamados. */
+  accountConsoleAccess: boolean;
+  /** O papel atende chamados. Financeiro não: o banco nega a fila e ela vem vazia. */
+  supportAccess: boolean;
 };
+
+/* ── suporte ────────────────────────────────────────────────── */
+
+export type TicketStatus = "open" | "waiting_customer" | "resolved";
+export type TicketPriority = "low" | "normal" | "high";
+export type TicketCategory = "account" | "billing" | "booking" | "payment" | "technical" | "other";
+
+/** Chamado aberto por uma loja (em nome dela) ou por um cliente. */
+export type Ticket = {
+  id: string;
+  /** O número curto que se fala ao telefone: #4417. */
+  number: number;
+  requesterKind: "establishment" | "customer";
+  requesterName: string;
+  requesterEmail: string;
+  /** A loja que abriu, ou a loja de que o cliente fala. */
+  establishmentId: string | null;
+  establishment: string | null;
+  subject: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  assignedTo: string | null;
+  assignee: string | null;
+  /** Desde quando espera quem está com a vez — a equipe, se aberto. */
+  waitingSince: string;
+  lastMessageAt: string;
+  lastFromStaff: boolean;
+  firstResponseAt: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  messages: number;
+  preview: string;
+};
+
+export type TicketMessage = {
+  id: string;
+  author: string;
+  fromStaff: boolean;
+  body: string;
+  at: string;
+};
+
+export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
+  open: "Aberto",
+  waiting_customer: "Aguardando cliente",
+  resolved: "Resolvido",
+};
+
+export const TICKET_PRIORITY_LABEL: Record<TicketPriority, string> = {
+  high: "Alta",
+  normal: "Normal",
+  low: "Baixa",
+};
+
+export const TICKET_CATEGORY_LABEL: Record<TicketCategory, string> = {
+  account: "Conta e acesso",
+  billing: "Plano e cobrança",
+  booking: "Agenda e reservas",
+  payment: "Pagamento",
+  technical: "Problema no app",
+  other: "Outro assunto",
+};
+
+/* ── vitrine ────────────────────────────────────────────────── */
+
+/** Para onde o banner leva: uma loja, uma categoria ou um link https. */
+export type BannerTarget = "establishment" | "category" | "url";
+
+/** Banner da home do app do cliente. Global: não tem cidade. */
+export type Banner = {
+  id: string;
+  title: string;
+  subtitle: string;
+  /** Caminho no bucket `showcase`; `imageUrl` é a URL pública dele. */
+  imagePath: string;
+  imageUrl: string;
+  targetKind: BannerTarget;
+  /** Id da loja, valor da categoria ou o link. */
+  targetValue: string;
+  /** Nome da loja, rótulo da categoria ou o link. */
+  targetLabel: string;
+  /** A loja de destino ainda está ativa. Sempre `true` para categoria e link. */
+  targetAvailable: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+  sortOrder: number;
+  active: boolean;
+  createdBy: string | null;
+  updatedAt: string;
+};
+
+/** O que o formulário de banner envia. Sem `id`, cria; sem `file`, mantém a imagem. */
+export type BannerInput = {
+  id?: string;
+  title: string;
+  subtitle: string;
+  file?: File;
+  targetKind: BannerTarget;
+  targetValue: string;
+  startsAt: string | null;
+  endsAt: string | null;
+};
+
+export type BannerState = "live" | "scheduled" | "ended" | "paused" | "unavailable";
+
+/** A situação que a tela mostra — a mesma regra de `showcase_is_live()` no banco. */
+export function bannerState(b: Banner, now = Date.now()): BannerState {
+  if (!b.active) return "paused";
+  if (b.endsAt && new Date(b.endsAt).getTime() <= now) return "ended";
+  if (b.startsAt && new Date(b.startsAt).getTime() > now) return "scheduled";
+  if (!b.targetAvailable) return "unavailable";
+  return "live";
+}

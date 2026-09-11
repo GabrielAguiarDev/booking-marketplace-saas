@@ -3,16 +3,30 @@ import "server-only";
 import type { ServerSupabaseClient } from "@vez/supabase/server";
 import type { Json } from "@vez/supabase/types";
 
-import type { AdminData, Establishment, Param, PlanDef, RecentReview, Report } from "./model";
-import { categoryLabel } from "./model";
+import type {
+  AccessSession,
+  AdminData,
+  Banner,
+  Establishment,
+  Param,
+  PlanDef,
+  RecentReview,
+  Report,
+  Ticket,
+} from "./model";
+import { categoryLabel, ROLE_LABEL, ROLE_SCOPE } from "./model";
 
 export class AdminAccessError extends Error {}
+export class AdminMfaRequiredError extends Error {}
 
 function rows<T>(
   result: { data: T[] | null; error: { message: string; code?: string } | null },
   source: string,
 ): T[] {
   if (result.error) {
+    if (result.error.code === "PVMFA") {
+      throw new AdminMfaRequiredError("Confirme o segundo fator para acessar o painel.");
+    }
     if (result.error.code === "42501" || /acesso restrito/i.test(result.error.message)) {
       throw new AdminAccessError("Esta conta não faz parte da equipe da plataforma.");
     }
@@ -24,20 +38,6 @@ function rows<T>(
 function jsonList<T>(value: Json): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
-
-const ROLE_LABEL = {
-  admin: "Administrador da plataforma",
-  operations: "Operações e moderação",
-  finance: "Financeiro",
-  support: "Suporte",
-} as const;
-
-const ROLE_SCOPE = {
-  admin: "Toda a plataforma",
-  operations: "Cadastros, catálogo e avaliações",
-  finance: "Planos, cobrança e repasses",
-  support: "Contas e atendimento",
-} as const;
 
 function riskOf(row: {
   last_appointment_at: string | null;
@@ -78,8 +78,12 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     customersResult,
     teamResult,
     settingsResult,
+    mfaPolicyResult,
     overviewResult,
     auditResult,
+    bannersResult,
+    ticketsResult,
+    accessSessionsResult,
   ] = await Promise.all([
     supabase.rpc("admin_cities"),
     supabase.rpc("admin_applications"),
@@ -94,8 +98,12 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     supabase.rpc("admin_customers"),
     supabase.rpc("admin_team"),
     supabase.rpc("admin_settings"),
+    supabase.rpc("admin_mfa_policy"),
     supabase.rpc("admin_overview"),
     supabase.rpc("admin_audit"),
+    supabase.rpc("admin_showcase_banners"),
+    supabase.rpc("admin_support_tickets"),
+    supabase.rpc("admin_active_access_sessions"),
   ]);
 
   const cities = rows(citiesResult, "cidades").map((city) => ({
@@ -110,7 +118,7 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     quotaUsed: city.quota_used,
     monthlyPriceCents: city.monthly_price_cents ?? null,
     categories: city.categories.map(categoryLabel),
-    gaps: [],
+    gaps: city.gaps,
   }));
 
   const applications = rows(applicationsResult, "solicitações").map((application) => ({
@@ -196,6 +204,7 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     durationMinutes: item.duration_minutes,
     synonyms: item.synonyms,
     establishments: item.establishments,
+    cities: item.cities,
     searchesMonth: item.searches_month,
     appointmentsMonth: item.appointments_month,
     averagePriceCents: item.average_price_cents ?? null,
@@ -277,12 +286,21 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     name: member.name,
     email: member.email,
     role: ROLE_LABEL[member.role],
+    roleKey: member.role,
     scope: ROLE_SCOPE[member.role],
     lastSeen: member.last_seen_at ?? null,
+    pending: member.pending,
   }));
 
   const settings = rows(settingsResult, "parâmetros")[0];
   if (!settings) throw new Error("A configuração única da plataforma não existe.");
+  if (mfaPolicyResult.error) {
+    if (mfaPolicyResult.error.code === "PVMFA") {
+      throw new AdminMfaRequiredError("Confirme o segundo fator para acessar o painel.");
+    }
+    throw new Error(`Falha ao carregar a política de MFA: ${mfaPolicyResult.error.message}`);
+  }
+  const mfaRequired = mfaPolicyResult.data ?? true;
   const params: Param[] = [
     {
       key: "cancellation_window_hours",
@@ -331,6 +349,70 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     accountAccess: entry.account_access,
   }));
 
+  // A imagem mora no bucket público `showcase`; a URL pública não passa por RLS.
+  const showcase = supabase.storage.from("showcase");
+  const banners: Banner[] = rows(bannersResult, "vitrine").map((banner) => ({
+    id: banner.id,
+    title: banner.title,
+    subtitle: banner.subtitle,
+    imagePath: banner.image_path,
+    imageUrl: showcase.getPublicUrl(banner.image_path).data.publicUrl,
+    targetKind: banner.target_kind,
+    targetValue: banner.target_value,
+    targetLabel:
+      banner.target_kind === "category" ? categoryLabel(banner.target_label) : banner.target_label,
+    targetAvailable: banner.target_available,
+    startsAt: banner.starts_at ?? null,
+    endsAt: banner.ends_at ?? null,
+    sortOrder: banner.sort_order,
+    active: banner.is_active,
+    createdBy: banner.created_by ?? null,
+    updatedAt: banner.updated_at,
+  }));
+
+  // Financeiro não atende chamado: o banco nega a fila (42501) e o resto do
+  // painel carrega normalmente, sem ela.
+  const supportAccess = ticketsResult.error?.code !== "42501";
+  const tickets: Ticket[] = supportAccess
+    ? rows(ticketsResult, "chamados").map((ticket) => ({
+        id: ticket.id,
+        number: ticket.number,
+        requesterKind: ticket.requester_kind,
+        requesterName: ticket.requester_name,
+        requesterEmail: ticket.requester_email,
+        establishmentId: ticket.establishment_id ?? null,
+        establishment: ticket.establishment ?? null,
+        subject: ticket.subject,
+        category: ticket.category,
+        priority: ticket.priority,
+        status: ticket.status,
+        assignedTo: ticket.assigned_to ?? null,
+        assignee: ticket.assignee ?? null,
+        waitingSince: ticket.waiting_since,
+        lastMessageAt: ticket.last_message_at,
+        lastFromStaff: ticket.last_message_from_staff,
+        firstResponseAt: ticket.first_response_at ?? null,
+        resolvedAt: ticket.resolved_at ?? null,
+        createdAt: ticket.created_at,
+        messages: ticket.messages,
+        preview: ticket.preview,
+      }))
+    : [];
+
+  // Operações atende chamados, mas leitura da conta fica restrita a
+  // Suporte/Admin. Um 42501 aqui não impede o restante do painel de carregar.
+  const accountConsoleAccess = accessSessionsResult.error?.code !== "42501";
+  const accessSessions: AccessSession[] = accountConsoleAccess
+    ? rows(accessSessionsResult, "sessões de acesso").map((session) => ({
+        id: session.id,
+        establishmentId: session.establishment_id,
+        establishment: session.establishment_name,
+        reason: session.reason,
+        startedAt: session.started_at,
+        expiresAt: session.expires_at,
+      }))
+    : [];
+
   const overviewRow = rows(overviewResult, "visão geral")[0];
   if (!overviewRow) throw new Error("A visão geral da plataforma não retornou dados.");
   const overview = {
@@ -354,7 +436,7 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
 
   return {
     overview,
-    me: { id: me.id, name: me.name, role: ROLE_LABEL[me.role] },
+    me: { id: me.id, name: me.name, role: ROLE_LABEL[me.role], roleKey: me.role },
     cities,
     applications,
     decisions,
@@ -373,6 +455,12 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     customers,
     team,
     params,
+    mfaRequired,
     audit,
+    banners,
+    tickets,
+    accessSessions,
+    accountConsoleAccess,
+    supportAccess,
   };
 }

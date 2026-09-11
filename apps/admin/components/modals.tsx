@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { CircleAlert } from "./blocks";
 import { FormError, Modal, useRun } from "./dialogs";
-import { brl, type PlanKind } from "./model";
+import { brl, type AccessSession, type PlanKind } from "./model";
 import { useAdmin } from "./store";
 
 const UFS = [
@@ -41,12 +41,20 @@ const UFS = [
 const toCents = (text: string) =>
   Math.round(Number(text.replace(/[^\d,]/g, "").replace(",", ".")) * 100) || 0;
 
-export function AccessModal({ estabId, onClose }: { estabId: string; onClose: () => void }) {
+export function AccessModal({
+  estabId,
+  onClose,
+  onStarted,
+}: {
+  estabId: string;
+  onClose: () => void;
+  onStarted: (session: AccessSession) => void;
+}) {
   const { data, actions } = useAdmin();
   const est = data.establishments.find((item) => item.id === estabId);
   const [reason, setReason] = useState("");
   const [minutes, setMinutes] = useState(15);
-  const { pending, error, run } = useRun(onClose);
+  const { pending, error, run } = useRun();
   if (!est) return null;
 
   return (
@@ -54,17 +62,24 @@ export function AccessModal({ estabId, onClose }: { estabId: string; onClose: ()
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          void run(() => actions.startAccessSession(est.id, reason, minutes), {
-            title: "Autorização registrada",
-            sub: `${est.name} · janela de ${minutes} min registrada na auditoria.`,
-          });
+          void run(
+            async () => {
+              const session = await actions.startAccessSession(est.id, reason, minutes);
+              onStarted(session);
+              return session;
+            },
+            {
+              title: "Console liberado",
+              sub: `${est.name} · janela de ${minutes} min · somente leitura.`,
+            },
+          );
         }}
       >
         <div className="modal-head">
           <h3 id="access-title">Registrar acesso a {est.name}</h3>
           <p>
-            Registre o motivo e a janela autorizada antes de prestar suporte. O console de leitura
-            da conta ainda não está conectado; esta ação não abre nem assume a conta da loja.
+            Registre o motivo e a janela autorizada antes de prestar suporte. Ao continuar, você
+            entra no console somente leitura e cada seção consultada fica na auditoria.
           </p>
         </div>
         <div className="modal-body">
@@ -96,13 +111,13 @@ export function AccessModal({ estabId, onClose }: { estabId: string; onClose: ()
             <div className="field-grow">
               <span className="field-label">Escopo atual</span>
               <div className="static-field">
-                <strong>Registro de autorização</strong>
+                <strong>Console somente leitura</strong>
               </div>
             </div>
           </div>
           <p className="callout amber icon">
             <CircleAlert />
-            Autorização auditada · visível a donos e gerentes no registro da loja
+            A loja não pode ser alterada · cada seção consultada é auditada
           </p>
           <FormError message={error} />
         </div>
@@ -111,7 +126,7 @@ export function AccessModal({ estabId, onClose }: { estabId: string; onClose: ()
             Cancelar
           </button>
           <button className="primary" disabled={pending || reason.trim().length < 10} type="submit">
-            {pending ? "Registrando…" : "Registrar autorização"}
+            {pending ? "Liberando…" : "Registrar e abrir console"}
           </button>
         </div>
       </form>

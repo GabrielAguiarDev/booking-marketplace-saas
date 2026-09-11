@@ -228,7 +228,9 @@ function ReportQueue({ queue }: { queue: Report[] }) {
                 <b>{item.status === "awaiting_establishment" ? "Aguardando loja" : item.reason}</b>
                 <code>{decimal(item.rating)}</code>
               </div>
-              <p className="report-snippet">{`${item.text.slice(0, 84)}…`}</p>
+              <p className="report-snippet">
+                {item.text.length > 84 ? `${item.text.slice(0, 84)}…` : item.text}
+              </p>
             </button>
           ))}
         </div>
