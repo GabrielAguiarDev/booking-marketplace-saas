@@ -1,16 +1,25 @@
 "use client";
 
 import { NAV, type NavId, type ScreenId } from "./data";
+import { SignOutButton } from "./auth";
+import { useAdmin } from "./store";
 
-export function Sidebar({
-  screen,
-  go,
-  reviewCount,
-}: {
-  screen: ScreenId;
-  go: (id: NavId) => void;
-  reviewCount: number;
-}) {
+export function Sidebar({ screen, go }: { screen: ScreenId; go: (id: NavId) => void }) {
+  const { data } = useAdmin();
+
+  // os números do menu saem do dado; zero some, em vez de mostrar "0"
+  const counts: Partial<Record<NavId, number>> = {
+    approvals: data.applications.length,
+    reviews: data.reports.length,
+    finance: data.invoices.filter((i) => i.status === "overdue").length,
+    support: 0,
+  };
+  const initials = data.me.name
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("");
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -30,12 +39,8 @@ export function Sidebar({
                 // A ficha do estabelecimento continua sob "Estabelecimentos".
                 const active =
                   screen === item.id || (item.id === "estab" && screen === "estabDetail");
-                const badge =
-                  item.id === "reviews"
-                    ? reviewCount > 0
-                      ? String(reviewCount)
-                      : undefined
-                    : item.badge;
+                const n = counts[item.id];
+                const badge = n === undefined ? item.badge : n > 0 ? String(n) : undefined;
                 return (
                   <button
                     className={active ? "nav-link active" : "nav-link"}
@@ -65,11 +70,12 @@ export function Sidebar({
       </nav>
 
       <footer>
-        <b>HR</b>
+        <b>{initials}</b>
         <div>
-          <strong>Helena Reis</strong>
-          <small>Operações · admin</small>
+          <strong>{data.me.name}</strong>
+          <small>{data.me.role}</small>
         </div>
+        <SignOutButton />
       </footer>
     </aside>
   );

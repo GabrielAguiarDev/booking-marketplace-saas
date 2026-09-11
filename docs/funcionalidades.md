@@ -11,18 +11,18 @@ promete algo que o banco não tem, isso está marcado.
 
 Cinco superfícies sobre um backend Supabase único.
 
-| Superfície       | Stack | Porta | Linhas | Estado                                          |
-| ---------------- | ----- | ----: | -----: | ----------------------------------------------- |
-| `mobile-cliente` | Expo  |  8081 |  5.475 | **Funcional** — tudo vem do banco               |
-| `mobile-staff`   | Expo  |  8082 |  9.631 | **Funcional** — tudo vem do banco               |
-| `portal`         | Next  |  3001 |  8.071 | **Protótipo** — dado fixo, não fala com o banco |
-| `admin`          | Next  |  3002 |  6.958 | **Protótipo** — dado fixo, não fala com o banco |
-| `landing`        | Next  |  3000 |  3.229 | **Protótipo** — dado fixo, formulário não envia |
+| Superfície       | Stack | Porta | Linhas | Estado                                            |
+| ---------------- | ----- | ----: | -----: | ------------------------------------------------- |
+| `mobile-cliente` | Expo  |  8081 |  5.475 | **Funcional** — tudo vem do banco                 |
+| `mobile-staff`   | Expo  |  8082 |  9.631 | **Funcional** — tudo vem do banco                 |
+| `portal`         | Next  |  3001 |  8.071 | **Protótipo** — dado fixo, não fala com o banco   |
+| `admin`          | Next  |  3002 |      — | **Funcional** — Auth, leitura e ações no Supabase |
+| `landing`        | Next  |  3000 |  3.229 | **Protótipo** — dado fixo, formulário não envia   |
 
 `packages/mobile-kit` (471 linhas) é o que os dois apps Expo compartilham:
 tokens, tipografia, formatação, `useAsync` e sessão.
 
-O banco tem **20 tabelas**, **12 enums**, **13 funções** e **57 políticas de
+O banco tem **29 tabelas**, **17 enums**, **55 funções** e **73 políticas de
 RLS**. Três Edge Functions: `book-appointment`, `cancel-appointment`,
 `assistant`.
 
@@ -36,20 +36,26 @@ O vocabulário que todas as superfícies compartilham. Nomes reais das tabelas.
 
 - `cities` — cidade atendida. Nome, UF, slug, código IBGE, ativa ou não.
 - `establishments` — a loja. Cidade, categoria (barbearia, salão, estética,
-  dermatologia, petshop), situação (`pending` → `active` → `suspended`), modo de
-  agendamento (`scheduled`, `queue`, `both`), endereço, coordenadas, cor de
-  destaque, nota média e contagem de avaliações.
+  dermatologia, petshop, unhas, odontologia e massagem), situação (`pending` →
+  `active` → `suspended`), modo de agendamento (`scheduled`, `queue`, `both`),
+  endereço, coordenadas, cor de destaque, nota média e contagem de avaliações.
 - `profiles` — pessoa. Espelha `auth.users`, nasce por gatilho. Neutra quanto a
   papel: a mesma pessoa é cliente numa loja e equipe em outra.
 - `establishment_members` — vínculo N:N entre pessoa e loja, com papel
   (`owner`, `manager`, `staff`).
-- `platform_admins` — quem administra a plataforma. Só `user_id`, sem papel nem
-  alcance.
+- `platform_admins` — equipe da plataforma, com papel (`admin`, `operations`,
+  `finance`, `support`) e última atividade.
+- `plans` / `establishment_decisions` — modelos de cobrança e histórico da
+  decisão sobre cada cadastro.
+- `platform_settings` / `admin_audit_log` / `admin_access_sessions` — parâmetros,
+  auditoria transacional e acesso temporário a uma conta.
 
 **Catálogo**
 
 - `services` — serviço **da loja**: nome, descrição, duração, preço, ativo,
   ordem. A duração é o que fatia a agenda.
+- `catalog_items` / `search_events` — catálogo curado da plataforma, sinônimos e
+  buscas sem resultado; `services.catalog_item_id` liga o nome da loja ao item.
 - `professionals` — profissional da loja, opcionalmente ligado a um `profile`.
 - `professional_services` — quem faz o quê.
 - `establishment_photos` — fotos da loja (tabela existe, upload não).
@@ -75,6 +81,9 @@ O vocabulário que todas as superfícies compartilham. Nomes reais das tabelas.
 
 - `reviews` — avaliação. **Amarrada a um `appointment_id` único**: sem
   atendimento não existe avaliação. Nota, comentário e marcadores.
+- `review_reports` — denúncia, esclarecimento e decisão de moderação.
+- `customer_blocks` — impede novos agendamentos sem apagar o histórico; a Edge
+  Function também bloqueia ao atingir o limite de faltas em 30 dias.
 - `payments` — esquema pronto, **nenhuma linha e nenhuma política de escrita**.
 
 **Configuração e assistente**
@@ -108,7 +117,7 @@ Expo Router, 18 rotas. **Tudo vem do banco.**
 | ------------------------------------------ | ---------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | Home                                       | Cidade atual, categorias com contagem, lojas em destaque, atalho para a fila ativa | `cities`, `establishments`, `queue_entries`                 |
 | Explorar                                   | Busca por nome e navegação por categoria                                           | contagem real, `ilike` no nome                              |
-| Resultados                                 | Lista filtrada por cidade, categoria e termo                                       | `establishments`                                            |
+| Resultados                                 | Busca loja, serviço curado e sinônimos por cidade/categoria                        | RPC `search_establishments`                                 |
 | Loja                                       | Ficha: serviços, profissionais, avaliações, modo de agendamento                    | `establishments` + `services` + `professionals` + `reviews` |
 | Horário                                    | Grade de horários livres, por dia e por profissional                               | RPC `available_slots` / `availability_summary`              |
 | Confirmar                                  | Resumo da reserva, preço e política de sinal                                       | Edge Function `book-appointment`                            |
@@ -201,18 +210,18 @@ O resto das seções é montado por um renderizador genérico de blocos — `kpi
 ## Painel administrativo — `admin`
 
 Next.js, 11 telas e 3 modais. Implementa o canvas `Vez Portal Admin.dc.html`.
-**Protótipo: o dado está em `components/data.ts`.** Detalhes em
-[admin.md](admin.md).
+**Funcional: exige Supabase Auth, lê por RPCs protegidas e grava ações com
+auditoria transacional.** Detalhes e limites em [admin.md](admin.md).
 
 | Tela                     | Faz                                                                                                                                     |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Visão geral              | Fila de trabalho (aprovações, chamados, denúncias, cobranças vencidas), receita recorrente, ativos, agendamentos, vagas por cidade      |
 | Aprovações               | Fila por tempo de espera, ficha do solicitante, escolha do plano inicial conforme a cota da cidade, aprovar / recusar / pedir correção  |
 | Estabelecimentos         | Tabela com filtros, sinalização de risco, seleção em massa, exportação                                                                  |
-| Ficha do estabelecimento | Indicadores, uso em 12 meses, dados cadastrais, cobranças, e **acessar conta em modo auditado**                                         |
-| Cidades                  | Situação, vagas, preço local, categorias cobertas e lacunas de prospecção; abrir nova cidade                                            |
-| Cotas e planos           | Catálogo de planos (mensalidade fixa e comissão), cota por cidade, regras de troca, aviso de impacto em contratos vigentes              |
-| Financeiro               | Receita, cobranças, repasses e o fluxo de carência até a suspensão automática                                                           |
+| Ficha do estabelecimento | Indicadores, uso, dados cadastrais e autorização auditada para suporte; console de leitura ainda pendente                               |
+| Cidades                  | Situação, vagas, preço local e categorias; abrir, ativar ou retirar cidade da busca                                                     |
+| Cotas e planos           | Dois modelos operacionais, cota por cidade, intervalo entre trocas e impacto imediato das edições                                       |
+| Financeiro               | Estimativa de receita; cobranças, repasses e automações aguardam o provedor                                                             |
 | Serviços                 | **Catálogo global curado**, com nomes alternativos para a busca, sugestões das lojas e buscas sem resultado                             |
 | Avaliações               | Fila de denúncias com decisão fundamentada (manter ou remover, com motivo obrigatório e impacto na nota), e panorama das notas por loja |
 | Clientes finais          | Base, taxa de não comparecimento, bloqueio de novos agendamentos                                                                        |
@@ -266,11 +275,11 @@ com Realtime → a loja chama, senta e conclui → o cliente vê a posição mud
 (`cancellation_window_minutes`) e decide se o sinal volta
 (`deposit_refundable`).
 
-**Cadastro de loja.** _Não fecha._ Não existe política de INSERT em
+**Cadastro de loja.** _Ainda não fecha._ Não existe política de INSERT em
 `establishments` para `authenticated`, nem a Edge Function que validaria a cota
 da cidade. E nenhuma loja sai de `pending` sozinha — o gatilho
-`guard_establishment_status` fechou esse buraco de propósito. Falta o admin de
-verdade.
+`guard_establishment_status` fechou esse buraco de propósito. Quando a loja já
+existe como `pending`, o admin conectado aprova, recusa ou pede correção.
 
 ---
 
@@ -279,9 +288,9 @@ verdade.
 **Os dois apps, sim — completamente.** Escrevem e leem as mesmas tabelas, com
 Realtime dos dois lados. O ciclo cliente↔loja fecha hoje.
 
-**Os dois painéis web, não.** Nenhum dos dois faz uma única chamada ao Supabase:
-são protótipos fiéis ao design, com dado fixo em arquivo. Não é dívida
-escondida — é o estado declarado dos dois.
+**O admin, sim. O portal do estabelecimento, ainda não.** O admin autentica a
+equipe, lê o snapshot por RPCs e persiste todas as ações já modeladas. O portal
+continua como protótipo fiel ao design, com dado fixo.
 
 Três observações que importam antes de escrever o backend:
 
@@ -293,17 +302,13 @@ deliberadamente deixou de fora. **Decisão pendente:** o portal é a superfície
 cadastro e planejamento (e o app, a de operação do dia), ou os dois fazem tudo?
 A resposta muda o quanto de backend novo o portal exige.
 
-**2. O admin assume um modelo de negócio que o banco não tem.** Cota por cidade,
-mensalidade, comissão, cobrança e repasse são o eixo de quatro telas do painel —
-e não existe uma linha sobre isso no schema. É o item 4 de
-[proximos-passos.md](proximos-passos.md), e continua sendo decisão de negócio,
-não de engenharia.
+**2. Planos e cotas já têm modelo; cobrança e repasse ainda não.** Mensalidade e
+comissão coexistem, com cota e preço por cidade. O provedor, faturas, webhook e
+repasse continuam sendo decisão de negócio antes da implementação financeira.
 
-**3. O admin trata `services` como catálogo global.** A tela de Serviços cura um
-catálogo da plataforma inteira, com nomes alternativos para a busca e sugestões
-vindas das lojas. No banco, `services` é **por estabelecimento** — cada loja tem
-o seu "Corte masculino". São dois conceitos diferentes com o mesmo nome, e
-reconciliar isso é modelagem, não tela.
+**3. Catálogo global e serviço da loja agora são conceitos separados.**
+`catalog_items` guarda o item curado e os sinônimos; cada `services` continua
+pertencendo a uma loja e pode apontar para o item global.
 
 ---
 
@@ -311,29 +316,18 @@ reconciliar isso é modelagem, não tela.
 
 Levantado a partir do que os dois protótipos mostram. Nada aqui existe hoje.
 
-| Precisa para                | O que falta no banco                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------------------- |
-| Loja se cadastrar           | Política de INSERT em `establishments` + Edge Function `create-establishment`               |
-| Aprovar loja                | Nada de schema — falta a tela ligada ao banco                                               |
-| Cota e preço por cidade     | Colunas ou tabela de plano por cidade (`cities` não tem)                                    |
-| Planos e assinatura         | `plans`, `subscriptions`, ciclo de cobrança                                                 |
-| Comissão                    | Percentual por loja e cálculo por atendimento concluído                                     |
-| Cobranças e inadimplência   | Faturas, vencimento, carência, suspensão automática                                         |
-| Repasses                    | Conciliação de `payments` → valor a repassar → envio                                        |
-| Pagamento de verdade        | `payments` existe **sem nenhuma política de escrita**; falta provedor e definir quem recebe |
-| Moderar avaliação           | Denúncia, motivo, decisão e histórico — `reviews` não tem nada disso                        |
-| Registro de auditoria       | Tabela de log + o mecanismo de "acessar conta" em modo leitura                              |
-| Suporte                     | Chamados                                                                                    |
-| Catálogo global de serviços | Conceito novo: catálogo da plataforma × serviço da loja, com sinônimos                      |
-| Buscas sem resultado        | Log de busca                                                                                |
-| Sugestões de serviço        | Fila de sugestão vinda das lojas                                                            |
-| Vitrine                     | Banners da Home                                                                             |
-| Equipe do admin com alcance | `platform_admins` só tem `user_id` — sem papel nem escopo                                   |
-| Bloquear cliente            | Marcação de bloqueio (a taxa de falta é derivável de `no_show`)                             |
-| Parâmetros da plataforma    | Hoje as regras são por loja em `establishment_settings`; não há nível global                |
-| Notificação push            | Tokens de dispositivo e envio                                                               |
-| Foto de loja                | `establishment_photos` existe; Storage não foi ligado                                       |
-| Excluir conta (LGPD)        | Edge Function — RLS não apaga `auth.users`                                                  |
+| Precisa para              | O que falta no banco                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| Loja se cadastrar         | Política de INSERT em `establishments` + Edge Function `create-establishment`               |
+| Assinatura                | `subscriptions`, ciclo e histórico de cobrança                                              |
+| Cobranças e inadimplência | Faturas, vencimento, carência, suspensão automática                                         |
+| Repasses                  | Conciliação de `payments` → valor a repassar → envio                                        |
+| Pagamento de verdade      | `payments` existe **sem nenhuma política de escrita**; falta provedor e definir quem recebe |
+| Suporte                   | Chamados                                                                                    |
+| Vitrine                   | Banners da Home                                                                             |
+| Notificação push          | Tokens de dispositivo e envio                                                               |
+| Foto de loja              | `establishment_photos` existe; Storage não foi ligado                                       |
+| Excluir conta (LGPD)      | Edge Function — RLS não apaga `auth.users`                                                  |
 
 ---
 

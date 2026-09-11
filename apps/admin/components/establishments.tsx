@@ -1,74 +1,192 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Check, ChevronRight, DocIcon, SearchIcon, StatusChip, TriangleAlert } from "./blocks";
-import {
-  chip,
-  ESTAB_BILLING,
-  ESTAB_TABS,
-  ESTABLISHMENTS,
-  USAGE_BARS,
-  USAGE_MONTHS,
-  type EstabTab,
-} from "./data";
+import { downloadCsv, toCsv } from "./csv";
+import { ESTAB_TABS, STATUS, USAGE_MONTHS, type Chip, type EstabTab } from "./data";
+import { DiscountDialog, PlanDialog, TextDialog, useRun } from "./dialogs";
+import { brl, count, day, competence, planText, type Establishment } from "./model";
+import { useAdmin } from "./store";
+
+const PAGE = 8;
+
+/** A etiqueta de situação: suspensa ganha de inadimplente, que ganha de ativa. */
+function statusChip(e: Establishment): Chip {
+  if (e.status === "suspended") return STATUS.suspenso;
+  if (e.status === "pending") return STATUS.pendente;
+  if (e.overdue) return STATUS.vencido;
+  return STATUS.ativo;
+}
+
+type Bulk = "plan" | "discount" | "suspend" | null;
 
 export function Establishments({ onOpen }: { onOpen: (id: string) => void }) {
+  const { data } = useAdmin();
+  const commission = data.plans.find((p) => p.kind === "commission")?.commissionPercent ?? 12;
+
+  const [query, setQuery] = useState("");
+  const [city, setCity] = useState("");
+  const [plan, setPlan] = useState("");
+  const [status, setStatus] = useState("");
+  const [category, setCategory] = useState("");
+  const [riskOnly, setRiskOnly] = useState(false);
+  const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
+  const [bulk, setBulk] = useState<Bulk>(null);
+
+  const options = useMemo(
+    () => ({
+      cities: [...new Set(data.establishments.map((e) => e.city))].sort(),
+      categories: [...new Set(data.establishments.map((e) => e.category))].sort(),
+    }),
+    [data.establishments],
+  );
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return data.establishments
+      .filter((e) => !q || e.name.toLowerCase().includes(q))
+      .filter((e) => !city || e.city === city)
+      .filter((e) => !plan || e.plan === plan)
+      .filter((e) => !category || e.category === category)
+      .filter((e) => {
+        if (!status) return true;
+        if (status === "overdue") return e.overdue && e.status === "active";
+        if (status === "active") return e.status === "active" && !e.overdue;
+        return e.status === status;
+      })
+      .filter((e) => !riskOnly || e.risk)
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [data.establishments, query, city, plan, status, category, riskOnly]);
+
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  const current = Math.min(page, pages - 1);
+  const visible = rows.slice(current * PAGE, current * PAGE + PAGE);
+
+  // mudar filtro volta para a primeira página
+  const filter =
+    <T,>(set: (value: T) => void) =>
+    (value: T) => {
+      set(value);
+      setPage(0);
+    };
 
   const toggle = (id: string) =>
     setSelected((list) => (list.includes(id) ? list.filter((x) => x !== id) : list.concat([id])));
+
+  const exportCsv = () =>
+    downloadCsv(
+      `vez-estabelecimentos-${new Date().toISOString().slice(0, 10)}.csv`,
+      toCsv(
+        [
+          "Estabelecimento",
+          "Cidade",
+          "Categoria",
+          "Plano",
+          "Situação",
+          "Agend./mês",
+          "Receita p/ plataforma",
+          "Entrada",
+          "Risco",
+        ],
+        rows.map((e) => [
+          e.name,
+          e.city,
+          e.category,
+          planText(e.plan, commission),
+          statusChip(e).label,
+          String(e.appointmentsMonth),
+          brl(e.platformRevenueCents),
+          day(e.since),
+          e.risk ?? "",
+        ]),
+      ),
+    );
 
   return (
     <div className="stack tight">
       <div className="filter-bar">
         <div className="search light">
           <SearchIcon />
-          <input placeholder="Buscar por nome" />
+          <input
+            aria-label="Buscar por nome"
+            id="estab-search"
+            onChange={(event) => filter(setQuery)(event.target.value)}
+            placeholder="Buscar por nome"
+            value={query}
+          />
         </div>
-        <select defaultValue="Todas as cidades">
-          <option>Todas as cidades</option>
-          <option>São Paulo</option>
-          <option>Campinas</option>
-          <option>Curitiba</option>
+        <select
+          aria-label="Cidade"
+          id="estab-city"
+          onChange={(e) => filter(setCity)(e.target.value)}
+          value={city}
+        >
+          <option value="">Todas as cidades</option>
+          {options.cities.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
         </select>
-        <select defaultValue="Todos os planos">
-          <option>Todos os planos</option>
-          <option>Mensalidade</option>
-          <option>Comissão</option>
+        <select
+          aria-label="Plano"
+          id="estab-plan"
+          onChange={(e) => filter(setPlan)(e.target.value)}
+          value={plan}
+        >
+          <option value="">Todos os planos</option>
+          <option value="monthly">Mensalidade</option>
+          <option value="commission">Comissão</option>
         </select>
-        <select defaultValue="Todas as situações">
-          <option>Todas as situações</option>
-          <option>Ativo</option>
-          <option>Inadimplente</option>
-          <option>Suspenso</option>
+        <select
+          aria-label="Situação"
+          id="estab-status"
+          onChange={(e) => filter(setStatus)(e.target.value)}
+          value={status}
+        >
+          <option value="">Todas as situações</option>
+          <option value="active">Ativo</option>
+          <option value="overdue">Inadimplente</option>
+          <option value="suspended">Suspenso</option>
         </select>
-        <select defaultValue="Todas as categorias">
-          <option>Todas as categorias</option>
-          <option>Barbearia</option>
-          <option>Salão</option>
-          <option>Estética</option>
+        <select
+          aria-label="Categoria"
+          id="estab-category"
+          onChange={(e) => filter(setCategory)(e.target.value)}
+          value={category}
+        >
+          <option value="">Todas as categorias</option>
+          {options.categories.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
         </select>
-        <button className="ghost danger" type="button">
+        <button
+          aria-pressed={riskOnly}
+          className={riskOnly ? "ghost danger pressed" : "ghost danger"}
+          onClick={() => filter(setRiskOnly)(!riskOnly)}
+          type="button"
+        >
           Só com risco
         </button>
         <div className="spacer" />
-        <button className="ghost" type="button">
+        <button className="ghost" disabled={!rows.length} onClick={exportCsv} type="button">
           Exportar CSV
         </button>
       </div>
 
       {selected.length > 0 ? (
         <div className="bulk-bar">
-          <code>{selected.length} selecionados</code>
+          <code>
+            {selected.length} {selected.length === 1 ? "selecionado" : "selecionados"}
+          </code>
           <span className="divider" />
-          <button className="link" type="button">
+          <button className="link" onClick={() => setBulk("plan")} type="button">
             Trocar plano
           </button>
-          <button className="link" type="button">
+          <button className="link" onClick={() => setBulk("discount")} type="button">
             Aplicar desconto
           </button>
-          <button className="link danger" type="button">
+          <button className="link danger" onClick={() => setBulk("suspend")} type="button">
             Suspender
           </button>
           <div className="spacer" />
@@ -79,89 +197,168 @@ export function Establishments({ onOpen }: { onOpen: (id: string) => void }) {
       ) : null}
 
       <div className="card clip">
-        <table className="rows">
-          <thead>
-            <tr>
-              <th className="check" />
-              <th>Estabelecimento ↓</th>
-              <th>Cidade</th>
-              <th>Categoria</th>
-              <th>Plano</th>
-              <th>Assinatura</th>
-              <th className="right">Agend./mês</th>
-              <th className="right">Receita p/ plataforma</th>
-              <th className="right">Entrada</th>
-              <th className="chevron" />
-            </tr>
-          </thead>
-          <tbody>
-            {ESTABLISHMENTS.map((est) => {
-              const checked = selected.includes(est.id);
-              return (
-                <tr className={checked ? "selected" : undefined} key={est.id}>
-                  <td className="check top">
-                    <button
-                      aria-label={`Selecionar ${est.name}`}
-                      aria-pressed={checked}
-                      className={checked ? "checkbox on" : "checkbox"}
-                      onClick={() => toggle(est.id)}
-                      type="button"
-                    >
-                      <Check size={9} width={3.5} />
-                    </button>
-                  </td>
-                  <td>
-                    <button className="row-link" onClick={() => onOpen(est.id)} type="button">
-                      {est.name}
-                    </button>
-                    {est.risk ? (
-                      <p className="risk">
-                        <TriangleAlert size={11} />
-                        {est.risk}
-                      </p>
-                    ) : null}
-                  </td>
-                  <td className="muted">{est.city}</td>
-                  <td>{est.cat}</td>
-                  <td>{est.plan}</td>
-                  <td>
-                    <StatusChip chip={chip(est.st)} />
-                  </td>
-                  <td className="right mono">{est.appt}</td>
-                  <td className="right mono">{est.rev}</td>
-                  <td className="right mono muted">{est.since}</td>
-                  <td className="right">
-                    <button
-                      aria-label={`Abrir ${est.name}`}
-                      className="icon-button"
-                      onClick={() => onOpen(est.id)}
-                      type="button"
-                    >
-                      <ChevronRight />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table className="rows">
+            <thead>
+              <tr>
+                <th className="check" />
+                <th>Estabelecimento ↓</th>
+                <th>Cidade</th>
+                <th>Categoria</th>
+                <th>Plano</th>
+                <th>Assinatura</th>
+                <th className="right">Agend./mês</th>
+                <th className="right">Receita p/ plataforma</th>
+                <th className="right">Entrada</th>
+                <th className="chevron" />
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((est) => {
+                const checked = selected.includes(est.id);
+                return (
+                  <tr className={checked ? "selected" : undefined} key={est.id}>
+                    <td className="check top">
+                      <button
+                        aria-label={`Selecionar ${est.name}`}
+                        aria-pressed={checked}
+                        className={checked ? "checkbox on" : "checkbox"}
+                        onClick={() => toggle(est.id)}
+                        type="button"
+                      >
+                        <Check size={9} width={3.5} />
+                      </button>
+                    </td>
+                    <td>
+                      <button className="row-link" onClick={() => onOpen(est.id)} type="button">
+                        {est.name}
+                      </button>
+                      {est.risk ? (
+                        <p className="risk">
+                          <TriangleAlert size={11} />
+                          {est.risk}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="muted">{est.city}</td>
+                    <td>{est.category}</td>
+                    <td>{planText(est.plan, commission)}</td>
+                    <td>
+                      <StatusChip chip={statusChip(est)} />
+                    </td>
+                    <td className="right mono">{count(est.appointmentsMonth)}</td>
+                    <td className="right mono">{brl(est.platformRevenueCents)}</td>
+                    <td className="right mono muted">{day(est.since)}</td>
+                    <td className="right">
+                      <button
+                        aria-label={`Abrir ${est.name}`}
+                        className="icon-button"
+                        onClick={() => onOpen(est.id)}
+                        type="button"
+                      >
+                        <ChevronRight />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {rows.length === 0 ? (
+          <p className="table-empty">Nenhum estabelecimento com esses filtros.</p>
+        ) : null}
         <div className="table-foot">
           <span>
-            Mostrando <code>1–8</code> de <code>1.361</code>
+            Mostrando{" "}
+            <code>
+              {rows.length ? current * PAGE + 1 : 0}–{current * PAGE + visible.length}
+            </code>{" "}
+            de <code>{count(rows.length)}</code>
           </span>
           <div className="pager">
-            <button className="ghost small disabled" type="button">
+            <button
+              className="ghost small"
+              disabled={current === 0}
+              onClick={() => setPage(current - 1)}
+              type="button"
+            >
               Anterior
             </button>
-            <button className="ghost small" type="button">
+            <button
+              className="ghost small"
+              disabled={current >= pages - 1}
+              onClick={() => setPage(current + 1)}
+              type="button"
+            >
               Próxima
             </button>
           </div>
         </div>
       </div>
+
+      {bulk === "plan" ? (
+        <PlanDialog
+          current={null}
+          ids={selected}
+          onClose={() => {
+            setBulk(null);
+            setSelected([]);
+          }}
+        />
+      ) : null}
+      {bulk === "discount" ? (
+        <DiscountDialog
+          ids={selected}
+          onClose={() => {
+            setBulk(null);
+            setSelected([]);
+          }}
+        />
+      ) : null}
+      {bulk === "suspend" ? (
+        <SuspendDialog
+          ids={selected}
+          onClose={() => setBulk(null)}
+          onDone={() => setSelected([])}
+        />
+      ) : null}
     </div>
   );
 }
+
+function SuspendDialog({
+  ids,
+  onClose,
+  onDone,
+}: {
+  ids: string[];
+  onClose: () => void;
+  onDone?: () => void;
+}) {
+  const { data, actions } = useAdmin();
+  const list = data.establishments.filter((e) => ids.includes(e.id));
+  const label = list.length === 1 ? list[0]!.name : `${list.length} estabelecimentos`;
+  return (
+    <TextDialog
+      confirmLabel="Suspender"
+      danger
+      description="O perfil sai da busca do app e ninguém consegue agendar. A agenda já marcada é preservada."
+      id="suspend"
+      label="Motivo"
+      onClose={onClose}
+      onConfirm={async (reason) => {
+        await actions.suspendEstablishments(ids, reason);
+        onDone?.();
+      }}
+      placeholder="Ex.: 16 dias de inadimplência, sem resposta aos avisos"
+      success={{ title: "Suspenso", sub: `${label} saiu da busca do app.` }}
+      title={`Suspender ${label}`}
+    />
+  );
+}
+
+type DetailModal = "plan" | "discount" | "suspend" | "contact" | null;
 
 export function EstablishmentDetail({
   estabId,
@@ -172,8 +369,30 @@ export function EstablishmentDetail({
   onBack: () => void;
   onAccess: () => void;
 }) {
+  const { data, actions } = useAdmin();
   const [tab, setTab] = useState<EstabTab>("visão geral");
-  const est = ESTABLISHMENTS.find((item) => item.id === estabId) ?? ESTABLISHMENTS[0]!;
+  const [modal, setModal] = useState<DetailModal>(null);
+  const reactivate = useRun();
+  const est = data.establishments.find((item) => item.id === estabId);
+  if (!est) {
+    return (
+      <div className="stack detail">
+        <button className="back" onClick={onBack} type="button">
+          Todos os estabelecimentos
+        </button>
+        <p className="hint">Este estabelecimento não existe mais.</p>
+      </div>
+    );
+  }
+
+  const commission = data.plans.find((p) => p.kind === "commission")?.commissionPercent ?? 12;
+  const invoices = data.invoices.filter((i) => i.establishmentId === est.id);
+  const suspended = est.status === "suspended";
+  const usageMax = Math.max(1, ...est.usage);
+  const recent = est.usage.slice(-1)[0] ?? 0;
+  const baseline = est.usage.slice(-7, -1);
+  const average = baseline.length ? baseline.reduce((a, b) => a + b, 0) / baseline.length : 0;
+  const trend = average ? Math.round(((recent - average) / average) * 100) : 0;
 
   return (
     <div className="stack detail">
@@ -201,24 +420,42 @@ export function EstablishmentDetail({
         <div className="entity-body">
           <div className="title-row">
             <h2>{est.name}</h2>
-            <StatusChip chip={chip(est.st)} />
+            <StatusChip chip={statusChip(est)} />
           </div>
           <p className="detail-sub">
-            {est.city} · {est.cat} · {est.plan} · na plataforma desde {est.since}
+            {est.city} · {est.category} · {planText(est.plan, commission)}
+            {est.discountPercent ? ` · ${est.discountPercent}% de desconto` : ""} · na plataforma
+            desde {day(est.since)}
           </p>
         </div>
         <div className="actions">
-          <button className="ghost" type="button">
+          <button className="ghost" onClick={() => setModal("plan")} type="button">
             Trocar plano
           </button>
-          <button className="ghost" type="button">
+          <button className="ghost" onClick={() => setModal("discount")} type="button">
             Aplicar desconto
           </button>
-          <button className="ghost danger" type="button">
-            Suspender
-          </button>
+          {suspended ? (
+            <button
+              className="ghost"
+              disabled={reactivate.pending}
+              onClick={() =>
+                void reactivate.run(() => actions.reactivateEstablishment(est.id), {
+                  title: "Reativado",
+                  sub: `${est.name} voltou a aparecer na busca do app.`,
+                })
+              }
+              type="button"
+            >
+              Reativar
+            </button>
+          ) : (
+            <button className="ghost danger" onClick={() => setModal("suspend")} type="button">
+              Suspender
+            </button>
+          )}
           <button className="primary" onClick={onAccess} type="button">
-            Acessar conta
+            Registrar acesso
           </button>
         </div>
       </div>
@@ -228,7 +465,7 @@ export function EstablishmentDetail({
           <TriangleAlert />
           <span>Sinalizado como risco: {est.risk}</span>
           <div className="spacer" />
-          <button className="ghost small danger" type="button">
+          <button className="ghost small danger" onClick={() => setModal("contact")} type="button">
             Registrar contato
           </button>
         </div>
@@ -255,18 +492,32 @@ export function EstablishmentDetail({
           <div className="kpi-grid three">
             <div className="card pad">
               <p className="kpi-label">Agendamentos no mês</p>
-              <code className="kpi-number sm">{est.appt}</code>
-              <small className="kpi-note danger">−68% vs. média de 6 meses</small>
+              <code className="kpi-number sm">{count(est.appointmentsMonth)}</code>
+              <small className={trend < 0 ? "kpi-note danger" : "kpi-note"}>
+                {average
+                  ? `${trend > 0 ? "+" : trend < 0 ? "−" : ""}${Math.abs(trend)}% vs. média de 6 meses`
+                  : "Sem histórico para comparar"}
+              </small>
             </div>
             <div className="card pad">
               <p className="kpi-label">Receita gerada no mês</p>
-              <code className="kpi-number sm">{est.rev}</code>
-              <small className="kpi-note">Mensalidade fixa · sem comissão</small>
+              <code className="kpi-number sm">{brl(est.platformRevenueCents)}</code>
+              <small className="kpi-note">
+                {est.plan === "monthly"
+                  ? "Mensalidade fixa · sem comissão"
+                  : `Comissão de ${commission}%`}
+              </small>
             </div>
             <div className="card pad">
               <p className="kpi-label">Pagamento no app</p>
-              <code className="kpi-number sm">Desligado</code>
-              <small className="kpi-note">Nenhum agendamento gera transação</small>
+              <code className="kpi-number sm">
+                {est.plan === "commission" ? "Ligado" : "Desligado"}
+              </code>
+              <small className="kpi-note">
+                {est.plan === "commission"
+                  ? "Obrigatório no plano de comissão"
+                  : "Nenhum agendamento gera transação"}
+              </small>
             </div>
           </div>
 
@@ -274,16 +525,20 @@ export function EstablishmentDetail({
             <div className="card pad">
               <h3 className="card-title">Uso da plataforma · 12 meses</h3>
               <div className="usage-bars">
-                {USAGE_BARS.map((height, i) => (
-                  <div key={USAGE_MONTHS[i]}>
-                    {/* Os meses da queda ficam em vermelho, como no canvas. */}
-                    <span
-                      className={i >= 6 && i < 10 ? "bar danger" : "bar"}
-                      style={{ height: `${height}px` }}
-                    />
-                    <code>{USAGE_MONTHS[i]}</code>
-                  </div>
-                ))}
+                {est.usage.map((value, i) => {
+                  const height = Math.round((value / usageMax) * 92);
+                  // mês abaixo de 60% do pico é queda: vermelho, como no canvas
+                  const drop = value < usageMax * 0.6;
+                  return (
+                    <div key={USAGE_MONTHS[i] ?? i} title={`${value} agendamentos`}>
+                      <span
+                        className={drop ? "bar danger" : "bar"}
+                        style={{ height: `${Math.max(2, height)}px` }}
+                      />
+                      <code>{USAGE_MONTHS[i]}</code>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div className="card pad">
@@ -291,19 +546,19 @@ export function EstablishmentDetail({
               <div className="field-list">
                 <div>
                   <small>CNPJ</small>
-                  <code>32.774.019/0001-58</code>
+                  <code>{est.cnpj}</code>
                 </div>
                 <div>
                   <small>Endereço</small>
-                  <p>R. Teodoro Sampaio, 1420 — Pinheiros, São Paulo/SP</p>
+                  <p>{est.address}</p>
                 </div>
                 <div>
                   <small>Responsável</small>
-                  <p>Lorena Prado · (11) 98221-7740</p>
+                  <p>{est.responsible}</p>
                 </div>
                 <div>
                   <small>Profissionais ativos</small>
-                  <code>6</code>
+                  <code>{est.professionals}</code>
                 </div>
               </div>
             </div>
@@ -313,28 +568,42 @@ export function EstablishmentDetail({
 
       {tab === "cobranças" ? (
         <div className="card clip">
-          <table>
-            <thead>
-              <tr>
-                <th>Competência</th>
-                <th>Situação</th>
-                <th className="right">Valor</th>
-                <th className="right">Pago em</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ESTAB_BILLING.map((row) => (
-                <tr key={row.comp}>
-                  <td className="strong">{row.comp}</td>
-                  <td>
-                    <StatusChip chip={chip(row.st)} />
-                  </td>
-                  <td className="right mono">{row.val}</td>
-                  <td className="right mono muted">{row.when}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {invoices.length ? (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Competência</th>
+                    <th>Situação</th>
+                    <th className="right">Valor</th>
+                    <th className="right">Pago em</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map((row) => (
+                    <tr key={row.id}>
+                      <td className="strong">{competence(row.competence)}</td>
+                      <td>
+                        <StatusChip
+                          chip={
+                            row.status === "paid"
+                              ? STATUS.paga
+                              : row.status === "pending"
+                                ? STATUS.pend
+                                : { ...STATUS.vencido, label: "Vencida" }
+                          }
+                        />
+                      </td>
+                      <td className="right mono">{brl(row.amountCents)}</td>
+                      <td className="right mono muted">{row.paidAt ? day(row.paidAt) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="table-empty">Nenhuma cobrança emitida para este estabelecimento.</p>
+          )}
         </div>
       ) : null}
 
@@ -350,6 +619,27 @@ export function EstablishmentDetail({
           </strong>
           <p>Esta aba reusa os mesmos componentes de lista; não detalhada nesta rodada.</p>
         </div>
+      ) : null}
+
+      {modal === "plan" ? (
+        <PlanDialog current={est.plan} ids={[est.id]} onClose={() => setModal(null)} />
+      ) : null}
+      {modal === "discount" ? (
+        <DiscountDialog ids={[est.id]} onClose={() => setModal(null)} />
+      ) : null}
+      {modal === "suspend" ? <SuspendDialog ids={[est.id]} onClose={() => setModal(null)} /> : null}
+      {modal === "contact" ? (
+        <TextDialog
+          confirmLabel="Registrar contato"
+          description="Fica no registro de auditoria, junto do sinal de risco que motivou o contato."
+          id="contact"
+          label="O que foi conversado"
+          onClose={() => setModal(null)}
+          onConfirm={(note) => actions.registerContact(est.id, note)}
+          placeholder="Ex.: dona disse que a queda é reforma da loja; volta em outubro"
+          success={{ title: "Contato registrado", sub: `Anotado na ficha de ${est.name}.` }}
+          title={`Contato com ${est.name}`}
+        />
       ) : null}
     </div>
   );

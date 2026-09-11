@@ -12,6 +12,7 @@ import { corsHeaders, fail, json } from "../_shared/cors.ts";
  * 2. **Validar o horário.** O slot precisa ser um dos que `available_slots()`
  *    devolve — não qualquer timestamp que caiba na tabela.
  * 3. **Calcular o sinal** a partir da política da loja.
+ * 4. **Aplicar bloqueios administrativos** antes de criar uma nova reserva.
  *
  * A corrida entre dois clientes no mesmo horário NÃO é resolvida aqui: é
  * resolvida pela constraint de exclusão `appointments_no_overlap`. Esta função
@@ -50,6 +51,60 @@ Deno.serve(async (req) => {
   }
 
   const admin = asAdmin();
+
+  const { data: customerBlock, error: blockError } = await admin
+    .from("customer_blocks")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (blockError) return fail("lookup_failed", "Não foi possível conferir a conta.", 500);
+
+  let blocked = Boolean(customerBlock);
+  if (!blocked) {
+    const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    const [settingsResult, appointmentsResult, queueResult] = await Promise.all([
+      admin.from("platform_settings").select("no_show_block_threshold").eq("id", true).single(),
+      admin
+        .from("appointments")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", user.id)
+        .eq("status", "no_show")
+        .gte("starts_at", since),
+      admin
+        .from("queue_entries")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", user.id)
+        .eq("status", "no_show")
+        .gte("joined_at", since),
+    ]);
+
+    if (settingsResult.error || appointmentsResult.error || queueResult.error) {
+      return fail("lookup_failed", "Não foi possível conferir a conta.", 500);
+    }
+
+    const threshold = settingsResult.data.no_show_block_threshold;
+    const misses = (appointmentsResult.count ?? 0) + (queueResult.count ?? 0);
+    if (misses >= threshold) {
+      const { error: autoBlockError } = await admin.from("customer_blocks").upsert(
+        {
+          user_id: user.id,
+          reason: `Bloqueio automático: ${misses} ${misses === 1 ? "falta" : "faltas"} nos últimos 30 dias.`,
+        },
+        { onConflict: "user_id" },
+      );
+      if (autoBlockError) return fail("lookup_failed", "Não foi possível conferir a conta.", 500);
+      blocked = true;
+    }
+  }
+
+  if (blocked) {
+    return fail(
+      "customer_blocked",
+      "Sua conta está impedida de fazer novos agendamentos. Fale com o suporte.",
+      403,
+    );
+  }
 
   const { data: establishment, error: estError } = await admin
     .from("establishments")

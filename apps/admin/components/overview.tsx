@@ -1,46 +1,94 @@
 "use client";
 
 import { ChevronRight, QuotaCells } from "./blocks";
-import {
-  CHART_MONTHS,
-  CITY_QUOTA,
-  REVENUE_SERIES,
-  VOLUME_SERIES,
-  type NavId,
-} from "./data";
+import { type NavId } from "./data";
+import { brlWhole, count, waited } from "./model";
+import { useAdmin } from "./store";
 import { AMBER, GREEN, INK, MUTED, RED } from "./tokens";
 
-/** Geometria do gráfico combinado — mesmos números do canvas. */
-const STEP = 620 / 6;
-const MAX_REVENUE = 230;
-const MAX_VOLUME = 13;
+export function Overview({ go }: { go: (id: NavId) => void }) {
+  const { data } = useAdmin();
+  const series = data.overview.series.slice(-6);
+  const revenue = series.map((point) => point.monthlyCents + point.commissionCents);
+  const currentPoint = series.at(-1);
+  const currentRevenue = revenue.at(-1) ?? 0;
+  const previousRevenue = revenue.at(-2) ?? 0;
+  const revenueDelta = previousRevenue
+    ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
+    : null;
+  const monthlyRevenue = currentPoint?.monthlyCents ?? 0;
+  const commissionRevenue = currentPoint?.commissionCents ?? 0;
+  const monthlyShare = currentRevenue ? (monthlyRevenue / currentRevenue) * 100 : 0;
+  const paidShare = data.overview.appointmentsMonth
+    ? (data.overview.paidInAppMonth / data.overview.appointmentsMonth) * 100
+    : 0;
 
-const DOTS = REVENUE_SERIES.map((value, i) => ({
-  x: Math.round(STEP * i + STEP / 2),
-  y: Math.round(160 - (value / MAX_REVENUE) * 140),
-}));
+  const step = 620 / Math.max(series.length, 1);
+  const maxRevenue = Math.max(...revenue, 1);
+  const maxVolume = Math.max(...series.map((point) => point.appointments), 1);
+  const dots = revenue.map((value, index) => ({
+    x: Math.round(step * index + step / 2),
+    y: Math.round(160 - (value / maxRevenue) * 140),
+  }));
+  const bars = series.map((point, index) => {
+    const height = Math.round((point.appointments / maxVolume) * 140);
+    return { x: Math.round(step * index + step / 2 - 23), y: 160 - height, height };
+  });
+  const line = dots.map((dot) => `${dot.x},${dot.y}`).join(" ");
+  const months = series.map((point) =>
+    new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" })
+      .format(new Date(point.month))
+      .replace(".", ""),
+  );
 
-const BARS = VOLUME_SERIES.map((value, i) => {
-  const h = Math.round((value / MAX_VOLUME) * 140);
-  return { x: Math.round(STEP * i + STEP / 2 - 23), y: 160 - h, h };
-});
+  const oldest = data.applications
+    .map((a) => a.submittedAt)
+    .sort()
+    .at(0);
+  const overdue = data.invoices.filter((i) => i.status === "overdue");
+  const overdueCents = overdue.reduce((sum, i) => sum + i.amountCents, 0);
 
-const LINE = DOTS.map((dot) => `${dot.x},${dot.y}`).join(" ");
-
-export function Overview({ go, queueCount }: { go: (id: NavId) => void; queueCount: number }) {
   const queue = [
-    { count: "7", label: "Aprovações aguardando", meta: "mais antiga há 2d 4h", tone: AMBER, to: "approvals" as const },
-    { count: "5", label: "Chamados de suporte", meta: "2 com prioridade alta", tone: INK, to: "support" as const },
-    { count: String(queueCount), label: "Avaliações denunciadas", meta: "aguardando decisão", tone: MUTED, to: "reviews" as const },
-    { count: "4", label: "Cobranças vencidas", meta: "R$ 3.160 em atraso", tone: RED, to: "finance" as const },
+    {
+      count: String(data.applications.length),
+      label: "Aprovações aguardando",
+      meta: oldest ? `mais antiga há ${waited(oldest)}` : "fila vazia",
+      tone: AMBER,
+      to: "approvals" as const,
+    },
+    {
+      count: "0",
+      label: "Chamados de suporte",
+      meta: "módulo ainda não conectado",
+      tone: INK,
+      to: "support" as const,
+    },
+    {
+      count: String(data.reports.length),
+      label: "Avaliações denunciadas",
+      meta: data.reports.length ? "aguardando decisão" : "nenhuma na fila",
+      tone: MUTED,
+      to: "reviews" as const,
+    },
+    {
+      count: String(overdue.length),
+      label: "Cobranças vencidas",
+      meta: overdue.length ? `${brlWhole(overdueCents)} em atraso` : "nada em atraso",
+      tone: RED,
+      to: "finance" as const,
+    },
   ];
+
+  const quotaCities = data.cities
+    .filter((c) => c.quotaTotal > 0 && c.status === "active")
+    .slice(0, 6);
 
   return (
     <div className="stack">
       <section>
         <div className="section-head">
           <h2>Fila de trabalho</h2>
-          <span>Atualizado há 2 min</span>
+          <span>Atualizado agora</span>
         </div>
         <div className="queue-grid">
           {queue.map((item) => (
@@ -66,52 +114,57 @@ export function Overview({ go, queueCount }: { go: (id: NavId) => void; queueCou
         <div className="card pad">
           <p className="kpi-label">Receita recorrente mensal</p>
           <div className="kpi-value">
-            <code>R$ 214.380</code>
-            <code className="delta up">+8,1%</code>
+            <code>{brlWhole(currentRevenue)}</code>
+            {revenueDelta === null ? null : (
+              <code className={revenueDelta >= 0 ? "delta up" : "delta down"}>
+                {revenueDelta >= 0 ? "+" : ""}
+                {revenueDelta.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
+              </code>
+            )}
           </div>
           <div className="split-bar">
-            <span style={{ width: "64%", background: INK }} />
-            <span style={{ width: "36%", background: "var(--coral)" }} />
+            <span style={{ width: `${monthlyShare}%`, background: INK }} />
+            <span style={{ width: `${100 - monthlyShare}%`, background: "var(--coral)" }} />
           </div>
           <div className="legend">
             <span>
               <i style={{ background: INK }} />
               Mensalidade
-              <code>R$ 137.200</code>
+              <code>{brlWhole(monthlyRevenue)}</code>
             </span>
             <span>
               <i style={{ background: "var(--coral)" }} />
               Comissão
-              <code>R$ 77.180</code>
+              <code>{brlWhole(commissionRevenue)}</code>
             </span>
           </div>
         </div>
 
         <div className="card pad">
           <p className="kpi-label">Estabelecimentos ativos</p>
-          <code className="kpi-number">1.284</code>
+          <code className="kpi-number">{count(data.overview.activeEstablishments)}</code>
           <div className="kpi-foot">
             <div>
-              <code style={{ color: GREEN }}>+47</code>
-              <small>Novos no mês</small>
+              <code style={{ color: GREEN }}>+{count(data.overview.approvedMonth)}</code>
+              <small>Aprovados no mês</small>
             </div>
             <div>
-              <code style={{ color: RED }}>−12</code>
-              <small>Cancelamentos</small>
+              <code style={{ color: RED }}>−{count(data.overview.suspendedMonth)}</code>
+              <small>Suspensos no mês</small>
             </div>
           </div>
         </div>
 
         <div className="card pad">
           <p className="kpi-label">Agendamentos no mês</p>
-          <code className="kpi-number">121.043</code>
+          <code className="kpi-number">{count(data.overview.appointmentsMonth)}</code>
           <div className="kpi-foot column">
             <p className="inline-stat">
-              <code>38,4%</code>
+              <code>{paidShare.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</code>
               <span>passaram pelo pagamento integrado</span>
             </p>
             <div className="split-bar thin">
-              <span style={{ width: "38.4%", background: "var(--coral)" }} />
+              <span style={{ width: `${paidShare}%`, background: "var(--coral)" }} />
             </div>
           </div>
         </div>
@@ -120,7 +173,10 @@ export function Overview({ go, queueCount }: { go: (id: NavId) => void; queueCou
       <section className="chart-grid">
         <div className="card">
           <div className="card-head">
-            <h3>Receita e volume de agendamentos</h3>
+            <div>
+              <h3>Receita e volume de agendamentos</h3>
+              <small className="hint">Estimativa pelo plano atual, com descontos vigentes</small>
+            </div>
             <div className="chart-legend">
               <span>
                 <i className="line" />
@@ -138,17 +194,25 @@ export function Overview({ go, queueCount }: { go: (id: NavId) => void; queueCou
               <line stroke="#F2F2F3" x1="0" x2="620" y1="60" y2="60" />
               <line stroke="#F2F2F3" x1="0" x2="620" y1="110" y2="110" />
               <line stroke="#ECECEC" x1="0" x2="620" y1="160" y2="160" />
-              {BARS.map((bar, i) => (
-                <rect fill="#EDEEEF" height={bar.h} key={i} rx="2" width="46" x={bar.x} y={bar.y} />
+              {bars.map((bar, i) => (
+                <rect
+                  fill="#EDEEEF"
+                  height={bar.height}
+                  key={i}
+                  rx="2"
+                  width="46"
+                  x={bar.x}
+                  y={bar.y}
+                />
               ))}
               <polyline
                 fill="none"
-                points={LINE}
+                points={line}
                 stroke="var(--coral)"
                 strokeLinejoin="round"
                 strokeWidth="2"
               />
-              {DOTS.map((dot, i) => (
+              {dots.map((dot, i) => (
                 <circle
                   cx={dot.x}
                   cy={dot.y}
@@ -161,8 +225,8 @@ export function Overview({ go, queueCount }: { go: (id: NavId) => void; queueCou
               ))}
             </svg>
             <div className="chart-months">
-              {CHART_MONTHS.map((month) => (
-                <code key={month}>{month}</code>
+              {months.map((month, index) => (
+                <code key={`${series[index]?.month}-${month}`}>{month}</code>
               ))}
             </div>
           </div>
@@ -179,20 +243,20 @@ export function Overview({ go, queueCount }: { go: (id: NavId) => void; queueCou
             </button>
           </div>
           <div className="quota-list">
-            {CITY_QUOTA.map((city) => {
-              const left = city.total - city.used;
+            {quotaCities.map((city) => {
+              const left = city.quotaTotal - city.quotaUsed;
               const tone = left === 0 ? RED : left <= 3 ? AMBER : GREEN;
               return (
-                <div className="quota-row" key={city.name}>
+                <div className="quota-row" key={city.id}>
                   <div className="quota-name">
                     <strong>{city.name}</strong>
                     <small style={{ color: tone }}>
                       {left === 0 ? "esgotada · só comissão" : `${left} vagas restantes`}
                     </small>
                   </div>
-                  <QuotaCells size="sm" total={city.total} used={city.used} />
+                  <QuotaCells size="sm" total={city.quotaTotal} used={city.quotaUsed} />
                   <code className="quota-ratio">
-                    {city.used}/{city.total}
+                    {city.quotaUsed}/{city.quotaTotal}
                   </code>
                 </div>
               );

@@ -52,20 +52,14 @@ export function useEstablishments(
   return useAsync(
     key,
     async () => {
-      let query = supabase
-        .from("establishments")
-        .select(LIST_COLUMNS)
-        .eq("status", "active")
-        .eq("city_id", cityId!)
-        .order("rating_avg", { ascending: false, nullsFirst: false })
-        .limit(50);
-
-      if (category) query = query.eq("category", category);
-      // `ilike` cobre acento e maiúscula mal digitados o bastante para busca de
-      // nome de loja; o índice trigram existe para quando isso não bastar.
-      if (term.trim()) query = query.ilike("name", `%${term.trim()}%`);
-
-      return unwrap(await query) as EstablishmentRow[];
+      const result = await supabase.rpc("search_establishments", {
+        p_city_id: cityId!,
+        // O gerador não representa argumentos nullable de funções; em runtime
+        // null significa "todas as categorias" e é aceito pelo Postgres.
+        p_category: category as CategoryKey,
+        p_term: term,
+      });
+      return unwrap(result) as EstablishmentRow[];
     },
     { enabled: Boolean(cityId) },
   );
@@ -141,7 +135,9 @@ export function useReviews(establishmentId: string | null) {
       unwrap(
         await supabase
           .from("reviews")
-          .select("id, rating, comment, tags, created_at, profiles(full_name)")
+          .select(
+            "id, rating, comment, tags, created_at, profiles!reviews_customer_id_fkey(full_name)",
+          )
           .eq("establishment_id", establishmentId!)
           .order("created_at", { ascending: false })
           .limit(20),

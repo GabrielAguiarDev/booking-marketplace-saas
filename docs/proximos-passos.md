@@ -5,15 +5,15 @@ cobria uma superfície só e está quase todo riscado; este cobre o produto.
 
 ## O diagnóstico, sem otimismo
 
-O cliente sabe comprar e a loja sabe atender. **Ninguém sabe entrar, e ninguém
-paga nada.**
+O cliente sabe comprar, a loja sabe atender e a equipe da plataforma já opera o
+admin. **A loja ainda não consegue nascer sozinha e o negócio não cobra nada.**
 
 | Superfície       | Linhas de código | Estado                         |
 | ---------------- | ---------------: | ------------------------------ |
 | `mobile-cliente` |            5.475 | Funcional ponta a ponta        |
 | `mobile-staff`   |            9.568 | Funcional ponta a ponta        |
 | `portal`         |            8.071 | Canvas implementado, dado fixo |
-| `admin`          |            6.958 | Canvas implementado, dado fixo |
+| `admin`          |                — | Funcional no Supabase          |
 | `landing`        |            3.229 | Canvas implementado, dado fixo |
 
 `packages/mobile-kit` (460 linhas) é o que os dois apps Expo usam igual.
@@ -34,13 +34,14 @@ O que **continua sem fechar**:
 - **Nenhum estabelecimento consegue se cadastrar.** `establishments` não tem
   política de INSERT para `authenticated`. A Edge Function que valida a cota da
   cidade foi documentada e nunca escrita.
-- **Nenhuma loja sai de `pending`.** E agora ela também não consegue se aprovar
-  sozinha por SQL — o buraco foi fechado na
-  [decisão 0008](decisions/0008-loja-nao-se-aprova-sozinha.md). Falta o admin.
-- **O negócio não cobra nada.** Zero linhas sobre cota por cidade, mensalidade
-  ou comissão — que é o modelo do brief.
+- **Nenhuma loja consegue nascer como `pending`.** A aprovação pelo admin já
+  funciona; falta a Edge Function de onboarding criar loja + vínculo de dono.
+- **O negócio ainda não cobra nada.** Planos, cota, preço e comissão já existem;
+  faltam assinatura, fatura, webhook e repasse.
 - **Notificação push não existe.** É o que mais dói na operação: a fila só se
   move na tela com o app aberto, que é justamente quando ninguém está olhando.
+- **MFA do admin ainda não é obrigatório.** Papéis e RPCs já limitam cada área,
+  mas ações sensíveis precisam de segundo fator antes de produção.
 
 ---
 
@@ -91,23 +92,23 @@ Duas pontas do mesmo problema:
 
 ---
 
-### 4. Monetização ⟵ **precisa de decisão sua**
+### 4. Monetização ⟵ **modelo básico entregue; cobrança pendente**
 
-Nada disso existe no banco, e é o modelo de negócio do brief: mensalidade fixa
-com cota por cidade, **ou** comissão por atendimento.
+Os dois modelos coexistem no banco: mensalidade fixa com cota/preço por cidade
+e comissão por atendimento. O admin já troca plano e valida a última vaga.
 
 As duas escolhas produzem esquemas diferentes:
 
-| Modelo      | O que entra no banco                                                       |
-| ----------- | -------------------------------------------------------------------------- |
-| Mensalidade | `city_plans` (cota e preço por cidade), `subscriptions`, ciclo de cobrança |
-| Comissão    | percentual por loja, cálculo por atendimento concluído, repasse            |
+| Modelo      | O que entra no banco                                                     |
+| ----------- | ------------------------------------------------------------------------ |
+| Mensalidade | `cities.monthly_quota` / `monthly_price_cents`; falta assinatura e ciclo |
+| Comissão    | `plans.commission_percent`; falta conciliação e repasse                  |
 
 E mudam a fase 3 acima: a cota da cidade só é verificável se houver o conceito
 de cota.
 
-**Pergunta concreta:** os dois modelos coexistem (a loja escolhe) ou a
-plataforma adota um?
+Falta transformar o plano escolhido em assinatura e ciclo financeiro depois da
+escolha do provedor.
 
 ### 5. Pagamento ⟵ **continua bloqueada**
 
@@ -194,7 +195,7 @@ Duas que este documento acrescenta:
 ## Estado para retomar
 
 ```bash
-pnpm db:start && pnpm db:reset && pnpm db:demo   # 2 lojas, 1 equipe, o dia de hoje
+pnpm db:start && pnpm db:reset && pnpm db:demo   # 2 lojas, 1 equipe, 1 admin, o dia de hoje
 cd apps/mobile-cliente && npx expo start         # cliente, porta 8081
 cd apps/mobile-staff   && npx expo start         # estabelecimento, porta 8082
 ```
@@ -206,6 +207,7 @@ Contas de teste, todas com senha `senha-forte-123`:
 | `rafael@vez.local`  | dono da Barbearia Meia-Nove — acesso total       |
 | `diego@vez.local`   | equipe — vê a agenda, não edita cadastro da loja |
 | `cliente@vez.local` | cliente, com reserva pendente e lugar na fila    |
+| `admin@vez.local`   | administradora da plataforma                     |
 
 E-mails locais em http://127.0.0.1:54324 · Studio em http://127.0.0.1:54323
 

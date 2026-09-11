@@ -96,6 +96,13 @@ select p.id, d, '08:00', '18:00'
 from public.professionals p, generate_series(1, 5) d
 where p.establishment_id = '0a000000-0000-4000-8000-000000000002';
 
+update public.establishments
+set plan_id = (select id from public.plans where kind = 'commission' and is_default)
+where id in (
+  '0a000000-0000-4000-8000-000000000001',
+  '0a000000-0000-4000-8000-000000000002'
+);
+
 -- --------------------------------------------------------------------------
 -- Equipe, clientes e o dia de hoje na Barbearia Meia-Nove
 -- --------------------------------------------------------------------------
@@ -110,10 +117,11 @@ where p.establishment_id = '0a000000-0000-4000-8000-000000000002';
 --   rafael@vez.local   dono      · acesso total
 --   diego@vez.local    equipe    · só a própria agenda
 --   cliente@vez.local  cliente   · aparece na fila e na agenda
+--   admin@vez.local    plataforma · painel administrativo
 --
--- Senha das três: senha-forte-123
+-- Senha das quatro: senha-forte-123
 
-delete from auth.users where email in ('rafael@vez.local', 'diego@vez.local', 'cliente@vez.local');
+delete from auth.users where email in ('rafael@vez.local', 'diego@vez.local', 'cliente@vez.local', 'admin@vez.local');
 
 -- Os quatro tokens vazios não são enfeite: as colunas não têm default, e o
 -- GoTrue lê cada uma numa string não-anulável. Deixá-las NULL faz o login
@@ -138,7 +146,12 @@ values
    'authenticated', 'authenticated', 'cliente@vez.local',
    extensions.crypt('senha-forte-123', extensions.gen_salt('bf')), now(), now(), now(),
    '{"provider":"email","providers":["email"]}'::jsonb,
-   '{"full_name":"Marcos Aurélio"}'::jsonb, '', '', '', '');
+   '{"full_name":"Marcos Aurélio"}'::jsonb, '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '0d000000-0000-4000-8000-000000000004',
+   'authenticated', 'authenticated', 'admin@vez.local',
+   extensions.crypt('senha-forte-123', extensions.gen_salt('bf')), now(), now(), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb,
+   '{"full_name":"Helena Reis"}'::jsonb, '', '', '', '');
 
 -- Sem a linha em `auth.identities` o GoTrue aceita a senha e depois devolve
 -- "Database error querying schema" no primeiro refresh.
@@ -150,7 +163,10 @@ select
   jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
   'email', now(), now(), now()
 from auth.users u
-where u.email in ('rafael@vez.local', 'diego@vez.local', 'cliente@vez.local');
+where u.email in ('rafael@vez.local', 'diego@vez.local', 'cliente@vez.local', 'admin@vez.local');
+
+insert into public.platform_admins (user_id, role)
+values ('0d000000-0000-4000-8000-000000000004', 'admin');
 
 update public.profiles set phone = '47 99912-4408'
 where id = '0d000000-0000-4000-8000-000000000003';
@@ -248,4 +264,4 @@ values
 
 commit;
 
-\echo 'Demo carregada: 2 lojas em Joinville, 6 serviços, 4 profissionais, 1 equipe e o dia de hoje.'
+\echo 'Demo carregada: 2 lojas em Joinville, 6 serviços, 4 profissionais, 1 equipe, 1 admin e o dia de hoje.'
