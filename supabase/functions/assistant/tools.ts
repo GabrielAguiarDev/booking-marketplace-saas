@@ -15,7 +15,7 @@ export const TOOL_SCHEMAS = [
     function: {
       name: "buscar_estabelecimentos",
       description:
-        "Busca lojas ativas na cidade do usuário. Use quando ele descrever o que precisa " +
+        "Busca lojas ativas perto do usuário. Use quando ele descrever o que precisa " +
         "(corte, unhas, dermatologista) ou citar um nome. Devolve id, nome, categoria e nota.",
       parameters: {
         type: "object",
@@ -96,7 +96,7 @@ export async function runTool(
     const { data, error } = await query;
     if (error) return { text: `Erro na busca: ${error.message}`, cards: [] };
     if (!data || data.length === 0) {
-      return { text: "Nenhuma loja encontrada com esse critério nesta cidade.", cards: [] };
+      return { text: "Nenhuma loja encontrada por perto com esse critério.", cards: [] };
     }
     return {
       text: JSON.stringify(data),

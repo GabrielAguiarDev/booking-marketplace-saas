@@ -19,7 +19,7 @@ import {
   useAssistantUsage,
 } from "../../src/data/assistant";
 import { accentOf, CATEGORY, initialsOfName, shade } from "../../src/data/catalog";
-import { useCurrentCity } from "../../src/data/use-cities";
+import { useCityId } from "../../src/data/use-cities";
 import { hourMinute, slotLabel } from "@vez/mobile-kit/format";
 import { useAppState } from "../../src/state/app-state";
 import { color, radius } from "../../src/theme/tokens";
@@ -37,7 +37,7 @@ const SUGESTOES = [
 export default function Assistente() {
   const router = useRouter();
   const { session } = useSession();
-  const { cityId } = useCurrentCity();
+  const cityId = useCityId();
   const state = useAppState();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -137,7 +137,7 @@ export default function Assistente() {
           {vazio ? (
             <View style={{ gap: 16, paddingTop: 8 }}>
               <Text style={sans(15, 400, { lh: 1.5, color: color.muted })}>
-                Descreva o que você precisa. Eu procuro nas lojas da sua cidade e mostro os horários
+                Descreva o que você precisa. Eu procuro nas lojas perto de você e mostro os horários
                 que estão realmente livres.
               </Text>
               <View style={{ gap: 9 }}>
@@ -348,7 +348,7 @@ function AssistenteDeslogado({ onEntrar }: { onEntrar: () => void }) {
         <Card radius={18} padding={20} style={{ gap: 9 }}>
           <Text style={sans(19, 800, { ls: -0.03 })}>Entre para conversar</Text>
           <Text style={sans(14.5, 400, { lh: 1.5, color: color.muted })}>
-            O assistente consulta as agendas reais das lojas da sua cidade. Para isso ele precisa
+            O assistente consulta as agendas reais das lojas perto de você. Para isso ele precisa
             saber quem é você.
           </Text>
         </Card>

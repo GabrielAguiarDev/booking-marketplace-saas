@@ -218,6 +218,9 @@ export type Report = {
   establishmentAverage: number;
   establishmentReviews: number;
   establishmentReports: number;
+  clarificationRequest: string | null;
+  clarificationAnswer: string | null;
+  clarificationAnsweredAt: string | null;
 };
 
 export type PanoramaRow = {

@@ -7,6 +7,7 @@ cobria uma superfície só e está quase todo riscado; este cobre o produto.
 > leitura da conta e MFA), feito por agentes em paralelo coordenados pelo Orca.
 > A próxima leva — começando por **tirar a cidade do app cliente** — está em
 > [orquestracao-admin.md](orquestracao-admin.md#depois-do-admin--a-próxima-leva).
+> Ela está em execução: quadro em [orquestracao-produto.md](orquestracao-produto.md).
 
 ## O diagnóstico, sem otimismo
 
@@ -48,8 +49,9 @@ O que **continua sem fechar**:
 - **As filas do admin só enchem pelo banco.** Aprovações, denúncias e chamados
   esperam o onboarding da loja e os botões no portal e nos apps (N1, N3, N4 em
   [orquestracao-admin.md](orquestracao-admin.md)).
-- **O app cliente ainda mostra cidade** (seletor na home, "nesta cidade" no
-  Explorar, "sua cidade" no Assistente) — contraria a regra do MVP.
+- ~~**O app cliente ainda mostra cidade**~~ — resolvido em 2026-09-12: o
+  seletor da home saiu, os textos falam em "perto de você" e a cidade é
+  resolvida sem interface. Ver [mobile-cliente.md](mobile-cliente.md#sem-cidade-na-interface).
 
 ---
 
@@ -75,11 +77,16 @@ editar escala e ligar serviço a pessoa — é trabalho do portal (item 2). Envi
 foto depende do Storage. E os sete interruptores marcados como "ainda não atua"
 esperam a peça que vai lê-los.
 
-### 2. Portal do estabelecimento — `portal`
+### 2. Portal do estabelecimento — `portal` ⟵ **fundação entregue**
 
-Cadastro do que hoje só existe por SQL: serviços, profissionais, quem faz o quê,
-horário de funcionamento, jornadas e exceções. Todas as tabelas e políticas já
-existem — falta a tela.
+Login, sessão, escolha da loja, guarda de papel e contrato de dados/ações já
+estão ligados ao Supabase. “Primeiros passos” calcula o progresso pelos dados
+reais. As seções futuras não mostram mais o fixture do canvas: ficam vazias e
+identificam P5/P6 até a integração chegar. Detalhes em [portal.md](portal.md).
+
+Continua faltando o cadastro operacional do que hoje só existe por SQL:
+profissionais, quem faz o quê, horário de funcionamento, jornadas e exceções.
+Serviços nascem no onboarding, mas a manutenção completa também é P6.
 
 **Cuidado:** mudar duração de serviço ou jornada **muda a grade de horários** e
 pode invalidar reserva futura já vendida. Decida o que acontece com quem já
@@ -87,14 +94,15 @@ marcou antes de permitir a edição.
 
 **Pronto quando:** um dono de barbearia publica a loja inteira sem ajuda.
 
-### 3. Onboarding de estabelecimento + aprovação
+### 3. Onboarding de estabelecimento + aprovação ✅ **entregue**
 
 Duas pontas do mesmo problema:
 
-- **Edge Function `create-establishment`** — cria a loja e o vínculo `owner` em
-  `establishment_members`, validando a cota da cidade (o motivo original de não
-  haver política de INSERT). Precisa da decisão de monetização abaixo.
-- **Admin aprova** — `pending` → `active`. Sem isso nada publicado aparece.
+- **Edge Function `create-establishment`** cria a loja `pending`, o vínculo
+  `owner` e os serviços em uma transação, com cidade resolvida sem seletor.
+- **Admin aprova** (`pending` → `active`), recusa com motivo ou pede correção.
+  O dono vê a mensagem, corrige e reenvia; o novo `submitted_at` devolve a loja
+  à fila de Aprovações.
 
 **Pronto quando:** um cadastro feito do zero aparece na busca do app do cliente.
 

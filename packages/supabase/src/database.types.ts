@@ -750,6 +750,69 @@ export type Database = {
           },
         ]
       }
+      leads: {
+        Row: {
+          category: Database["public"]["Enums"]["establishment_category"] | null
+          contact: string
+          contact_digits: string
+          created_at: string
+          establishment_name: string
+          handled_at: string | null
+          handled_by: string | null
+          handled_note: string | null
+          id: string
+          message: string | null
+          name: string
+          source: string
+          status: Database["public"]["Enums"]["lead_status"]
+          updated_at: string
+        }
+        Insert: {
+          category?:
+            | Database["public"]["Enums"]["establishment_category"]
+            | null
+          contact: string
+          contact_digits: string
+          created_at?: string
+          establishment_name: string
+          handled_at?: string | null
+          handled_by?: string | null
+          handled_note?: string | null
+          id?: string
+          message?: string | null
+          name: string
+          source?: string
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Update: {
+          category?:
+            | Database["public"]["Enums"]["establishment_category"]
+            | null
+          contact?: string
+          contact_digits?: string
+          created_at?: string
+          establishment_name?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          handled_note?: string | null
+          id?: string
+          message?: string | null
+          name?: string
+          source?: string
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_notification_prefs: {
         Row: {
           created_at: string
@@ -1224,6 +1287,8 @@ export type Database = {
       }
       review_reports: {
         Row: {
+          clarification_answer: string | null
+          clarification_answered_at: string | null
           clarification_request: string | null
           decided_at: string | null
           decided_by: string | null
@@ -1240,6 +1305,8 @@ export type Database = {
           status: Database["public"]["Enums"]["review_report_status"]
         }
         Insert: {
+          clarification_answer?: string | null
+          clarification_answered_at?: string | null
           clarification_request?: string | null
           decided_at?: string | null
           decided_by?: string | null
@@ -1256,6 +1323,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["review_report_status"]
         }
         Update: {
+          clarification_answer?: string | null
+          clarification_answered_at?: string | null
           clarification_request?: string | null
           decided_at?: string | null
           decided_by?: string | null
@@ -2008,6 +2077,24 @@ export type Database = {
         Args: { p_establishment_id: string; p_session_id: string }
         Returns: boolean
       }
+      admin_leads: {
+        Args: never
+        Returns: {
+          category: Database["public"]["Enums"]["establishment_category"]
+          contact: string
+          created_at: string
+          establishment_name: string
+          handled_at: string
+          handled_by: string
+          handled_note: string
+          id: string
+          message: string
+          name: string
+          previous_attempts: number
+          source: string
+          status: Database["public"]["Enums"]["lead_status"]
+        }[]
+      }
       admin_me: {
         Args: never
         Returns: {
@@ -2123,6 +2210,9 @@ export type Database = {
           author_removed: number
           author_reviews: number
           city: string
+          clarification_answer: string
+          clarification_answered_at: string
+          clarification_request: string
           comment: string
           establishment: string
           establishment_average: number
@@ -2192,6 +2282,14 @@ export type Database = {
           p_ids: string[]
           p_reason: string
           p_status: Database["public"]["Enums"]["establishment_status"]
+        }
+        Returns: undefined
+      }
+      admin_set_lead_status: {
+        Args: {
+          p_lead_id: string
+          p_note?: string
+          p_status: Database["public"]["Enums"]["lead_status"]
         }
         Returns: undefined
       }
@@ -2331,6 +2429,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      answer_review_clarification: {
+        Args: { p_answer: string; p_report_id: string }
+        Returns: undefined
+      }
+      assert_establishment_manager: {
+        Args: { p_establishment_id: string }
+        Returns: undefined
+      }
       assistant_usage_today: {
         Args: never
         Returns: {
@@ -2366,8 +2472,90 @@ export type Database = {
           slot_start: string
         }[]
       }
+      block_impact: {
+        Args: {
+          p_date: string
+          p_ends_at?: string
+          p_establishment_id: string
+          p_professional_id: string
+          p_starts_at?: string
+        }
+        Returns: {
+          customer_name: string
+          ends_at: string
+          id: string
+          professional_name: string
+          service_name: string
+          starts_at: string
+          status: Database["public"]["Enums"]["appointment_status"]
+        }[]
+      }
+      create_establishment_application: {
+        Args: { p_application: Json; p_owner: string }
+        Returns: string
+      }
       current_establishment_ids: { Args: never; Returns: string[] }
+      customer_support_ticket_messages: {
+        Args: { p_ticket_id: string }
+        Returns: {
+          author_name: string
+          body: string
+          created_at: string
+          from_staff: boolean
+          id: string
+        }[]
+      }
+      customer_support_tickets: {
+        Args: { p_ticket_id?: string }
+        Returns: {
+          category: Database["public"]["Enums"]["support_ticket_category"]
+          created_at: string
+          establishment_id: string
+          establishment_name: string
+          id: string
+          last_message_at: string
+          last_message_from_staff: boolean
+          number: number
+          preview: string
+          status: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+        }[]
+      }
       default_cancellation_window_minutes: { Args: never; Returns: number }
+      establishment_application_normalize: {
+        Args: { p_application: Json; p_establishment_id?: string }
+        Returns: Json
+      }
+      establishment_photo_can_write: {
+        Args: { p_object_name: string }
+        Returns: boolean
+      }
+      establishment_reviews: {
+        Args: { p_establishment_id: string }
+        Returns: {
+          appointment_at: string
+          author: string
+          clarification_answer: string
+          clarification_answered_at: string
+          clarification_request: string
+          comment: string
+          created_at: string
+          decided_at: string
+          decision_motive: string
+          decision_note: string
+          professional: string
+          rating: number
+          removed: boolean
+          report_id: string
+          report_justification: string
+          report_opened_at: string
+          report_reason: string
+          report_status: Database["public"]["Enums"]["review_report_status"]
+          review_id: string
+          service: string
+          tags: string[]
+        }[]
+      }
       has_establishment_role: {
         Args: {
           p_establishment_id: string
@@ -2381,6 +2569,7 @@ export type Database = {
       }
       is_platform_admin: { Args: never; Returns: boolean }
       is_support_agent: { Args: never; Returns: boolean }
+      normalize_cnpj: { Args: { p_value: string }; Returns: string }
       open_support_ticket: {
         Args: {
           p_body: string
@@ -2392,6 +2581,66 @@ export type Database = {
           id: string
           number: number
         }[]
+      }
+      portal_create_guest_appointment: {
+        Args: {
+          p_establishment_id: string
+          p_guest_name: string
+          p_guest_phone?: string
+          p_notes?: string
+          p_professional_id: string
+          p_service_id: string
+          p_starts_at: string
+        }
+        Returns: string
+      }
+      portal_operation_customers: {
+        Args: { p_establishment_id: string }
+        Returns: {
+          appointments: number
+          completed: number
+          customer_id: string
+          has_account: boolean
+          identity_key: string
+          last_seen_at: string
+          name: string
+          no_shows: number
+          phone: string
+          queue_visits: number
+          spent_cents: number
+        }[]
+      }
+      portal_operation_summary: {
+        Args: { p_establishment_id: string }
+        Returns: {
+          booking_mode: Database["public"]["Enums"]["booking_mode"]
+          completed_today: number
+          confirmed_today: number
+          finalized_30: number
+          local_day: string
+          no_show_30: number
+          pending_approval: number
+          queue_active: number
+          revenue_today_cents: number
+          scheduled_today: number
+          timezone: string
+        }[]
+      }
+      portal_reorder_queue_entry: {
+        Args: {
+          p_before_id: string
+          p_entry_id: string
+          p_establishment_id: string
+        }
+        Returns: undefined
+      }
+      portal_reschedule_appointment: {
+        Args: {
+          p_appointment_id: string
+          p_establishment_id: string
+          p_starts_at: string
+        }
+        Returns: string
       }
       queue_state: {
         Args: { p_establishment_id: string }
@@ -2408,7 +2657,34 @@ export type Database = {
         Args: { p_body: string; p_ticket_id: string }
         Returns: undefined
       }
+      report_review: {
+        Args: { p_justification: string; p_reason: string; p_review_id: string }
+        Returns: string
+      }
+      resolve_signup_city: { Args: never; Returns: string }
+      resubmit_establishment_application: {
+        Args: { p_application: Json; p_establishment_id: string }
+        Returns: string
+      }
       review_in_moderation: { Args: { p_review_id: string }; Returns: boolean }
+      review_report_reasons: { Args: never; Returns: string[] }
+      schedule_change_impact: {
+        Args: {
+          p_establishment_id: string
+          p_professional_id?: string
+          p_weekday?: number
+          p_windows?: Json
+        }
+        Returns: {
+          customer_name: string
+          ends_at: string
+          id: string
+          professional_name: string
+          service_name: string
+          starts_at: string
+          status: Database["public"]["Enums"]["appointment_status"]
+        }[]
+      }
       search_establishments: {
         Args: {
           p_category: Database["public"]["Enums"]["establishment_category"]
@@ -2462,6 +2738,17 @@ export type Database = {
         Args: { p_ends_at: string; p_starts_at: string }
         Returns: string
       }
+      submit_lead: {
+        Args: {
+          p_category?: Database["public"]["Enums"]["establishment_category"]
+          p_contact: string
+          p_establishment_name: string
+          p_message?: string
+          p_name: string
+          p_source?: string
+        }
+        Returns: string
+      }
       support_priority_label: {
         Args: {
           p_priority: Database["public"]["Enums"]["support_ticket_priority"]
@@ -2496,6 +2783,7 @@ export type Database = {
         | "massage"
       establishment_role: "owner" | "manager" | "staff"
       establishment_status: "pending" | "active" | "suspended" | "rejected"
+      lead_status: "new" | "contacted" | "discarded"
       payment_method: "pix" | "credit_card" | "debit_card" | "cash" | "other"
       payment_status:
         | "pending"
@@ -2684,6 +2972,7 @@ export const Constants = {
       ],
       establishment_role: ["owner", "manager", "staff"],
       establishment_status: ["pending", "active", "suspended", "rejected"],
+      lead_status: ["new", "contacted", "discarded"],
       payment_method: ["pix", "credit_card", "debit_card", "cash", "other"],
       payment_status: [
         "pending",

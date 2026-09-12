@@ -13,19 +13,20 @@ o que ainda falta construir está em [roadmap-mobile-cliente.md](roadmap-mobile-
 **Tudo o que o app mostra vem do banco.** `src/data/fixtures.ts` não existe mais
 — foi apagado quando as tabelas nasceram, seguindo a regra R3 do roadmap.
 
-| Tela           | Origem                                                              |
-| -------------- | ------------------------------------------------------------------- |
-| Home           | `cities`, `establishments`, contagem por categoria, fila ativa      |
-| Explorar       | contagem real por categoria; busca por nome (`ilike`)               |
-| Resultados     | `establishments` filtrado por cidade, categoria e termo             |
-| Loja           | `establishments` + `services` + `professionals` + `reviews`         |
-| Horário        | RPC `available_slots` e `availability_summary`                      |
-| Confirmar      | preço do serviço e política de sinal da loja; Edge Function reserva |
-| Agenda         | `appointments` nas três abas, cancelar e avaliar                    |
-| Fila           | RPC `queue_state` + Realtime                                        |
-| Avaliação      | grava em `reviews`                                                  |
-| Perfil         | `auth.users` + `profiles`                                           |
-| **Assistente** | **nada** — a tela diz que não existe ainda (fase 9)                 |
+| Tela           | Origem                                                                 |
+| -------------- | ---------------------------------------------------------------------- |
+| Home           | vitrine (`showcase_banners()`), `establishments`, contagem, fila ativa |
+| Explorar       | contagem real por categoria; busca por nome (`ilike`)                  |
+| Resultados     | `establishments` filtrado por cidade, categoria e termo                |
+| Loja           | `establishments` + `services` + `professionals` + `reviews`            |
+| Horário        | RPC `available_slots` e `availability_summary`                         |
+| Confirmar      | preço do serviço e política de sinal da loja; Edge Function reserva    |
+| Agenda         | `appointments` nas três abas, cancelar e avaliar                       |
+| Fila           | RPC `queue_state` + Realtime                                           |
+| Avaliação      | grava em `reviews`                                                     |
+| Perfil         | `auth.users` + `profiles`                                              |
+| Ajuda          | chamados e conversa do próprio usuário, pelas RPCs de suporte          |
+| **Assistente** | **nada** — a tela diz que não existe ainda (fase 9)                    |
 
 O único conteúdo não vindo do banco é o texto do próprio app e o mapeamento de
 categoria → rótulo/ícone/pastel em `src/data/catalog.ts`, que é design, não dado.
@@ -46,6 +47,9 @@ As duas lojas de teste ficam em `supabase/demo/demo-data.sql` e entram com
 | `src/data/appointments.ts`   | agenda, reservar e cancelar (Edge Functions)                                 |
 | `src/data/queue.ts`          | fila com Realtime                                                            |
 | `src/data/catalog.ts`        | enum do banco → rótulo, ícone e cor                                          |
+| `src/data/use-cities.ts`     | a cidade em uso, resolvida sem interface                                     |
+| `src/data/showcase.ts`       | banners vigentes da vitrine e o destino de cada um                           |
+| `src/data/support.ts`        | abrir, listar e responder chamado de ajuda                                   |
 | `src/format.ts`              | dinheiro, data, duração, distância                                           |
 
 **Nenhum cálculo de horário em TypeScript.** `src/data/availability.ts` só chama
@@ -97,7 +101,8 @@ Duas camadas, e a divisão entre elas é uma regra, não um detalhe:
 - **`app/(tabs)/`** — os cinco destinos da barra inferior, e nada mais:
   `index`, `explorar`, `assistente`, `agenda`, `perfil`.
 - **`app/`, na raiz** — tudo que é empilhado por cima: `resultados`,
-  `loja/[id]`, `horario`, `pagamento`, `fila`, `avaliacao`.
+  `loja/[id]`, `horario`, `pagamento`, `fila`, `avaliacao` e as três telas de
+  `ajuda/` (lista, `novo`, `[id]`).
 
 O canvas desenhava a barra inferior em todas as telas, inclusive nas de reserva.
 Na tela real isso não funciona: loja, horário e pagamento têm rodapé fixo
@@ -186,16 +191,86 @@ oculta nascem aí e valem para as telas que vierem.
 busca e botão de IA. O campo não era um campo: tocá-lo empurrava o usuário para
 Explorar. Um input que não aceita texto e teleporta para outra tela mente sobre
 o que faz — e a busca já tem lugar próprio, com a aba Explorar a um toque. O
-bloco inteiro saiu; a Home começa direto no cabeçalho de cidade.
-
-**A cidade virou folha inferior.** Antes a lista de cidades era renderizada em
-fluxo, logo abaixo do cabeçalho: abrir empurrava a Home inteira para baixo e o
-conteúdo saltava sob o dedo. `src/ui/CityPicker.tsx` é um `Modal` transparente
-com `animationType="slide"`, fundo escurecido, alça de arraste e a cidade atual
-marcada com `Check` em coral. A Home fica parada.
+bloco inteiro saiu; a Home começa direto no cabeçalho.
 
 **Regra geral:** escolha curta sobre a tela atual é folha inferior, não bloco em
 fluxo. Nada que abre deve empurrar o que o usuário já estava lendo.
+
+## Sem cidade na interface
+
+O MVP não mostra localidade a quem usa o app. Não há seletor de cidade, nome de
+cidade nem contagem por cidade em tela alguma; o cabeçalho da Home passou a ser
+uma saudação (`Olá, <primeiro nome>`) com a linha `HORÁRIO E FILA PERTO DE VOCÊ`,
+e os textos de Explorar, Resultados e Assistente falam em "perto de você" e "por
+perto". A regra vale também para o prompt da Edge Function `assistant`, que é
+instruída a nunca citar cidade ou estado.
+
+**A cidade continua nos dados.** Busca, contagem por categoria e assistente
+seguem recebendo `cityId`: o banco é organizado por cidade e a RPC
+`search_establishments` exige uma. Quem resolve isso é `useCityId()` em
+`src/data/use-cities.ts`, sem nenhuma interface: lê as cidades ativas e os
+estabelecimentos ativos e fica com a primeira cidade, em ordem alfabética, que
+tem loja. Hoje só uma tem.
+
+Cair simplesmente na primeira cidade abriria o app numa tela vazia sempre que
+ela ainda não tivesse cadastro, e "não tem nada aqui" é a pior primeira
+impressão possível para um marketplace. Quando houver loja em mais de uma
+cidade, o certo é a geolocalização do aparelho escolher a mais próxima — e o
+nome continuar fora da tela.
+
+**O que morreu junto:** `src/ui/CityPicker.tsx` (a folha inferior de escolha),
+`cityId`/`setCityId` em `src/state/app-state.tsx`, os hooks `useCities`,
+`useCitiesWithShops` e `useCurrentCity`, e a linha "Cidade padrão" do menu do
+Perfil — guardar a preferência seria reintroduzir o seletor por outra porta.
+
+## Vitrine na Home
+
+A Home mostra o carrossel de banners que a equipe da plataforma publica na tela
+Vitrine do admin. `src/data/showcase.ts` chama a RPC pública
+`showcase_banners()`, que já devolve só os vigentes — ativo, dentro da janela de
+exibição e, quando o destino é uma loja, com a loja no ar — na ordem do
+carrossel. A imagem vem do bucket público `showcase` por
+`supabase.storage.from("showcase").getPublicUrl(image_path)`.
+
+`src/ui/Showcase.tsx` desenha o card 2:1 (a arte é 1200 × 600) com título e
+subtítulo sobre um degradê na parte de baixo, o mesmo formato da prévia do
+admin. O carrossel sangra até a borda da tela e deixa o próximo card assomando,
+para dizer que dá para deslizar; com um banner só ele ocupa a largura toda e os
+pontos somem. O toque leva a `/loja/[id]`, a `/resultados?category=<valor>` ou
+abre o link no navegador, conforme o destino do banner.
+
+Fica **entre o card da fila e as categorias**, e **só existe quando há banner**:
+sem nenhum vigente a Home não reserva espaço nem mostra esqueleto — ela começa
+nas categorias, exatamente como antes da vitrine existir.
+
+## Ajuda: abrir e acompanhar chamado
+
+Perfil › Ajuda leva a `app/ajuda/`, três telas empilhadas (R5): a lista dos
+chamados da pessoa, o formulário de abertura e a conversa.
+
+- **Abrir** é `open_support_ticket`, escolhendo o assunto entre cinco opções
+  (Reserva, Pagamento, Minha conta, Problema no app, Outro). "Cobrança" existe
+  no banco e fica de fora: é assinatura da loja, não do cliente.
+- **Responder** é `reply_support_ticket`. Chamado resolvido não oferece o
+  campo — a RPC recusaria, e oferecer seria prometer um envio que não acontece.
+- **Ler** são duas funções criadas para isto em
+  `20260912100000_cliente_ajuda.sql`: `customer_support_tickets` e
+  `customer_support_ticket_messages`. A RLS de `support_tickets` já deixa o
+  autor ler o próprio chamado, mas a tabela carrega o que é da operação —
+  prioridade, atribuição e o nome de quem da equipe respondeu, que cai no e-mail
+  da pessoa quando o perfil não tem nome. As duas funções devolvem só o que o
+  cliente precisa ver, com a equipe assinando como **Equipe Vez**.
+
+A Agenda tem um atalho em cada cartão de reserva ("Preciso de ajuda com esta
+reserva") que abre o formulário já com a loja, o assunto `Reserva` e o título
+preenchidos: problema com reserva é o chamado mais provável, e é ali que a
+pessoa está olhando quando ele aparece.
+
+**Não há notificação, e as telas dizem isso.** Nenhum e-mail e nenhum push saem
+daqui (ver N6 em [proximos-passos.md](proximos-passos.md)); a resposta da equipe
+só aparece quando o app lê de novo, e por isso a lista e a conversa recarregam
+ao ganhar foco. O texto em tela promete exatamente isso — "a resposta aparece
+nesta tela" — e nada além.
 
 ## Cor por estabelecimento
 

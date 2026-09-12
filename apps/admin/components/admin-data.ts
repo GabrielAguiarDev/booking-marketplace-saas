@@ -252,6 +252,9 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     establishmentAverage: Number(report.establishment_average ?? 0),
     establishmentReviews: report.establishment_reviews,
     establishmentReports: report.establishment_reports,
+    clarificationRequest: report.clarification_request ?? null,
+    clarificationAnswer: report.clarification_answer ?? null,
+    clarificationAnsweredAt: report.clarification_answered_at ?? null,
   }));
 
   const recentReviews: Record<string, RecentReview[]> = {};

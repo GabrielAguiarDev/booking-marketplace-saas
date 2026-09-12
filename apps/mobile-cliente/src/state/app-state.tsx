@@ -26,10 +26,6 @@ const EMPTY: BookingDraft = {
 };
 
 type AppState = {
-  /** Cidade escolhida no seletor da Home; id da tabela `cities`. */
-  cityId: string | null;
-  setCityId: (id: string) => void;
-
   booking: BookingDraft;
   /** Começa uma reserva nova. Sempre limpa o resto: reaproveitar o horário da
    *  loja anterior é como se vende um horário que não existe naquela agenda. */
@@ -42,7 +38,6 @@ type AppState = {
 const Context = createContext<AppState | null>(null);
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
-  const [cityId, setCityId] = useState<string | null>(null);
   const [booking, setBooking] = useState<BookingDraft>(EMPTY);
 
   const startBooking = useCallback((establishmentId: string, serviceId: string) => {
@@ -62,15 +57,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AppState>(
     () => ({
-      cityId,
-      setCityId,
       booking,
       startBooking,
       setProfessional,
       setSlot,
       clearBooking,
     }),
-    [cityId, booking, startBooking, setProfessional, setSlot, clearBooking],
+    [booking, startBooking, setProfessional, setSlot, clearBooking],
   );
 
   return <Context.Provider value={value}>{children}</Context.Provider>;

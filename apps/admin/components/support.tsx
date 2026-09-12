@@ -337,8 +337,9 @@ function TicketDetail({
             <FormError message={answer.error} />
             <div className="reply-actions">
               <p className="hint">
-                A resposta fica gravada no chamado. O portal e os apps ainda não mostram a conversa
-                nem avisam por e-mail ou push: se for urgente, use o contato ao lado.
+                O app do cliente mostra a conversa em Perfil › Ajuda, mas ninguém é avisado por
+                e-mail ou push — a pessoa só lê quando abrir o app. O portal da loja ainda não
+                mostra nada. Se for urgente, use o contato ao lado.
               </p>
               <button
                 className="ghost"

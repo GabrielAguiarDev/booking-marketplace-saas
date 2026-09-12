@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
   }).format(new Date());
 
   const messages: ChatMessage[] = [
-    { role: "system", content: systemPrompt(hoje, cidade?.name ?? null) },
+    { role: "system", content: systemPrompt(hoje) },
     ...(historico ?? []).reverse().map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -223,12 +223,12 @@ function env(name: string): string | undefined {
   return value ? value : undefined;
 }
 
-function systemPrompt(hoje: string, cidade: string | null): string {
+function systemPrompt(hoje: string): string {
   return [
     "Você é o assistente do Vez, um app para marcar horário em barbearias, salões,",
     "clínicas e petshops. Responda sempre em português do Brasil.",
     "",
-    `Hoje é ${hoje}.${cidade ? ` O usuário está em ${cidade}.` : ""}`,
+    `Hoje é ${hoje}.`,
     "",
     "REGRAS QUE NÃO PODEM SER QUEBRADAS:",
     "- Nunca invente loja, serviço, preço ou horário. Use apenas o que as",
@@ -238,6 +238,8 @@ function systemPrompt(hoje: string, cidade: string | null): string {
     "- Antes de consultar horários, descubra o serviço com `listar_servicos` — a",
     "  grade depende da duração dele.",
     "- Você não reserva nada. Quem confirma é o usuário, tocando no horário.",
+    "- Nunca cite cidade ou estado: o app não mostra localidade. As buscas já",
+    "  trazem só lojas perto do usuário; diga \"perto de você\" ou \"por perto\".",
     "",
     "ESTILO:",
     "- Curto. Duas ou três frases, no máximo.",

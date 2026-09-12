@@ -19,9 +19,9 @@ Duas camadas, mesma regra R5 do app do cliente:
   `fila`, `loja`, `mais`.
 - **`app/`, na raiz** — tudo empilhado: `agendamento/[id]`, `novo-agendamento`,
   `bloquear`, `fila-config`, `servicos`, `servico/[id]`, `profissionais`,
-  `horarios`, `regras`, `perfil-publico`, `financeiro`, `assinatura`,
-  `ajustes`, `comecar`, e as três telas de conta (`entrar`, `recuperar`,
-  `nova-senha`).
+  `horarios`, `regras`, `perfil-publico`, `avaliacoes`, `financeiro`,
+  `assinatura`, `ajustes`, `comecar`, `suporte`, `chamado/[id]`, e as três telas
+  de conta (`entrar`, `recuperar`, `nova-senha`).
 
 O portão fica em `app/(tabs)/_layout.tsx` e não em cada tela: aqui não existe o
 "olhe antes de entrar" do app do cliente — não há nada para ver sem conta,
@@ -60,6 +60,8 @@ vale desde a primeira tela.
 | Perfil público   | `establishments`, leitura e escrita                                           |
 | Financeiro       | soma de `appointments` concluídos, por período                                |
 | Ajustes          | `member_notification_prefs` + `auth.updateUser`                               |
+| **Avaliações**   | `establishment_reviews()`: avaliação, denúncia e decisão da equipe            |
+| **Ajuda**        | `support_tickets` e `support_ticket_messages` pela RLS de membro              |
 | Começar          | derivado do estado real da loja, sem coluna de progresso                      |
 | **Assinatura**   | **nada** — a tela diz por quê (ver abaixo)                                    |
 
@@ -151,6 +153,56 @@ tokens, valor por valor.
 `createSessionContext(supabase)` é função e não componente porque cada app tem o
 seu cliente: o dono da barbearia é cliente de outra barbearia, e as duas sessões
 convivem no mesmo aparelho sem se derrubar.
+
+## Avaliações e o outro lado da moderação
+
+Duas telas que o canvas não desenhava, porque quando ele foi feito a equipe da
+plataforma ainda não tinha painel. Hoje tem, e duas filas dele — Denúncias e
+Suporte — só enchiam por SQL.
+
+**Sua loja › Avaliações.** A lista do que o cliente escreveu, com a nota, o
+serviço, quem atendeu e a data. Dono e gerência têm, em cada uma, "pedir revisão
+à plataforma": escolhem um dos cinco critérios de remoção e escrevem o que
+houve. Quem é equipe sem gerência lê a lista e vê a decisão, mas não denuncia —
+a tela diz isso, em vez de esconder o botão sem explicação.
+
+O ciclo inteiro acontece nesta tela:
+
+| Estado da denúncia       | O que a loja vê                                     |
+| ------------------------ | --------------------------------------------------- |
+| `open`                   | "EM ANÁLISE", com o critério alegado                |
+| `awaiting_establishment` | a pergunta da equipe e o botão de responder         |
+| `kept` / `removed`       | "AVALIAÇÃO MANTIDA"/"REMOVIDA" e o motivo da equipe |
+
+**A avaliação removida continua na lista**, esmaecida e com o motivo ao lado. É
+por isso que a leitura é a RPC `establishment_reviews()` e não uma consulta com
+RLS: `reviews_select_public` esconde a removida de todo mundo, inclusive de quem
+a denunciou — e a loja ficaria sem o fim da história que ela mesma começou.
+
+**Denunciar não é apagar, e a tela diz isso antes de a pessoa escrever.** Quem
+decide é a equipe da plataforma. É uma denúncia aberta por avaliação: enquanto a
+anterior está com a equipe, não se abre outra.
+
+**Mais › Ajuda e suporte.** Abrir chamado, acompanhar a conversa e responder. O
+chamado é **da loja**, não de quem o abriu: qualquer membro vê e responde, que é
+a política `support_tickets_select_member`. Ao abrir dá para citar uma reserva
+dos últimos sete dias — ela vira a primeira linha da mensagem, e não um campo
+novo no chamado, para o suporte não ter dois lugares onde procurar o mesmo
+atendimento. Quem atende assina como "Equipe Vez": a loja fala com a
+plataforma, não com uma pessoa.
+
+**O que o banco ganhou.** A migration `..._loja_denuncia_suporte.sql` acrescenta
+`clarification_answer` a `review_reports` e três funções:
+`establishment_reviews()`, `report_review()` e `answer_review_clarification()`.
+A denúncia passa por RPC mesmo com a política `review_reports_insert_manager` já
+existindo — a política sabe dizer _quem_ pode, não _o quê_, aceitaria motivo
+livre e justificativa vazia, e a violação do índice `review_reports_one_open`
+chegaria na tela como erro de chave duplicada. A política continua onde está,
+como segunda tranca. Chamados não precisaram de nada novo: `open_support_ticket`
+e `reply_support_ticket` já atendiam.
+
+**Ninguém é avisado.** A pergunta da equipe só aparece quando a loja abre o app,
+e a resposta do suporte também. A tela de Ajuda diz isso na primeira linha.
 
 ## O que o canvas prometia e a tela não entrega
 

@@ -133,7 +133,7 @@ function ReservaCard({
 
   const accent = accentOf(item.establishments);
   const podeCancelar = ["scheduled", "confirmed"].includes(item.status) && !historico;
-  const jaAvaliou = item.reviews.length > 0;
+  const jaAvaliou = item.reviews !== null;
   const podeAvaliar = item.status === "completed" && !jaAvaliou;
 
   async function cancelar() {
@@ -216,6 +216,26 @@ function ReservaCard({
       {jaAvaliou ? (
         <Text style={mono(9.5, 600, { ls: 0.08, color: color.green })}>VOCÊ JÁ AVALIOU</Text>
       ) : null}
+
+      {/* Problema com uma reserva é o chamado mais provável do cliente, e é
+          aqui que ele está olhando. O chamado já nasce ligado à loja e com o
+          assunto escrito — quem abre só precisa contar o que houve. */}
+      <Pressable
+        onPress={() =>
+          router.push({
+            pathname: "/ajuda/novo",
+            params: {
+              establishmentId: item.establishments.id,
+              establishmentName: item.establishments.name,
+              category: "booking",
+              subject: `Reserva de ${slotLabel(item.starts_at)}`,
+            },
+          })
+        }
+        hitSlop={6}
+      >
+        <Text style={sans(13, 600, { color: color.muted })}>Preciso de ajuda com esta reserva</Text>
+      </Pressable>
     </Card>
   );
 }

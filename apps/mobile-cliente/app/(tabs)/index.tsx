@@ -1,49 +1,57 @@
 import { useRouter } from "expo-router";
-import { ChevronDown } from "lucide-react-native";
-import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 
 import { useSession } from "../../src/auth/session";
 import { CATEGORY, CATEGORY_KEYS } from "../../src/data/catalog";
 import { useCategoryCounts, useEstablishments } from "../../src/data/establishments";
 import { useMyQueueEntry } from "../../src/data/queue";
-import { useCurrentCity } from "../../src/data/use-cities";
+import { type Banner, useShowcaseBanners } from "../../src/data/showcase";
+import { useCityId } from "../../src/data/use-cities";
+import { useProfile } from "../../src/data/use-profile";
 import { hourMinute } from "@vez/mobile-kit/format";
-import { useAppState } from "../../src/state/app-state";
 import { color } from "../../src/theme/tokens";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { Card, PrimaryButton, PulseDot, SectionHeader, Shimmer } from "../../src/ui/primitives";
-import { CityPicker } from "../../src/ui/CityPicker";
 import { Screen, ScreenScroll } from "../../src/ui/Screen";
+import { Showcase } from "../../src/ui/Showcase";
 import { LojaCard } from "../resultados";
 
 export default function Home() {
   const router = useRouter();
-  const state = useAppState();
   const { session } = useSession();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const { profile } = useProfile();
 
-  const { cities, selected, cityId } = useCurrentCity();
+  // A cidade é resolvida sem interface (MVP sem localidade): a Home não diz
+  // onde está, só mostra o que há por perto.
+  const cityId = useCityId();
 
   const { data: shops, loading } = useEstablishments(cityId);
   const { data: counts } = useCategoryCounts(cityId);
   const { data: queueEntry } = useMyQueueEntry(Boolean(session));
+  // Sem banner no ar, a vitrine não ocupa espaço nem com esqueleto: a Home
+  // começa nas categorias, como antes.
+  const { data: banners } = useShowcaseBanners();
 
   const total = shops?.length ?? 0;
+  const firstName = profile?.fullName?.trim().split(/\s+/)[0] ?? null;
+
+  function abrirBanner(banner: Banner) {
+    const { target } = banner;
+    if (target.kind === "establishment") router.push(`/loja/${target.establishmentId}`);
+    else if (target.kind === "category") {
+      router.push({ pathname: "/resultados", params: { category: target.category } });
+    } else void Linking.openURL(target.url);
+  }
 
   return (
     <Screen>
       <ScreenScroll gap={26}>
         <View style={{ gap: 4 }}>
-          <Pressable
-            onPress={() => setPickerOpen(true)}
-            style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-          >
-            <Text style={sans(30, 800, { ls: -0.04 })}>{selected?.name ?? "Escolher cidade"}</Text>
-            <ChevronDown size={22} color={color.ink} strokeWidth={2.4} />
-          </Pressable>
+          <Text style={sans(30, 800, { ls: -0.04 })}>
+            {firstName ? `Olá, ${firstName}` : "Olá"}
+          </Text>
           <Text style={mono(10.5, 400, { ls: 0.06, color: color.muted })}>
-            {total} {total === 1 ? "ESTABELECIMENTO" : "ESTABELECIMENTOS"}
+            HORÁRIO E FILA PERTO DE VOCÊ
           </Text>
         </View>
 
@@ -66,6 +74,8 @@ export default function Home() {
             />
           </Card>
         ) : null}
+
+        {banners && banners.length > 0 ? <Showcase banners={banners} onOpen={abrirBanner} /> : null}
 
         <View style={{ gap: 13 }}>
           <SectionHeader
@@ -123,9 +133,7 @@ export default function Home() {
             <Card radius={18} padding={20} style={{ gap: 10 }}>
               <Text style={sans(18, 800, { ls: -0.03 })}>Nenhuma loja por aqui ainda</Text>
               <Text style={sans(14.5, 400, { lh: 1.5, color: color.muted })}>
-                {cities.length > 1
-                  ? "Toque no nome da cidade acima para ver outra."
-                  : "Assim que a primeira loja publicar, ela aparece aqui."}
+                Assim que a primeira loja publicar, ela aparece aqui.
               </Text>
             </Card>
           ) : (
@@ -134,17 +142,6 @@ export default function Home() {
             ))
           )}
         </View>
-
-        <CityPicker
-          visible={pickerOpen}
-          cities={cities}
-          selectedId={cityId}
-          onSelect={(id) => {
-            state.setCityId(id);
-            setPickerOpen(false);
-          }}
-          onClose={() => setPickerOpen(false)}
-        />
       </ScreenScroll>
     </Screen>
   );

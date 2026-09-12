@@ -272,6 +272,9 @@ export function seedState(now = Date.now()): AdminData {
     establishmentAverage: r.estAvg,
     establishmentReviews: r.estTotal,
     establishmentReports: r.estReports,
+    clarificationRequest: null,
+    clarificationAnswer: null,
+    clarificationAnsweredAt: null,
   }));
 
   const panorama: PanoramaRow[] = PANORAMA.map((p) => ({

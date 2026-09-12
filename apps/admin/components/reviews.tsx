@@ -325,6 +325,27 @@ function ReportQueue({ queue }: { queue: Report[] }) {
                 <p className="field-group-label">O que o estabelecimento alegou</p>
                 <span className="pill amber">{report.reason}</span>
                 <p className="justification">{report.justification}</p>
+
+                {report.clarificationRequest ? (
+                  <div style={{ marginTop: "16px" }}>
+                    <p className="field-group-label">Esclarecimento que você pediu</p>
+                    <p className="justification">{report.clarificationRequest}</p>
+                    <p className="field-group-label" style={{ marginTop: "14px" }}>
+                      O que a loja respondeu
+                      {report.clarificationAnsweredAt
+                        ? ` · ${stamp(report.clarificationAnsweredAt)}`
+                        : ""}
+                    </p>
+                    {report.clarificationAnswer ? (
+                      <p className="quote">{report.clarificationAnswer}</p>
+                    ) : (
+                      <p className="hint" style={{ marginTop: "8px" }}>
+                        A loja ainda não respondeu. Enquanto isso, a denúncia fica como
+                        &ldquo;aguardando loja&rdquo; — decidir sem a resposta continua possível.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
                 <div className="report-foot">
                   <span>
                     <code>{decimal(report.establishmentAverage)}</code> nota média atual
@@ -468,7 +489,7 @@ function ReportQueue({ queue }: { queue: Report[] }) {
       {clarifying && report ? (
         <TextDialog
           confirmLabel="Enviar pedido"
-          description="O pedido fica registrado como aguardando resposta. A caixa de resposta do portal ainda será conectada."
+          description="A denúncia fica como aguardando loja e a pergunta aparece no app do estabelecimento. A resposta volta para esta tela."
           id="clarify"
           label="O que você precisa saber"
           onClose={() => setClarifying(false)}
@@ -476,7 +497,7 @@ function ReportQueue({ queue }: { queue: Report[] }) {
           placeholder="Ex.: envie o registro do horário de chegada do cliente no dia 27"
           success={{
             title: "Esclarecimento pedido",
-            sub: `Pedido registrado para ${report.establishment}; envio ainda pendente.`,
+            sub: `A pergunta chegou ao app de ${report.establishment}.`,
           }}
           title={`Pedir esclarecimento a ${report.establishment}`}
         />

@@ -1,7 +1,7 @@
 import { moneyShort } from "@vez/mobile-kit/format";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { useRouter } from "expo-router";
-import { CalendarClock, Scissors, SlidersHorizontal, Store, Users } from "lucide-react-native";
+import { CalendarClock, Scissors, SlidersHorizontal, Star, Store, Users } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 
 import { useProfessionals, useServices } from "../../src/data/catalog";
@@ -133,6 +133,16 @@ export default function Loja() {
             label="Perfil público"
             sub="Como o cliente vê a loja dentro do app"
             onPress={() => router.push("/perfil-publico")}
+          />
+          <HubRow
+            icon={<Star size={19} color={color.ink} strokeWidth={1.8} />}
+            label="Avaliações"
+            sub={
+              establishment?.rating_count
+                ? `${establishment.rating_avg?.toFixed(1)} de ${establishment.rating_count} · e o que pedir para a plataforma revisar`
+                : "ainda sem avaliações"
+            }
+            onPress={() => router.push("/avaliacoes")}
             last
           />
         </View>

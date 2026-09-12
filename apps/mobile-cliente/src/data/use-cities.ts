@@ -1,81 +1,46 @@
 import { supabase } from "../../lib/supabase";
-import { useAppState } from "../state/app-state";
 import { useAsync } from "@vez/mobile-kit/async";
 
-export type City = {
+type City = {
   id: string;
   name: string;
-  stateCode: string;
-  slug: string;
 };
 
 /**
- * Cidades atendidas. Leitura pública, via RLS como `anon` — a lista precisa
- * existir antes de qualquer cadastro, senão o visitante não tem por onde
- * começar.
+ * A cidade que alimenta a busca, as contagens e o assistente — escolhida sem
+ * interface.
+ *
+ * O MVP não mostra localidade ao cliente: nenhum nome de cidade, seletor ou
+ * contagem por cidade aparece na tela, e os textos falam em "perto de você".
+ * O banco continua organizado por cidade, então o app resolve uma sozinho: a
+ * primeira, em ordem alfabética, que tem loja ativa. Hoje só uma tem.
+ *
+ * Cair simplesmente na primeira cidade abriria o app numa tela vazia sempre
+ * que ela ainda não tivesse cadastro, e "não tem nada aqui" é a pior primeira
+ * impressão para um marketplace.
+ *
+ * Quando houver loja em mais de uma cidade, o certo é a geolocalização do
+ * aparelho escolher a mais próxima (e o nome continuar fora da tela); até lá,
+ * esta regra ao menos não abre no vazio.
  */
-export function useCities() {
-  const { data, loading, error } = useAsync("cities", async () => {
-    const { data: rows, error: queryError } = await supabase
-      .from("cities")
-      .select("id, name, state_code, slug")
-      .order("name");
-    if (queryError) throw new Error(queryError.message);
-    return (rows ?? []).map((row) => ({
-      id: row.id,
-      name: row.name,
-      stateCode: row.state_code,
-      slug: row.slug,
-    })) satisfies City[];
+function resolveCity(cities: City[], withShops: Set<string>): City | null {
+  return cities.find((city) => withShops.has(city.id)) ?? cities[0] ?? null;
+}
+
+/** O id da cidade em uso — o que as três telas de descoberta precisam. */
+export function useCityId(): string | null {
+  const { data } = useAsync("current-city", async () => {
+    // As duas leituras são públicas (RLS como `anon`): buscar funciona deslogado.
+    const [cities, shops] = await Promise.all([
+      supabase.from("cities").select("id, name").eq("is_active", true).order("name"),
+      supabase.from("establishments").select("city_id").eq("status", "active"),
+    ]);
+    if (cities.error) throw new Error(cities.error.message);
+    if (shops.error) throw new Error(shops.error.message);
+
+    const withShops = new Set((shops.data ?? []).map((row) => row.city_id));
+    return resolveCity(cities.data ?? [], withShops);
   });
 
-  return { cities: data ?? [], loading, error };
-}
-
-/** Cidades que têm ao menos um estabelecimento ativo. */
-export function useCitiesWithShops() {
-  const { data } = useAsync("cities-with-shops", async () => {
-    const { data: rows, error } = await supabase
-      .from("establishments")
-      .select("city_id")
-      .eq("status", "active");
-    if (error) throw new Error(error.message);
-    return new Set((rows ?? []).map((row) => row.city_id));
-  });
-  return data;
-}
-
-/**
- * A cidade em uso: a escolhida, ou — enquanto ninguém escolheu — a primeira que
- * tem loja.
- *
- * Cair na primeira cidade em ordem alfabética abriria o app numa tela vazia
- * sempre que essa cidade ainda não tivesse cadastro, e "não tem nada aqui" é a
- * pior primeira impressão possível para um marketplace. O certo mesmo é
- * geolocalização; até lá, ao menos não se abre no vazio.
- *
- * É derivação, não estado: gravar isso como escolha faria o app afirmar que a
- * pessoa escolheu uma cidade que ela nunca tocou.
- */
-export function resolveCity(
-  cities: City[],
-  cityId: string | null,
-  withShops?: Set<string> | null,
-): City | null {
-  const chosen = cities.find((city) => city.id === cityId);
-  if (chosen) return chosen;
-  if (withShops && withShops.size > 0) {
-    const populated = cities.find((city) => withShops.has(city.id));
-    if (populated) return populated;
-  }
-  return cities[0] ?? null;
-}
-
-/** A cidade em uso e seu id — o que as três telas de descoberta precisam. */
-export function useCurrentCity() {
-  const { cities, loading } = useCities();
-  const withShops = useCitiesWithShops();
-  const state = useAppState();
-  const selected = resolveCity(cities, state.cityId, withShops);
-  return { cities, loading, selected, cityId: selected?.id ?? null };
+  return data?.id ?? null;
 }

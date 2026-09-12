@@ -5,7 +5,7 @@ import { Pressable, Text, TextInput, View } from "react-native";
 
 import { CATEGORY, CATEGORY_KEYS, type CategoryKey } from "../../src/data/catalog";
 import { useCategoryCounts } from "../../src/data/establishments";
-import { useCurrentCity } from "../../src/data/use-cities";
+import { useCityId } from "../../src/data/use-cities";
 import { color, radius } from "../../src/theme/tokens";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { Card, Label, Shimmer } from "../../src/ui/primitives";
@@ -20,7 +20,7 @@ const FAMILIES: { name: string; items: CategoryKey[] }[] = [
 
 export default function Explorar() {
   const router = useRouter();
-  const { cityId } = useCurrentCity();
+  const cityId = useCityId();
   const [term, setTerm] = useState("");
 
   const { data: counts, loading } = useCategoryCounts(cityId);
@@ -128,9 +128,10 @@ export default function Explorar() {
 
         {!loading && CATEGORY_KEYS.every((key) => (counts?.[key] ?? 0) === 0) ? (
           <Card radius={16} padding={18}>
-            <Label>NESTA CIDADE</Label>
+            <Label>POR PERTO</Label>
             <Text style={[sans(14.5, 400, { lh: 1.5, color: color.muted }), { marginTop: 8 }]}>
-              Ainda não há lojas cadastradas aqui. Troque de cidade na Home para ver outras.
+              Ainda não há lojas cadastradas perto de você. Assim que a primeira publicar, ela
+              aparece aqui.
             </Text>
           </Card>
         ) : null}

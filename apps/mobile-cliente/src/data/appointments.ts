@@ -26,7 +26,12 @@ export type AppointmentRow = {
   };
   services: { id: string; name: string; duration_minutes: number };
   professionals: { id: string; display_name: string };
-  reviews: { id: string }[];
+  /**
+   * A avaliação da reserva, ou nenhuma. É objeto e não lista porque
+   * `reviews.appointment_id` é único: o PostgREST enxerga a relação como
+   * um-para-um e devolve `null` quando ninguém avaliou.
+   */
+  reviews: { id: string } | null;
 };
 
 const COLUMNS = `

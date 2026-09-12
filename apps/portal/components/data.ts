@@ -1,7 +1,10 @@
 /**
- * Protótipo do portal: os dados abaixo são os mesmos do canvas
- * `docs/design-page/Portal Vez.dc.html`, inclusive a geração dos agendamentos
- * da agenda. Nada aqui fala com o Supabase ainda.
+ * Estrutura de navegação e referência visual legada do canvas.
+ *
+ * Os fixtures que continuam abaixo não são renderizados pelo portal remoto.
+ * P5/P6 podem consultar a composição visual ao ligar cada seção, mas devem
+ * substituir os dados pelo contrato de `portal-data.ts` — nunca usá-los como
+ * fallback.
  */
 
 export type SectionId =
@@ -36,31 +39,31 @@ export const ICONS: Record<SectionId, string> = {
 export const ICON_PAID = "M2 5h12v7H2zM2 7.5h12M4.5 10h2.5";
 export const ICON_BLOCKED = "M5 7V5.2a3 3 0 016 0V7M3.6 7h8.8v6H3.6z";
 
-export const HEADINGS: Record<SectionId, [string, string]> = {
-  overview: ["Visão geral", "terça-feira, 8 de setembro de 2026"],
-  agenda: ["Agenda", "terça, 8 de setembro · 4 profissionais"],
-  queue: ["Fila de espera", "aberta desde 08:00 · 5 na fila"],
-  customers: ["Clientes", "412 cadastrados · 38 novos em agosto"],
-  services: ["Serviços", "14 serviços em 3 categorias"],
-  team: ["Equipe", "4 profissionais · 1 convite pendente"],
-  hours: ["Horários", "funcionamento, escalas e exceções"],
-  finance: ["Financeiro", "agosto de 2026 · comparado com julho"],
-  profile: ["Perfil público", "publicado · última alteração há 6 dias"],
-  settings: ["Configurações", "regras de agendamento, fila e pagamento"],
-  billing: ["Plano e assinatura", "Vez Profissional · cobrança recusada"],
-  onboarding: ["Primeiros passos", "3 de 4 concluídos"],
+export const SECTION_META: Record<SectionId, { title: string; sub: string }> = {
+  overview: { title: "Visão geral", sub: "operação da loja" },
+  agenda: { title: "Agenda", sub: "agendamentos da loja" },
+  queue: { title: "Fila de espera", sub: "atendimento por ordem de chegada" },
+  customers: { title: "Clientes", sub: "histórico de atendimento" },
+  services: { title: "Serviços", sub: "catálogo da loja" },
+  team: { title: "Equipe", sub: "pessoas e permissões" },
+  hours: { title: "Horários", sub: "funcionamento, escalas e exceções" },
+  finance: { title: "Financeiro", sub: "movimentação da loja" },
+  profile: { title: "Perfil público", sub: "como clientes veem sua loja" },
+  settings: { title: "Configurações", sub: "regras de agendamento, fila e pagamento" },
+  billing: { title: "Plano e assinatura", sub: "contratação e cobrança" },
+  onboarding: { title: "Primeiros passos", sub: "progresso calculado pelos dados reais" },
 };
 
 export const NAV_GROUPS: {
   label: string;
-  items: { id: SectionId; label: string; badge?: string; critical?: boolean }[];
+  items: { id: SectionId; label: string }[];
 }[] = [
   {
     label: "OPERAÇÃO",
     items: [
       { id: "overview", label: "Visão geral" },
       { id: "agenda", label: "Agenda" },
-      { id: "queue", label: "Fila de espera", badge: "5" },
+      { id: "queue", label: "Fila de espera" },
       { id: "customers", label: "Clientes" },
     ],
   },
@@ -78,7 +81,7 @@ export const NAV_GROUPS: {
       { id: "finance", label: "Financeiro" },
       { id: "profile", label: "Perfil público" },
       { id: "settings", label: "Configurações" },
-      { id: "billing", label: "Plano e assinatura", badge: "!", critical: true },
+      { id: "billing", label: "Plano e assinatura" },
     ],
   },
   { label: "COMEÇANDO", items: [{ id: "onboarding", label: "Primeiros passos" }] },

@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { supabase } from "../../lib/supabase";
 import { useSession } from "../../src/auth/session";
@@ -13,14 +13,18 @@ import { Card, Label, OutlineButton, PrimaryButton, Shimmer } from "../../src/ui
 import { Screen, ScreenScroll } from "../../src/ui/Screen";
 
 /**
- * Linhas do menu que ainda não têm tela. Ficam aqui, e não numa fixture, porque
- * não são dado: são a lista de telas que faltam construir. Apague cada linha
- * quando a tela dela existir.
+ * Linhas do menu. As que têm `to` levam a uma tela de verdade; as sem `to`
+ * ainda não existem e dizem isso. Ficam aqui, e não numa fixture, porque não
+ * são dado: são a lista de telas que faltam construir. Troque a linha por `to`
+ * quando a tela dela nascer, e apague-a quando ela sair do menu.
+ *
+ * "Cidade padrão" saiu: o app do cliente não mostra localidade nenhuma, e
+ * oferecer a preferência seria reintroduzir o seletor por outra porta.
  */
-const PROFILE_MENU = [
+const PROFILE_MENU: { name: string; rows: { t: string; to?: string }[] }[] = [
   {
     name: "CONTA",
-    rows: [{ t: "Dados pessoais" }, { t: "Endereços" }, { t: "Cidade padrão" }],
+    rows: [{ t: "Dados pessoais" }, { t: "Endereços" }],
   },
   {
     name: "PAGAMENTO",
@@ -28,7 +32,11 @@ const PROFILE_MENU = [
   },
   {
     name: "PREFERÊNCIAS",
-    rows: [{ t: "Favoritos" }, { t: "Notificações de fila" }, { t: "Ajuda e contato" }],
+    rows: [{ t: "Favoritos" }, { t: "Notificações de fila" }],
+  },
+  {
+    name: "SUPORTE",
+    rows: [{ t: "Ajuda", to: "/ajuda" }],
   },
 ];
 
@@ -144,20 +152,31 @@ export default function Perfil() {
             <Label>{group.name}</Label>
             <Card radius={16}>
               {group.rows.map((row, index) => (
-                <View
+                <Pressable
                   key={row.t}
-                  style={{
+                  onPress={row.to ? () => router.push(row.to as never) : undefined}
+                  disabled={!row.to}
+                  style={({ pressed }) => ({
                     padding: 15,
                     flexDirection: "row",
                     justifyContent: "space-between",
                     alignItems: "center",
                     borderBottomWidth: index === group.rows.length - 1 ? 0 : 1,
                     borderBottomColor: color.lineSoft,
-                  }}
+                    backgroundColor: pressed ? color.rest : "transparent",
+                  })}
                 >
-                  <Text style={sans(14.5, 600, { ls: -0.01, color: color.muted })}>{row.t}</Text>
-                  <Text style={mono(9, 600, { ls: 0.08, color: color.chevron })}>EM BREVE</Text>
-                </View>
+                  <Text
+                    style={sans(14.5, 600, { ls: -0.01, color: row.to ? color.ink : color.muted })}
+                  >
+                    {row.t}
+                  </Text>
+                  {row.to ? (
+                    <Text style={sans(20, 400, { lh: 1, color: color.chevron })}>›</Text>
+                  ) : (
+                    <Text style={mono(9, 600, { ls: 0.08, color: color.chevron })}>EM BREVE</Text>
+                  )}
+                </Pressable>
               ))}
             </Card>
           </View>

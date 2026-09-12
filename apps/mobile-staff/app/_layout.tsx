@@ -77,11 +77,14 @@ export default function RootLayout() {
               <Stack.Screen name="horarios" />
               <Stack.Screen name="regras" />
               <Stack.Screen name="perfil-publico" />
+              <Stack.Screen name="avaliacoes" />
 
               <Stack.Screen name="financeiro" />
               <Stack.Screen name="assinatura" />
               <Stack.Screen name="ajustes" />
               <Stack.Screen name="comecar" />
+              <Stack.Screen name="suporte" />
+              <Stack.Screen name="chamado/[id]" />
             </Stack>
           </ToastProvider>
         </EstablishmentProvider>

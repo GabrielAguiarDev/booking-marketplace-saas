@@ -111,27 +111,38 @@ se sobreporem. O segundo recebe erro `23P01`.
 
 ## App do cliente — `mobile-cliente`
 
-Expo Router, 18 rotas. **Tudo vem do banco.**
+Expo Router, 19 rotas. **Tudo vem do banco.**
 
-| Tela                                       | Faz                                                                                | Origem                                                      |
-| ------------------------------------------ | ---------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Home                                       | Cidade atual, categorias com contagem, lojas em destaque, atalho para a fila ativa | `cities`, `establishments`, `queue_entries`                 |
-| Explorar                                   | Busca por nome e navegação por categoria                                           | contagem real, `ilike` no nome                              |
-| Resultados                                 | Busca loja, serviço curado e sinônimos por cidade/categoria                        | RPC `search_establishments`                                 |
-| Loja                                       | Ficha: serviços, profissionais, avaliações, modo de agendamento                    | `establishments` + `services` + `professionals` + `reviews` |
-| Horário                                    | Grade de horários livres, por dia e por profissional                               | RPC `available_slots` / `availability_summary`              |
-| Confirmar                                  | Resumo da reserva, preço e política de sinal                                       | Edge Function `book-appointment`                            |
-| Pagamento                                  | Escolha entre pagar no app ou no balcão                                            | política da loja                                            |
-| Agenda                                     | Reservas em três abas; cancelar e avaliar                                          | `appointments`                                              |
-| Fila                                       | Posição, estimativa e confirmação de chegada, ao vivo                              | RPC `queue_state` + Realtime                                |
-| Avaliação                                  | Nota, comentário e marcadores                                                      | grava em `reviews`                                          |
-| Perfil                                     | Dados da conta                                                                     | `auth.users` + `profiles`                                   |
-| Assistente                                 | Conversa em linguagem natural que devolve cartões de loja e horário                | Edge Function `assistant` (OpenAI)                          |
-| Entrar / Cadastro / Recuperar / Nova senha | Conta por e-mail, senha e código de 6 dígitos                                      | Supabase Auth                                               |
+| Tela                                       | Faz                                                                         | Origem                                                      |
+| ------------------------------------------ | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Home                                       | Vitrine, categorias com contagem, lojas por perto, atalho para a fila ativa | RPC `showcase_banners`, `establishments`, `queue_entries`   |
+| Explorar                                   | Busca por nome e navegação por categoria                                    | contagem real, `ilike` no nome                              |
+| Resultados                                 | Busca loja, serviço curado e sinônimos por cidade/categoria                 | RPC `search_establishments`                                 |
+| Loja                                       | Ficha: serviços, profissionais, avaliações, modo de agendamento             | `establishments` + `services` + `professionals` + `reviews` |
+| Horário                                    | Grade de horários livres, por dia e por profissional                        | RPC `available_slots` / `availability_summary`              |
+| Confirmar                                  | Resumo da reserva, preço e política de sinal                                | Edge Function `book-appointment`                            |
+| Pagamento                                  | Escolha entre pagar no app ou no balcão                                     | política da loja                                            |
+| Agenda                                     | Reservas em três abas; cancelar e avaliar                                   | `appointments`                                              |
+| Fila                                       | Posição, estimativa e confirmação de chegada, ao vivo                       | RPC `queue_state` + Realtime                                |
+| Avaliação                                  | Nota, comentário e marcadores                                               | grava em `reviews`                                          |
+| Perfil                                     | Dados da conta                                                              | `auth.users` + `profiles`                                   |
+| Ajuda                                      | Abrir chamado, acompanhar a conversa e responder à equipe                   | RPCs de suporte (`open_support_ticket` e afins)             |
+| Assistente                                 | Conversa em linguagem natural que devolve cartões de loja e horário         | Edge Function `assistant` (OpenAI)                          |
+| Entrar / Cadastro / Recuperar / Nova senha | Conta por e-mail, senha e código de 6 dígitos                               | Supabase Auth                                               |
 
 **O que o cliente consegue fazer ponta a ponta:** achar loja, ver horário livre
 de verdade, reservar, entrar na fila, acompanhar a posição ao vivo, cancelar
 dentro da janela, e avaliar depois de atendido.
+
+**Sem localidade na tela.** Não há seletor de cidade, nome de cidade nem
+contagem por cidade em lugar nenhum do app: os textos falam em "perto de você".
+A cidade continua nos dados — busca, contagem e assistente recebem `cityId` — e
+é resolvida sem interface por `useCityId()`, que fica com a primeira cidade que
+tem loja ativa. Ver [mobile-cliente.md](mobile-cliente.md#sem-cidade-na-interface).
+
+**Ajuda tem as duas pontas.** O chamado aberto no app cai na fila de Suporte do
+admin, e a resposta da equipe volta para a conversa no app. Não há aviso por
+e-mail nem push: a tela diz que a resposta aparece ali, e nada além.
 
 **Lacunas conhecidas:** não existe tela de detalhe/remarcação de reserva (só
 cancelar pelo cartão), nem edição de perfil, nem upload de foto, nem busca por
@@ -142,7 +153,7 @@ assistente é gravado mas a tela abre vazia.
 
 ## App do estabelecimento — `mobile-staff`
 
-Expo Router, 18 telas, cinco abas. **Tudo vem do banco.** Duas portas: ter conta
+Expo Router, 21 telas, cinco abas. **Tudo vem do banco.** Duas portas: ter conta
 não basta, é preciso ser equipe de alguma loja.
 
 | Tela                            | Faz                                                                                                |
@@ -162,6 +173,8 @@ não basta, é preciso ser equipe de alguma loja.
 | Financeiro                      | Faturamento, ticket médio, atendimentos e mais vendidos — soma do preço congelado                  |
 | Assinatura                      | **Sem plano.** A tela explica os dois modelos em estudo em vez de inventar número                  |
 | Ajustes                         | Preferências de aviso da pessoa                                                                    |
+| Avaliações                      | O que o cliente escreveu; dono e gerência pedem revisão à plataforma e respondem ao esclarecimento |
+| Ajuda e suporte                 | Abrir chamado da loja, acompanhar e responder — citando uma reserva se couber                      |
 | Começar                         | Checklist derivado do estado real da loja                                                          |
 | Entrar / Recuperar / Nova senha | Conta                                                                                              |
 

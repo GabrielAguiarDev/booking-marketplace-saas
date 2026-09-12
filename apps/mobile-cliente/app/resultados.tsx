@@ -3,7 +3,7 @@ import { Pressable, Text, View } from "react-native";
 
 import { accentOf, CATEGORY, type CategoryKey, initialsOfName, shade } from "../src/data/catalog";
 import { type EstablishmentRow, useEstablishments } from "../src/data/establishments";
-import { useCurrentCity } from "../src/data/use-cities";
+import { useCityId } from "../src/data/use-cities";
 import { color } from "../src/theme/tokens";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { duo2, Photo } from "../src/ui/Photo";
@@ -12,7 +12,7 @@ import { Screen, ScreenScroll } from "../src/ui/Screen";
 
 export default function Resultados() {
   const router = useRouter();
-  const { cityId } = useCurrentCity();
+  const cityId = useCityId();
   const params = useLocalSearchParams<{ term?: string; category?: string }>();
 
   const category = (params.category || null) as CategoryKey | null;
@@ -45,7 +45,7 @@ export default function Resultados() {
             <Text style={sans(18, 800, { ls: -0.03 })}>Nada encontrado</Text>
             <Text style={sans(14.5, 400, { lh: 1.5, color: color.muted })}>
               {category
-                ? "Nenhuma loja desta categoria nesta cidade ainda."
+                ? "Nenhuma loja desta categoria perto de você ainda."
                 : "Nenhuma loja com esse nome por aqui. Tente outro termo."}
             </Text>
           </Card>

@@ -57,7 +57,8 @@ As ações destas áreas já gravam no banco:
 - suspender, reativar, trocar plano, aplicar desconto e registrar contato;
 - abrir cidade, mudar cotas, preços, planos e regras;
 - criar e editar catálogo, mesclar/aprovar/recusar sugestões;
-- manter/remover avaliação denunciada e pedir esclarecimento;
+- manter/remover avaliação denunciada e pedir esclarecimento — a pergunta chega
+  ao app do estabelecimento e a resposta volta para a mesma ficha;
 - bloquear cliente e registrar atendimento;
 - editar parâmetros, abrir e encerrar um console de suporte somente leitura;
 - publicar ou retirar uma cidade da busca;
@@ -290,9 +291,14 @@ Ao criar classe nova, evite palavra que seja utilitário do Tailwind.
   toque/impressão por banner nem corte de imagem na tela: a arte chega pronta
   em 2:1. Se o navegador fechar entre o upload e a gravação, o arquivo fica
   solto no bucket (sem banner apontando para ele); não há limpeza automática.
-- **Denúncias de avaliação** só entram pelo banco: a política
-  `review_reports_insert_manager` existe, mas nenhum app de loja tem o botão
-  "denunciar". Mesma situação das **solicitações de cadastro**, que esperam o
+- **Denúncias de avaliação** já entram pelo app do estabelecimento (ver
+  [mobile-estabelecimento.md](mobile-estabelecimento.md)): o dono ou a gerência
+  abre a denúncia pela RPC `report_review`, e o pedido de esclarecimento tem
+  resposta — `answer_review_clarification` grava o que a loja respondeu e
+  devolve a denúncia para `open`. A resposta aparece na ficha da denúncia,
+  embaixo do que o estabelecimento alegou. O que ainda não existe é aviso: a
+  loja só vê a pergunta quando abrir o app, e a equipe só vê a resposta quando
+  recarregar a tela. As **solicitações de cadastro** continuam esperando o
   onboarding.
 - **Os controles do editor do canvas** (`startScreen`, `queueFirst`,
   `showRiskFlags`) eram botões do Claude Design, não da tela. Viraram o

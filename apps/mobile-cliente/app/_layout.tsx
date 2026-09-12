@@ -68,6 +68,11 @@ export default function RootLayout() {
             <Stack.Screen name="fila" />
             <Stack.Screen name="avaliacao" />
 
+            {/* Ajuda: lista, formulário e conversa de um chamado. */}
+            <Stack.Screen name="ajuda/index" />
+            <Stack.Screen name="ajuda/novo" />
+            <Stack.Screen name="ajuda/[id]" />
+
             {/* Autenticação. Empilhadas como o resto: são fluxo com começo e fim,
               não destino de navegação livre. */}
             <Stack.Screen name="entrar" />

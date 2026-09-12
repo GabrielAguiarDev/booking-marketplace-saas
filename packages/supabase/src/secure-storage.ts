@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 /**
  * Adapter de storage do Supabase Auth sobre o expo-secure-store, com partição.
@@ -7,7 +8,36 @@ import * as SecureStore from "expo-secure-store";
  * Supabase (access token + refresh token + user) passa disso com folga assim
  * que o usuário tem metadados, e o login quebra em produção sem aviso claro.
  * Por isso o valor é quebrado em pedaços e remontado na leitura.
+ *
+ * Na web o `expo-secure-store` não existe (o módulo nativo nem é registrado, e
+ * a primeira leitura derruba a criação do cliente antes da primeira consulta).
+ * Lá o adapter cai para o `localStorage`, que é o que o próprio Supabase usa no
+ * navegador. É só o alvo de desenvolvimento — `expo start --web` é como estas
+ * telas são conferidas — e nada do que o app publica roda nesse caminho.
  */
+
+const web = Platform.OS === "web";
+
+const store = {
+  get(key: string): Promise<string | null> {
+    if (web) return Promise.resolve(globalThis.localStorage?.getItem(key) ?? null);
+    return SecureStore.getItemAsync(key);
+  },
+  set(key: string, value: string): Promise<void> {
+    if (web) {
+      globalThis.localStorage?.setItem(key, value);
+      return Promise.resolve();
+    }
+    return SecureStore.setItemAsync(key, value);
+  },
+  remove(key: string): Promise<void> {
+    if (web) {
+      globalThis.localStorage?.removeItem(key);
+      return Promise.resolve();
+    }
+    return SecureStore.deleteItemAsync(key);
+  },
+};
 
 const MAX_CHUNK_BYTES = 1536;
 const CHUNK_MARKER = "__vez_chunks__:";
@@ -66,13 +96,13 @@ async function removeChunks(key: string, head: string | null): Promise<void> {
     return;
   }
   for (let i = 0; i < count; i += 1) {
-    await SecureStore.deleteItemAsync(chunkKey(key, i));
+    await store.remove(chunkKey(key, i));
   }
 }
 
 export const secureStorage = {
   async getItem(key: string): Promise<string | null> {
-    const head = await SecureStore.getItemAsync(key);
+    const head = await store.get(key);
     if (head === null || !head.startsWith(CHUNK_MARKER)) {
       return head;
     }
@@ -84,7 +114,7 @@ export const secureStorage = {
 
     const parts: string[] = [];
     for (let i = 0; i < count; i += 1) {
-      const part = await SecureStore.getItemAsync(chunkKey(key, i));
+      const part = await store.get(chunkKey(key, i));
       if (part === null) {
         // Gravação interrompida no meio. Sessão parcial é pior que sessão
         // nenhuma: limpa e devolve null para forçar um login limpo.
@@ -102,20 +132,20 @@ export const secureStorage = {
     await this.removeItem(key);
 
     if (byteLength(value) <= MAX_CHUNK_BYTES) {
-      await SecureStore.setItemAsync(key, value);
+      await store.set(key, value);
       return;
     }
 
     const chunks = splitByBytes(value, MAX_CHUNK_BYTES);
     for (let i = 0; i < chunks.length; i += 1) {
-      await SecureStore.setItemAsync(chunkKey(key, i), chunks[i]!);
+      await store.set(chunkKey(key, i), chunks[i]!);
     }
-    await SecureStore.setItemAsync(key, `${CHUNK_MARKER}${chunks.length}`);
+    await store.set(key, `${CHUNK_MARKER}${chunks.length}`);
   },
 
   async removeItem(key: string): Promise<void> {
-    const head = await SecureStore.getItemAsync(key);
+    const head = await store.get(key);
     await removeChunks(key, head);
-    await SecureStore.deleteItemAsync(key);
+    await store.remove(key);
   },
 };

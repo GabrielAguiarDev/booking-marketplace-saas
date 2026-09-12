@@ -10,12 +10,10 @@ import { useBusinessHours, useProfessionalSchedules } from "../../src/data/sched
 import { color } from "../../src/theme/tokens";
 import { HubRow } from "../../src/ui/primitives";
 import { PlainHeader, Screen, ScreenScroll } from "../../src/ui/Screen";
-import { useToast } from "../../src/ui/Toast";
 
 /** Tudo que não é o dia nem o cadastro da loja: dinheiro, conta e ajuda. */
 export default function Mais() {
   const router = useRouter();
-  const toast = useToast();
   const { establishment } = useEstablishment();
 
   const id = establishment?.id ?? null;
@@ -85,10 +83,8 @@ export default function Mais() {
           <HubRow
             icon={<LifeBuoy size={19} color={color.ink} strokeWidth={1.8} />}
             label="Ajuda e suporte"
-            sub="Falar com a gente"
-            onPress={() =>
-              toast("Canal de suporte ainda não existe. Por enquanto, fale com quem te cadastrou.")
-            }
+            sub="Abrir chamado e acompanhar a resposta"
+            onPress={() => router.push("/suporte")}
             last
           />
         </View>
