@@ -4,6 +4,8 @@ import { createBrowserSupabaseClient } from "@vez/supabase/browser";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { VezSymbol } from "./brand";
+
 type Step = "loading" | "password" | "accept" | "error";
 
 /** Aceita o fragmento devolvido pelo Auth e garante uma senha para o próximo acesso. */
@@ -75,9 +77,7 @@ export function AcceptEstablishmentInvite() {
   return (
     <main className="auth-shell">
       <section className="auth-card" aria-labelledby="invite-title">
-        <div className="auth-brand" aria-hidden="true">
-          V
-        </div>
+        <VezSymbol className="auth-brand" height={40} />
         <p className="auth-eyebrow">Vez · portal do estabelecimento</p>
         <h1 id="invite-title">Bem-vindo à equipe</h1>
         <p className={step === "error" ? "auth-error" : "auth-copy"}>{message}</p>

@@ -2,6 +2,7 @@
 
 import { NAV, type NavId, type ScreenId } from "./data";
 import { SignOutButton } from "./auth";
+import { VezLogo } from "./brand";
 import { useAdmin } from "./store";
 
 export function Sidebar({ screen, go }: { screen: ScreenId; go: (id: NavId) => void }) {
@@ -24,11 +25,8 @@ export function Sidebar({ screen, go }: { screen: ScreenId; go: (id: NavId) => v
   return (
     <aside className="sidebar">
       <div className="brand">
-        <b>V</b>
-        <div>
-          <strong>Vez</strong>
-          <code>Admin</code>
-        </div>
+        <VezLogo height={22} title="Vez" />
+        <code>Admin</code>
       </div>
 
       <nav>

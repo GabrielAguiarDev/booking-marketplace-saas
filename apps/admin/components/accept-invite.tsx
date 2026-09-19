@@ -14,6 +14,8 @@ import { createBrowserSupabaseClient } from "@vez/supabase/browser";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { VezSymbol } from "./brand";
+
 type Landing = { step: "loading" } | { step: "password" } | { step: "error"; message: string };
 
 /** Lê o fragmento uma vez. `null`: não é uma chegada por convite. */
@@ -73,9 +75,7 @@ export function AcceptInvite({ landing }: { landing: Landing }) {
   return (
     <main className="auth-shell">
       <section className="auth-card" aria-labelledby="invite-accept-title">
-        <div className="auth-brand" aria-hidden="true">
-          V
-        </div>
+        <VezSymbol className="auth-brand" height={40} />
         <p className="auth-eyebrow">Vez · operação da plataforma</p>
         <h1 id="invite-accept-title">Bem-vindo à equipe</h1>
 

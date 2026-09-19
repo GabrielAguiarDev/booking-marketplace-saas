@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { AcceptInvite, useInviteLanding } from "./accept-invite";
+import { VezSymbol } from "./brand";
 
 export function AdminLogin({ deniedEmail }: { deniedEmail?: string }) {
   const router = useRouter();
@@ -24,9 +25,7 @@ export function AdminLogin({ deniedEmail }: { deniedEmail?: string }) {
   return (
     <main className="auth-shell">
       <section className="auth-card" aria-labelledby="auth-title">
-        <div className="auth-brand" aria-hidden="true">
-          V
-        </div>
+        <VezSymbol className="auth-brand" height={40} />
         <p className="auth-eyebrow">Vez · operação da plataforma</p>
         <h1 id="auth-title">Acesso administrativo</h1>
         <p className="auth-copy">Entre com a conta cadastrada na equipe da plataforma.</p>
@@ -181,9 +180,7 @@ export function AdminMfaGate({
   return (
     <main className="auth-shell">
       <section className="auth-card auth-mfa-card" aria-labelledby="mfa-title">
-        <div className="auth-brand" aria-hidden="true">
-          V
-        </div>
+        <VezSymbol className="auth-brand" height={40} />
         <p className="auth-eyebrow">Vez · proteção administrativa</p>
         <h1 id="mfa-title">
           {needsEnrollment ? "Cadastre o segundo fator" : "Confirme o segundo fator"}

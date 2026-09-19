@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { SignOutButton } from "./auth";
+import { VezLogo } from "./brand";
 import { EstablishmentPicker } from "./establishment-picker";
 import {
   CATEGORY_LABEL,
@@ -87,7 +88,7 @@ export function ApplicationForm({
   return (
     <main className="onboarding-shell">
       <header className="onboarding-header">
-        <div><b>V</b><strong>Vez</strong><span>PORTAL</span></div>
+        <div><VezLogo height={24} title="Vez" /><span>PORTAL</span></div>
         <SignOutButton />
       </header>
       <section className="onboarding-card wide" aria-labelledby="application-title">
@@ -190,7 +191,7 @@ export function ApplicationStatus({ data }: { data: PortalData }) {
   return (
     <main className="onboarding-shell">
       <header className="onboarding-header">
-        <div><b>V</b><strong>Vez</strong><span>PORTAL</span></div>
+        <div><VezLogo height={24} title="Vez" /><span>PORTAL</span></div>
         <div className="header-actions">
           <EstablishmentPicker establishments={data.establishments} value={data.establishment.id} />
           <SignOutButton />

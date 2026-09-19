@@ -4,6 +4,8 @@ import { createBrowserSupabaseClient } from "@vez/supabase/browser";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { VezSymbol } from "./brand";
+
 type AuthMode =
   | "login"
   | "signup"
@@ -54,7 +56,7 @@ export function PortalAuth({ initialMode = "login" }: { initialMode?: AuthMode }
   return (
     <main className="auth-shell">
       <section className="auth-card" aria-labelledby="auth-title">
-        <div className="auth-brand" aria-hidden="true">V</div>
+        <VezSymbol className="auth-brand" height={40} />
         <p className="auth-eyebrow">Vez · portal do estabelecimento</p>
         <h1 id="auth-title">{title}</h1>
         <p className="auth-copy">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { VezLogo } from "./brand";
 import { PORTAL_LOGIN, PORTAL_SIGNUP } from "./portal";
 import { ROUTES, SITE } from "./site";
 
@@ -17,8 +18,7 @@ const NAV = [
 export function Logo({ size = "md" }: { size?: "md" | "sm" }) {
   return (
     <span className={`logo logo--${size}`}>
-      <b>v</b>
-      <strong>Vez</strong>
+      <VezLogo height={size === "sm" ? 24 : 26} title="Vez" />
     </span>
   );
 }
@@ -66,7 +66,6 @@ export function Footer() {
           <p className="footer__about">
             Agendamento para barbearias, salões, clínicas de estética e petshops.
           </p>
-          <p className="footer__note">nome provisório</p>
         </div>
         <FooterColumn title="Para o estabelecimento">
           <a href={PORTAL_SIGNUP}>Cadastrar minha loja</a>

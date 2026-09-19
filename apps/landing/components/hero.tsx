@@ -1,3 +1,4 @@
+import { VezSymbol } from "./brand";
 import { CalendarGrid } from "./calendar";
 import { TEAM, WEEK_BLOCKS, WEEK_DAYS, WEEK_HOURS } from "./data";
 
@@ -41,7 +42,7 @@ function WeekAgenda() {
     <div className="week">
       <div className="week__bar">
         <div>
-          <b className="week__mark">v</b>
+          <VezSymbol className="week__mark" height={18} />
           <strong>Agenda da semana</strong>
           <span className="mono">14–19 set</span>
         </div>

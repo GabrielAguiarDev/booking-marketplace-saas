@@ -168,31 +168,9 @@ svg {
   border-bottom: 1px solid var(--line);
 }
 
-.brand > b {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: var(--coral);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-}
-
-.brand > div {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.brand strong {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1;
+.brand > svg {
+  display: block;
+  color: var(--ink);
 }
 
 .brand code {
@@ -358,16 +336,9 @@ svg {
 }
 
 .auth-brand {
-  display: grid;
-  width: 38px;
-  height: 38px;
+  display: block;
   margin-bottom: 28px;
-  border-radius: 10px;
-  place-items: center;
-  background: var(--coral);
-  color: #fff;
-  font-size: 20px;
-  font-weight: 800;
+  color: var(--ink);
 }
 
 .auth-eyebrow {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { VezLogo, VezSymbol } from "./brand";
 import { ICONS, NAV_GROUPS, type SectionId } from "./data";
 import { ROLE_LABEL, type PortalData } from "./model";
 
@@ -24,7 +25,7 @@ export function Sidebar({ section, go, collapsed, onToggle, data }: {
 
   return (
     <nav className="sidebar" onMouseLeave={() => setHint(null)}>
-      <div className="brand"><b>V</b><strong>Vez</strong><code>PORTAL</code>
+      <div className="brand"><VezLogo className="brand-logo" height={22} title="Vez" /><VezSymbol className="brand-symbol" height={24} title="Vez" /><code>PORTAL</code>
         <button aria-label={collapsed ? "Abrir menu" : "Recolher menu"} className="nav-toggle" onClick={onToggle} type="button">
           <svg fill="none" height="16" viewBox="0 0 24 24" width="16"><path d={collapsed ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" /></svg>
         </button>

@@ -252,39 +252,15 @@ main:focus {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 9px;
+  color: var(--ink);
 }
 
-.logo > b {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  background: var(--coral);
+.logo > svg {
+  display: block;
+}
+
+.logo--sm {
   color: #fff;
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.logo > strong {
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.logo--sm > b {
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  font-size: 14px;
-}
-
-.logo--sm > strong {
-  color: #fff;
-  font-size: 18px;
 }
 
 /* ── cabeçalho ─────────────────────────────────────────────── */
@@ -309,7 +285,7 @@ main:focus {
 }
 
 .header__logo:hover {
-  color: var(--coral);
+  opacity: 0.8;
 }
 
 .header__nav {
@@ -461,17 +437,8 @@ main:focus {
 }
 
 .week__mark {
-  display: flex;
+  display: block;
   flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 19px;
-  height: 19px;
-  border-radius: 6px;
-  background: var(--ink);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
 }
 
 .week__tabs {
@@ -2058,13 +2025,6 @@ main:focus {
   margin: 0;
   font-size: 13.5px;
   line-height: 1.6;
-}
-
-.footer__note {
-  margin: 14px 0 0;
-  color: rgb(255 255 255 / 0.35);
-  font-family: var(--mono);
-  font-size: 11px;
 }
 
 .footer__col {

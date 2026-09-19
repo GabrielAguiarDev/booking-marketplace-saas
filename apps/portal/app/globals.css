@@ -175,23 +175,14 @@ main {
   padding: 20px 20px 16px;
 }
 
-.brand > b {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: var(--coral);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 800;
+.brand > svg {
+  display: block;
+  flex: none;
+  color: var(--ink);
 }
 
-.brand > strong {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
+.brand > .brand-symbol {
+  display: none;
 }
 
 .brand > code {
@@ -3626,7 +3617,7 @@ code.step-note {
     padding: 16px 0 12px;
   }
 
-  .shell.collapsed .brand > strong,
+  .shell.collapsed .brand > .brand-logo,
   .shell.collapsed .brand > code,
   .shell.collapsed .nav-group > p,
   .shell.collapsed .nav-link > span,
@@ -3634,6 +3625,10 @@ code.step-note {
   .shell.collapsed .sidebar > footer > strong,
   .shell.collapsed .sidebar > footer > small {
     display: none;
+  }
+
+  .shell.collapsed .brand > .brand-symbol {
+    display: block;
   }
 
   .shell.collapsed .nav-toggle {
@@ -4182,17 +4177,9 @@ button:disabled {
 }
 
 .auth-brand,
-.onboarding-header > div:first-child > b {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: var(--coral);
-  color: #fff;
-  font-size: 19px;
-  font-weight: 800;
+.onboarding-header > div:first-child > svg {
+  display: block;
+  color: var(--ink);
 }
 
 .auth-eyebrow {
@@ -4309,10 +4296,6 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.onboarding-header strong {
-  font-size: 18px;
 }
 
 .onboarding-header span {
@@ -4573,13 +4556,17 @@ button:disabled {
     width: var(--rail);
   }
 
-  .sidebar .brand > strong,
+  .sidebar .brand > .brand-logo,
   .sidebar .brand > code,
   .sidebar .nav-group > p,
   .sidebar .nav-link > span,
   .sidebar footer > strong,
   .sidebar footer > small {
     display: none;
+  }
+
+  .sidebar .brand > .brand-symbol {
+    display: block;
   }
 
   .sidebar .brand,
