@@ -26,7 +26,7 @@ const TABS: {
 
 /**
  * Só as cinco abas aparecem aqui. As telas empilhadas (loja, horário,
- * pagamento, fila, avaliação, resultados) rodam fora do grupo e não têm barra.
+ * confirmação, fila, avaliação, resultados) rodam fora do grupo e não têm barra.
  */
 function activeTab(pathname: string): TabKey {
   if (pathname.startsWith("/explorar")) return "explorar";

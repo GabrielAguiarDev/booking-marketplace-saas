@@ -244,6 +244,13 @@ insert into public.schedule_exceptions (
 );
 
 -- Fila viva: um em atendimento e quatro esperando, das três origens.
+-- A linha QR representa alguem que leu o cartaz; a demo marca essa mesma
+-- transacao como validada, exatamente como queue_join faz em producao.
+update public.establishment_settings
+set queue_qr_enabled = true
+where establishment_id = '0a000000-0000-4000-8000-000000000001';
+select set_config('vez.queue_code_ok', '0a000000-0000-4000-8000-000000000001', true);
+
 insert into public.queue_entries (
   establishment_id, customer_id, guest_name, guest_phone, service_id, source, status,
   joined_at, called_at, served_at, arrived_at

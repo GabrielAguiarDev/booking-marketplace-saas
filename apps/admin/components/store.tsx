@@ -20,6 +20,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useRouter } from "next/navigation";
+import type { Attachment } from "@vez/supabase/attachments";
 
 import type {
   AccessSession,
@@ -35,6 +36,7 @@ import type {
   CatalogItem,
   Decision,
   DecisionKind,
+  LeadStatus,
   PlanDef,
   PlanKind,
   PlatformRole,
@@ -53,6 +55,11 @@ import {
 import { createSupabaseActions } from "./supabase-actions";
 
 export type Toast = { title: string; sub: string; tone?: "ok" | "error" };
+export type MfaRecoveryStatus = {
+  remaining: number;
+  total: number;
+  generatedAt: string | null;
+};
 
 /** O plano ativo daquele tipo — o que uma troca ou aprovação passa a usar. */
 function planIdOf(data: AdminData, kind: PlanKind): string | null {
@@ -119,6 +126,9 @@ export type AdminActions = {
   setCustomerBlocked: (id: string, blocked: boolean, reason: string) => Promise<void>;
   updateParam: (key: string, value: number) => Promise<void>;
   setMfaRequired: (required: boolean) => Promise<void>;
+  mfaRecoveryStatus: () => Promise<MfaRecoveryStatus>;
+  generateMfaRecoveryCodes: () => Promise<string[]>;
+  resetMemberMfa: (userId: string) => Promise<void>;
   /** Equipe (só o papel `admin`). `invited`: saiu e-mail de convite; senão a conta já existia. */
   inviteTeamMember: (input: {
     email: string;
@@ -135,12 +145,16 @@ export type AdminActions = {
   deleteBanner: (id: string) => Promise<void>;
   /** Suporte: a conversa é lida sob demanda, ao abrir o chamado. */
   ticketMessages: (id: string) => Promise<TicketMessage[]>;
+  ticketAttachments: (id: string) => Promise<Attachment[]>;
+  uploadTicketAttachment: (id: string, file: File) => Promise<void>;
   /** Responde e deixa o chamado na situação escolhida. */
   replyTicket: (id: string, body: string, status: TicketStatus) => Promise<void>;
   setTicketStatus: (id: string, status: TicketStatus) => Promise<void>;
   setTicketPriority: (id: string, priority: TicketPriority) => Promise<void>;
   /** `null` tira a atribuição. */
   assignTicket: (id: string, adminId: string | null) => Promise<void>;
+  /** Triagem dos interessados da landing; `discarded` exige a nota. */
+  setLeadStatus: (id: string, status: LeadStatus, note: string) => Promise<void>;
 };
 
 type Store = {
@@ -370,17 +384,20 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
         startedAt: now.toISOString(),
         expiresAt: new Date(now.getTime() + minutes * 60_000).toISOString(),
       };
-      mutate((d) => ({
-        ...d,
-        accessSessions: [
-          session,
-          ...d.accessSessions.filter((item) => item.establishmentId !== id),
-        ],
-      }), {
-        action: `Autorizou acesso de suporte à conta de ${names([id])}`,
-        meta: `somente leitura · ${minutes} min · motivo: ${reason.trim()}`,
-        accountAccess: true,
-      });
+      mutate(
+        (d) => ({
+          ...d,
+          accessSessions: [
+            session,
+            ...d.accessSessions.filter((item) => item.establishmentId !== id),
+          ],
+        }),
+        {
+          action: `Autorizou acesso de suporte à conta de ${names([id])}`,
+          meta: `somente leitura · ${minutes} min · motivo: ${reason.trim()}`,
+          accountAccess: true,
+        },
+      );
       return session;
     },
 
@@ -807,6 +824,28 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
       });
     },
 
+    mfaRecoveryStatus: async () => ({ remaining: 0, total: 0, generatedAt: null }),
+
+    generateMfaRecoveryCodes: async () => [
+      "LOCAL-00001",
+      "LOCAL-00002",
+      "LOCAL-00003",
+      "LOCAL-00004",
+      "LOCAL-00005",
+      "LOCAL-00006",
+      "LOCAL-00007",
+      "LOCAL-00008",
+      "LOCAL-00009",
+      "LOCAL-00010",
+    ],
+
+    resetMemberMfa: async (userId) => {
+      const member = get().team.find((item) => item.id === userId);
+      if (!member) throw new Error("Pessoa não encontrada.");
+      if (member.id === get().me.id)
+        throw new Error("Use um código para recuperar seu próprio acesso.");
+    },
+
     // Sem Auth na camada local: o convite só entra na lista, como pendente.
     inviteTeamMember: async ({ email, name, role }) => {
       if (get().me.roleKey !== "admin")
@@ -856,10 +895,7 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
       const member = team.find((m) => m.id === userId);
       if (!member) throw new Error("Esta pessoa não faz parte da equipe.");
       if (member.roleKey === role) throw new Error(`${member.name} já tem o papel ${member.role}.`);
-      if (
-        member.roleKey === "admin" &&
-        !team.some((m) => m.roleKey === "admin" && m.id !== userId)
-      )
+      if (member.roleKey === "admin" && !team.some((m) => m.roleKey === "admin" && m.id !== userId))
         throw new Error("A plataforma precisa de ao menos uma pessoa administradora.");
       mutate(
         (d) => ({
@@ -888,10 +924,7 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
         );
       const member = team.find((m) => m.id === userId);
       if (!member) throw new Error("Esta pessoa não faz parte da equipe.");
-      if (
-        member.roleKey === "admin" &&
-        !team.some((m) => m.roleKey === "admin" && m.id !== userId)
-      )
+      if (member.roleKey === "admin" && !team.some((m) => m.roleKey === "admin" && m.id !== userId))
         throw new Error("A plataforma precisa de ao menos uma pessoa administradora.");
       mutate((d) => ({ ...d, team: d.team.filter((m) => m.id !== userId) }), {
         action: `Removeu ${member.name} da equipe`,
@@ -984,13 +1017,54 @@ function localActions(get: () => AdminData, mutate: Mutate): AdminActions {
       });
     },
 
+    setLeadStatus: async (id, status, note) => {
+      const lead = get().leads.find((l) => l.id === id);
+      if (!lead) throw new Error("Contato não encontrado.");
+      if (status === "discarded" && !note.trim()) {
+        throw new Error("Escreva por que este contato foi descartado.");
+      }
+      const me = get().me;
+      mutate(
+        (d) => ({
+          ...d,
+          leads: d.leads.map((l) =>
+            l.id === id
+              ? {
+                  ...l,
+                  status,
+                  handledBy: status === "new" ? "" : me.name,
+                  handledAt: status === "new" ? null : new Date().toISOString(),
+                  handledNote: status === "new" ? "" : note.trim(),
+                }
+              : l,
+          ),
+        }),
+        {
+          action:
+            status === "contacted"
+              ? `Marcou como falado o contato de ${lead.establishmentName}`
+              : status === "discarded"
+                ? `Descartou o contato de ${lead.establishmentName}`
+                : `Devolveu para a fila o contato de ${lead.establishmentName}`,
+          meta: [lead.name, lead.contact, note.trim()].filter(Boolean).join(" · "),
+          accountAccess: false,
+        },
+      );
+    },
+
     ...localTicketActions(get, mutate),
   };
 }
 
 type TicketActions = Pick<
   AdminActions,
-  "ticketMessages" | "replyTicket" | "setTicketStatus" | "setTicketPriority" | "assignTicket"
+  | "ticketMessages"
+  | "ticketAttachments"
+  | "uploadTicketAttachment"
+  | "replyTicket"
+  | "setTicketStatus"
+  | "setTicketPriority"
+  | "assignTicket"
 >;
 
 /** Suporte sem banco: a conversa fica na memória da aba. */
@@ -1018,6 +1092,8 @@ function localTicketActions(get: () => AdminData, mutate: Mutate): TicketActions
 
   return {
     ticketMessages: async (id) => thread(id),
+    ticketAttachments: async () => [],
+    uploadTicketAttachment: async () => undefined,
 
     replyTicket: async (id, body, status) => {
       if (!body.trim()) throw new Error("Escreva a resposta.");

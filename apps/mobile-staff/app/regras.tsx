@@ -109,25 +109,8 @@ export default function Regras() {
           ))}
         />
 
-        <ToggleRow
-          label="Sinal reembolsável"
-          help="Devolvido se o cliente cancelar dentro do prazo abaixo."
-          value={settings.deposit_refundable}
-          pending
-          onChange={(next) =>
-            save(() => patchSettings({ deposit_refundable: next }), "Ajuste salvo.")
-          }
-        />
-
-        <ToggleRow
-          label="Aceitar pagamento pelo app"
-          help="Desligado, o cliente sempre paga no balcão."
-          value={settings.accept_app_payment}
-          pending
-          onChange={(next) =>
-            save(() => patchSettings({ accept_app_payment: next }), "Ajuste salvo.")
-          }
-        />
+        {/* "Sinal reembolsável" e "Aceitar pagamento pelo app" voltam junto com o
+            pagamento pelo app; até lá seriam interruptores sem efeito. */}
 
         <View
           style={{

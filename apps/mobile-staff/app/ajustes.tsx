@@ -7,9 +7,11 @@ import { supabase } from "../lib/supabase";
 import { useSession } from "../src/auth/session";
 import { useEstablishment } from "../src/data/establishment";
 import { PREF_DEFAULTS, saveNotificationPrefs, useNotificationPrefs } from "../src/data/prefs";
+import { signOut } from "../src/push";
 import { color } from "../src/theme/tokens";
 import { Field } from "../src/ui/Field";
-import { Caveat, PrimaryButton, SectionLabel, ToggleRow } from "../src/ui/primitives";
+import { PrimaryButton, SectionLabel, ToggleRow } from "../src/ui/primitives";
+import { PushCard } from "../src/ui/PushCard";
 import { PlainHeader, Screen, ScreenScroll } from "../src/ui/Screen";
 import { Sheet } from "../src/ui/Sheet";
 import { useToast } from "../src/ui/Toast";
@@ -20,6 +22,8 @@ import { useToast } from "../src/ui/Toast";
  * A preferência de aviso é de cada pessoa, não da loja: quem atende em duas
  * unidades quer o barulho de uma e não da outra, e o dono não decide o que toca
  * no celular do barbeiro. Por isso a linha é por membro e por estabelecimento.
+ * O despacho consulta essas linhas antes de enfileirar; o `PushCard` mostra se
+ * este aparelho recebe e se os últimos avisos saíram.
  */
 export default function Ajustes() {
   const toast = useToast();
@@ -78,37 +82,29 @@ export default function Ajustes() {
           label="Novo agendamento"
           help="Toca a cada pedido novo pelo app do cliente."
           value={prefs.notify_new_appointment}
-          pending
           onChange={(next) => togglePref("notify_new_appointment", next)}
         />
         <ToggleRow
           label="Cancelamento"
           help="Quando o cliente desmarca."
           value={prefs.notify_cancellation}
-          pending
           onChange={(next) => togglePref("notify_cancellation", next)}
         />
         <ToggleRow
           label="Alguém entrou na fila"
           help="Útil se o balcão fica sozinho."
           value={prefs.notify_queue_join}
-          pending
           onChange={(next) => togglePref("notify_queue_join", next)}
         />
         <ToggleRow
-          label="Resumo do dia às 19h"
-          help="Faturamento, atendidos e faltas do dia."
+          label="Resumo do dia pela manhã"
+          help="A partir das 7h: quantas reservas há no dia e a primeira hora."
           value={prefs.notify_daily_summary}
-          pending
           onChange={(next) => togglePref("notify_daily_summary", next)}
         />
 
-        <View style={{ paddingTop: 16 }}>
-          <Caveat>
-            Notificação push ainda não existe em nenhum dos dois apps. Sua escolha fica guardada e
-            passa a valer quando ela chegar. Por enquanto, a fila só se move na tela com o app
-            aberto — que é justamente quando você não está olhando.
-          </Caveat>
+        <View style={{ paddingTop: 20 }}>
+          <PushCard />
         </View>
 
         <View
@@ -130,7 +126,7 @@ export default function Ajustes() {
           <AccountRow
             label="Sair desta conta"
             tint={color.danger}
-            onPress={() => void supabase.auth.signOut()}
+            onPress={() => void signOut()}
             last
           />
         </View>

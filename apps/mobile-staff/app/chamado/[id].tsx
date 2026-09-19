@@ -15,6 +15,7 @@ import { Field } from "../../src/ui/Field";
 import { Card, ErrorNote, PrimaryButton, StatusTag } from "../../src/ui/primitives";
 import { PlainHeader, Screen, ScreenScroll, StickyFooter } from "../../src/ui/Screen";
 import { useToast } from "../../src/ui/Toast";
+import { TicketAttachments } from "../../src/ui/TicketAttachments";
 
 /**
  * A conversa de um chamado.
@@ -125,6 +126,8 @@ export default function Chamado() {
                 </Card>
               ))}
             </View>
+
+            <TicketAttachments ticketId={ticket.id} />
 
             {ticket.status === "resolved" ? (
               <Text style={sans(12.5, 400, { lh: 1.5, color: color.muted })}>

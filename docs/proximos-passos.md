@@ -3,6 +3,17 @@
 Documento de continuidade. O [roadmap do app do cliente](roadmap-mobile-cliente.md)
 cobria uma superfície só e está quase todo riscado; este cobre o produto.
 
+> **Gate de lançamento concluído em 2026-09-18.** Tudo fora pagamento pelo app
+> e o assistente (IA) está pronto no código: conta/LGPD, reserva com detalhe e remarcação,
+> avisos, convites, anexos, recuperação de MFA e a correção dos achados de
+> segurança. O que falta é configuração externa — ver
+> [Checklist de lançamento](#checklist-de-lançamento).
+>
+> **Leva das outras partes concluída em 2026-09-12** (app cliente sem cidade +
+> vitrine + ajuda, portal inteiro com dado real e onboarding, denúncia e
+> chamados no app da loja, landing gravando interessado). Quadro e pendências em
+> [orquestracao-produto.md](orquestracao-produto.md).
+>
 > **Admin concluído em 2026-09-11** (equipe, suporte, vitrine, console de
 > leitura da conta e MFA), feito por agentes em paralelo coordenados pelo Orca.
 > A próxima leva — começando por **tirar a cidade do app cliente** — está em
@@ -14,13 +25,13 @@ cobria uma superfície só e está quase todo riscado; este cobre o produto.
 O cliente sabe comprar, a loja sabe atender e a equipe da plataforma já opera o
 admin. **A loja ainda não consegue nascer sozinha e o negócio não cobra nada.**
 
-| Superfície       | Linhas de código | Estado                         |
-| ---------------- | ---------------: | ------------------------------ |
-| `mobile-cliente` |            5.475 | Funcional ponta a ponta        |
-| `mobile-staff`   |            9.568 | Funcional ponta a ponta        |
-| `portal`         |            8.071 | Canvas implementado, dado fixo |
-| `admin`          |                — | Completo no Supabase           |
-| `landing`        |            3.229 | Canvas implementado, dado fixo |
+| Superfície       | Linhas de código | Estado                            |
+| ---------------- | ---------------: | --------------------------------- |
+| `mobile-cliente` |            5.475 | Funcional ponta a ponta           |
+| `mobile-staff`   |            9.568 | Funcional ponta a ponta           |
+| `portal`         |                — | Completo no Supabase              |
+| `admin`          |                — | Completo no Supabase              |
+| `landing`        |            3.229 | Grava interessado; leva ao portal |
 
 `packages/mobile-kit` (460 linhas) é o que os dois apps Expo usam igual.
 
@@ -37,18 +48,29 @@ O que **fechou** com o app do estabelecimento:
 
 O que **continua sem fechar**:
 
-- **Nenhum estabelecimento consegue se cadastrar.** `establishments` não tem
-  política de INSERT para `authenticated`. A Edge Function que valida a cota da
-  cidade foi documentada e nunca escrita.
-- **Nenhuma loja consegue nascer como `pending`.** A aprovação pelo admin já
-  funciona; falta a Edge Function de onboarding criar loja + vínculo de dono.
-- **O negócio ainda não cobra nada.** Planos, cota, preço e comissão já existem;
-  faltam assinatura, fatura, webhook e repasse.
-- **Notificação push não existe.** É o que mais dói na operação: a fila só se
-  move na tela com o app aberto, que é justamente quando ninguém está olhando.
-- **As filas do admin só enchem pelo banco.** Aprovações, denúncias e chamados
-  esperam o onboarding da loja e os botões no portal e nos apps (N1, N3, N4 em
-  [orquestracao-admin.md](orquestracao-admin.md)).
+- ~~**Nenhum estabelecimento consegue se cadastrar**~~ — resolvido em
+  2026-09-12: a Edge Function `create-establishment` cria a loja `pending` e o
+  vínculo de dono, e o portal faz cadastro, análise, correção e reenvio. Ver
+  [portal.md](portal.md).
+- ~~**As filas do admin só enchem pelo banco**~~ — resolvido: cadastro pelo
+  portal, denúncia e chamado pelo app da loja, chamado pelo app do cliente e
+  interessado pela landing.
+- **Avisos: infraestrutura pronta, provedores pendentes** (2026-09-17). Os
+  eventos (reserva, fila, chamado, cadastro, denúncia, interessado) já enchem a
+  caixa de saída e o despacho entrega por Expo Push e Resend/Postmark — mas só
+  com os secrets configurados; sem eles os avisos ficam `unconfigured`, não se
+  perdem. Os dois apps já registram e removem o token. Ver
+  [notificacoes.md](notificacoes.md). **Depende da escolha do provedor de
+  e-mail e das credenciais do Expo.**
+- **O negócio ainda não cobra nada.** Planos, cota, preço e comissão existem, e
+  o portal mostra o plano; faltam assinatura, fatura, webhook e repasse.
+  **Depende da escolha do provedor de pagamento.**
+- ~~**Oito ajustes da tela Configurações do portal** gravam, mas nenhuma
+  superfície lê ainda.~~ — os seis de fila (entrada de longe, QR, fila por
+  profissional, fechar quando encher, pular quem não responde, aviso na vez)
+  atuam no banco desde 2026-09-17 ([notificacoes.md](notificacoes.md#os-ajustes-da-fila-atuam)).
+  Sinal reembolsável e pagamento pelo app saíram das telas até existir o
+  provedor de pagamento.
 - ~~**O app cliente ainda mostra cidade**~~ — resolvido em 2026-09-12: o
   seletor da home saiu, os textos falam em "perto de você" e a cidade é
   resolvida sem interface. Ver [mobile-cliente.md](mobile-cliente.md#sem-cidade-na-interface).
@@ -73,24 +95,33 @@ confirmação de chegada (0007) e o gatilho que impede a loja de se aprovar (000
 `packages/mobile-kit` nasceu aqui, cumprindo a R8.
 
 **Ficou de fora, e continua valendo como trabalho:** cadastrar profissional,
-editar escala e ligar serviço a pessoa — é trabalho do portal (item 2). Envio de
-foto depende do Storage. E os sete interruptores marcados como "ainda não atua"
+editar escala e ligar serviço a pessoa — é trabalho do portal (item 2), e o app
+abre o portal nessas telas. Foto do perfil, plano real, situação da aprovação e
+deep links entraram em 2026-09-17. E os sete interruptores marcados como "ainda não atua"
 esperam a peça que vai lê-los.
 
-### 2. Portal do estabelecimento — `portal` ⟵ **fundação entregue**
+### 2. Portal do estabelecimento — `portal` ⟵ **cadastro e negócio entregues**
 
 Login, sessão, escolha da loja, guarda de papel e contrato de dados/ações já
 estão ligados ao Supabase. “Primeiros passos” calcula o progresso pelos dados
 reais. As seções futuras não mostram mais o fixture do canvas: ficam vazias e
 identificam P5/P6 até a integração chegar. Detalhes em [portal.md](portal.md).
 
-Continua faltando o cadastro operacional do que hoje só existe por SQL:
-profissionais, quem faz o quê, horário de funcionamento, jornadas e exceções.
-Serviços nascem no onboarding, mas a manutenção completa também é P6.
+~~Continua faltando o cadastro operacional do que hoje só existe por SQL~~ —
+entregue em 2026-09-12 (P6): serviços, profissionais, quem faz o quê,
+funcionamento, jornadas, exceções, perfil público com foto, regras da loja,
+plano (leitura) e financeiro do que existe. Detalhe em
+[portal.md](portal.md#cadastro-e-negócio-p6).
 
-**Cuidado:** mudar duração de serviço ou jornada **muda a grade de horários** e
-pode invalidar reserva futura já vendida. Decida o que acontece com quem já
-marcou antes de permitir a edição.
+**A R9 tem resposta.** `schedule_change_impact()` e `block_impact()` listam, no
+Postgres, a reserva viva e futura que a jornada proposta deixaria de fora; o
+portal mostra a lista antes de salvar e troca o botão por "Salvar mesmo assim".
+Salvar não cancela nada — a reserva continua na agenda, e quem editou foi
+avisado. Duração e preço são congelados no ato da reserva.
+
+A operação (Visão geral, Agenda, Fila, Clientes, Novo agendamento) é a P5. O
+convite de conta nova usa a Edge Function `establishment-invite`; a tela da
+equipe e a rota `/convite` foram ligadas em 2026-09-18.
 
 **Pronto quando:** um dono de barbearia publica a loja inteira sem ajuda.
 
@@ -141,13 +172,14 @@ Ver [decisions/0004](decisions/0004-catalogo-disponibilidade-fila.md), decisão 
 - **SMTP.** Sem provedor real, o Supabase hospedado manda ~3 e-mails por hora e
   ninguém se cadastra. É o item operacional mais urgente.
 - **Crédito da OpenAI.** A chave está configurada e válida; a conta está sem
-  saldo. Ver [assistente.md](assistente.md).
-- **Notificações push.** A fila só atualiza com o app aberto — que é justamente
-  quando o usuário não está olhando. Vale também para lembrete de reserva. Do
-  lado da loja, é o que destrava sete interruptores já gravados: aviso na vez,
-  canal do aviso e as quatro preferências de `member_notification_prefs`.
-- **Excluir conta (LGPD).** Precisa de Edge Function (RLS não apaga
-  `auth.users`) e de uma decisão sobre o histórico de reservas.
+  saldo. Ver [assistente.md](assistente.md). O assistente faz parte do
+  lançamento e é a última frente a ser concluída.
+- **Notificações push.** Os dois apps pedem permissão, registram e removem o
+  token e mostram a entrega dos últimos avisos. Para sair do estado
+  “não configurado” ainda faltam as credenciais externas do Expo
+  (`PUSH_PROVIDER=expo` e o project id do EAS).
+- ~~**Excluir conta (LGPD).**~~ — entregue: `delete-account` exige login
+  recente, cancela reservas futuras, anonimiza e limpa os metadados do Auth.
 - **Deep links.** Quando houver domínio, dá para somar o link mágico ao lado do
   código de 6 dígitos, sem tocar nas telas de auth.
 
@@ -155,24 +187,35 @@ Ver [decisions/0004](decisions/0004-catalogo-disponibilidade-fila.md), decisão 
 
 Nenhuma bloqueia o ciclo; todas incomodam.
 
-| Falta                   | Onde                                          |
-| ----------------------- | --------------------------------------------- |
-| `app/reserva/[id].tsx`  | detalhe e remarcar — hoje só cancelar no card |
-| `app/perfil/editar.tsx` | editar nome e telefone                        |
-| Fotos da loja           | tabela existe, upload não                     |
-| Busca por proximidade   | coordenadas guardadas, ordenação não usa      |
-| Histórico do assistente | tabelas guardam, tela abre vazia              |
-| `vzrise`                | animação de entrada que o canvas previa       |
+Todas fechadas em 2026-09-17/18, menos a animação:
 
-### 8. Landing
+| Item                    | Estado                                                 |
+| ----------------------- | ------------------------------------------------------ |
+| Detalhe e remarcação    | ✅ `app/reserva/[id].tsx` e `remarcar.tsx`             |
+| Dados, endereços etc.   | ✅ `app/conta/*` (dados, endereços, favoritos, avisos) |
+| Fotos da loja           | ✅ upload no app da loja, com RLS no Storage           |
+| Busca por proximidade   | ✅ ordenação por distância                             |
+| Histórico do assistente | pendente — entra na frente da IA, a última             |
+| `vzrise`                | pendente — animação de entrada do canvas               |
 
-O canvas está implementado ([funcionalidades.md](funcionalidades.md#landing--landing)).
-Falta o que a liga ao resto:
+### 8. Landing ✅ **entregue**
 
-| Falta                           | Depende de                                            |
-| ------------------------------- | ----------------------------------------------------- |
-| Formulário gravar o interessado | tabela de interessados ou a Edge Function de cadastro |
-| "Entrar" levar ao portal        | login no portal                                       |
+O canvas está implementado ([funcionalidades.md](funcionalidades.md#landing--landing))
+e o que ligava a página ao resto entrou em 12 de setembro de 2026:
+
+- o formulário grava em `public.leads` pela RPC `submit_lead` (`anon`, sem
+  política de INSERT, com validação e freio contra abuso por número);
+- "Entrar" e "Cadastrar minha loja" vão para o portal, por
+  `NEXT_PUBLIC_PORTAL_URL` (padrão `http://localhost:3001`);
+- a equipe lê e tria os interessados em `Admin › Interessados`.
+
+O que ficou de fora, e por quê:
+
+| Falta                                   | Depende de                                |
+| --------------------------------------- | ----------------------------------------- |
+| Aviso à equipe quando chega interessado | provedor de e-mail transacional (N6)      |
+| Revisão jurídica de termos/privacidade  | advogado; o texto descreve o produto real |
+| Razão social, CNPJ e links das lojas    | preencher `NEXT_PUBLIC_*` no deploy       |
 
 ---
 
@@ -207,6 +250,44 @@ Duas que este documento acrescenta:
 4. Ligar a tela; apagar a fixture (R3).
 5. `pnpm typecheck && pnpm lint && pnpm build && pnpm db:check-rls`.
 6. Atualizar este documento e registrar a decisão em `docs/decisions/`.
+
+## Checklist de lançamento
+
+Validado localmente em 2026-09-18, com `db:reset` do zero:
+
+| Verificação                                   | Resultado                   |
+| --------------------------------------------- | --------------------------- |
+| `pnpm db:reset && pnpm db:demo`               | ✅                          |
+| `supabase db lint --local`                    | ✅ sem erros                |
+| `pnpm db:check-rls`                           | ✅ todas as tabelas com RLS |
+| `pnpm db:test:behavior` (matriz de segurança) | ✅ `launch-security: OK`    |
+| `pnpm typecheck` / `pnpm lint`                | ✅ 7 pacotes                |
+| Testes (`pnpm -r test`)                       | ✅ 73 testes, 0 falhas      |
+| `pnpm build`                                  | ✅ landing, portal, admin   |
+
+A matriz em `supabase/tests/launch-security.sql` cobre os achados da auditoria:
+cliente não mexe em `joined_at` nem em colunas da reserva, não remarca reserva
+de balcão, não vê IDs alheios em `queue_state` e não assume token de push de
+outra conta; `establishment_add_member` não é executável por `authenticated`;
+convite só vira vínculo no aceite; aviso vencido não é entregue.
+
+**O que falta, tudo fora do código:**
+
+- [ ] `supabase db push` no projeto hospedado e deploy das Edge Functions.
+- [ ] SMTP real no Auth do Supabase (item 6).
+- [ ] Secrets dos avisos: `NOTIFICATIONS_DISPATCH_SECRET` (≥ 32 caracteres),
+      `PUSH_PROVIDER=expo`, `EMAIL_PROVIDER` e a chave do provedor — ver
+      [notificacoes.md](notificacoes.md).
+- [ ] Project id do EAS nos dois apps, `expo prebuild` e builds de loja.
+- [ ] `NEXT_PUBLIC_*` da landing: razão social, CNPJ, links das lojas.
+- [ ] Revisão jurídica de termos e privacidade.
+- [ ] Verificação de assinatura/antivírus nos anexos de suporte: o banco
+      garante tipo declarado coerente com a extensão, não o conteúdo real.
+
+- [ ] Assistente (IA): concluir a implementação — última frente antes do
+      lançamento — e colocar crédito na conta da OpenAI.
+
+Fora do lançamento por decisão: pagamento pelo app.
 
 ## Estado para retomar
 

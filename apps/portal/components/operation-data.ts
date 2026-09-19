@@ -202,9 +202,7 @@ export async function loadPortalOperationData(
         .in("professional_id", professionalIds)
     : { data: [], error: null };
   if (actualLinksResult.error) {
-    throw new Error(
-      `Falha ao carregar serviços da equipe: ${actualLinksResult.error.message}`,
-    );
+    throw new Error(`Falha ao carregar serviços da equipe: ${actualLinksResult.error.message}`);
   }
   const links = actualLinksResult.data ?? [];
 
@@ -215,6 +213,9 @@ export async function loadPortalOperationData(
   const appointments = Array.from(new Map(mapped.map((row) => [row.id, row])).values())
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
     .map(appointment);
+  const pendingAppointments = ((pendingResult.data ?? []) as unknown as AppointmentRow[]).map(
+    appointment,
+  );
 
   const professionals: OperationProfessional[] = (professionalsResult.data ?? []).map((row) => ({
     id: row.id,
@@ -261,6 +262,7 @@ export async function loadPortalOperationData(
       finalized30: summary.finalized_30,
     },
     appointments,
+    pendingAppointments,
     professionals,
     services,
     queue: mapQueueRows(

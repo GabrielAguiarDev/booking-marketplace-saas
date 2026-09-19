@@ -10,6 +10,7 @@ export function Sidebar({ screen, go }: { screen: ScreenId; go: (id: NavId) => v
   // os números do menu saem do dado; zero some, em vez de mostrar "0"
   const counts: Partial<Record<NavId, number>> = {
     approvals: data.applications.length,
+    leads: data.leads.filter((lead) => lead.status === "new").length,
     reviews: data.reports.length,
     finance: data.invoices.filter((i) => i.status === "overdue").length,
     support: data.tickets.filter((ticket) => ticket.status !== "resolved").length,

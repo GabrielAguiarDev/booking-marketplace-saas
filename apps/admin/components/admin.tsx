@@ -10,6 +10,7 @@ import { Customers } from "./customers";
 import { TITLES, type NavId, type ScreenId } from "./data";
 import { EstablishmentDetail, Establishments } from "./establishments";
 import { Finance } from "./finance";
+import { Leads } from "./leads";
 import { AccessModal, CityModal, PlanImpactModal } from "./modals";
 import { bannerState, day, type AccessSession, type AdminData } from "./model";
 import { Overview } from "./overview";
@@ -84,10 +85,9 @@ function Shell() {
   const activeAccess =
     accessSession?.establishmentId === estabId && !expiredAccess.has(accessSession.id)
       ? accessSession
-      : data.accessSessions.find(
-          (session) =>
-            session.establishmentId === estabId && !expiredAccess.has(session.id),
-        ) ?? null;
+      : (data.accessSessions.find(
+          (session) => session.establishmentId === estabId && !expiredAccess.has(session.id),
+        ) ?? null);
 
   const openConsole = (session: AccessSession) => {
     setEstabId(session.establishmentId);
@@ -137,6 +137,7 @@ function Shell() {
               key={focus?.screen === "approvals" ? focus.id : "approvals"}
             />
           ) : null}
+          {screen === "leads" ? <Leads /> : null}
           {screen === "estab" ? <Establishments onOpen={openEstablishment} /> : null}
           {screen === "estabDetail" ? (
             <EstablishmentDetail
@@ -225,6 +226,12 @@ function subtitleOf(screen: ScreenId, data: AdminData): string | null {
       return data.applications.length
         ? `${plural(data.applications.length, "solicitação aguardando", "solicitações aguardando")}`
         : "Nenhuma solicitação aguardando";
+    case "leads": {
+      const queue = data.leads.filter((lead) => lead.status === "new").length;
+      return queue
+        ? `${plural(queue, "contato esperando", "contatos esperando")} · pedido pela landing`
+        : "Nenhum contato esperando";
+    }
     case "estab": {
       const active = data.establishments.filter((e) => e.status === "active").length;
       return `${plural(active, "ativo", "ativos")} · ${data.establishments.length} no total`;

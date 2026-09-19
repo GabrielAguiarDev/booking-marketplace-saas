@@ -1,18 +1,24 @@
 import { useRouter } from "expo-router";
+import { useMemo } from "react";
 import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 
 import { useSession } from "../../src/auth/session";
 import { CATEGORY, CATEGORY_KEYS } from "../../src/data/catalog";
 import { useCategoryCounts, useEstablishments } from "../../src/data/establishments";
+import { useProximity } from "../../src/data/location";
+import { useCovers } from "../../src/data/photos";
 import { useMyQueueEntry } from "../../src/data/queue";
 import { type Banner, useShowcaseBanners } from "../../src/data/showcase";
-import { useCityId } from "../../src/data/use-cities";
+import { useCity } from "../../src/data/use-cities";
 import { useProfile } from "../../src/data/use-profile";
+import { sortByDistance } from "../../src/domain/geo";
 import { hourMinute } from "@vez/mobile-kit/format";
 import { color } from "../../src/theme/tokens";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { Card, PrimaryButton, PulseDot, SectionHeader, Shimmer } from "../../src/ui/primitives";
+import { ProximityBar } from "../../src/ui/Proximity";
 import { Screen, ScreenScroll } from "../../src/ui/Screen";
+import { ErrorState } from "../../src/ui/States";
 import { Showcase } from "../../src/ui/Showcase";
 import { LojaCard } from "../resultados";
 
@@ -23,9 +29,18 @@ export default function Home() {
 
   // A cidade é resolvida sem interface (MVP sem localidade): a Home não diz
   // onde está, só mostra o que há por perto.
-  const cityId = useCityId();
+  const city = useCity();
+  const cityId = city.id;
 
-  const { data: shops, loading } = useEstablishments(cityId);
+  const shopsQuery = useEstablishments(cityId);
+  const rows = shopsQuery.data;
+  const loading = shopsQuery.loading || city.loading;
+  const error = shopsQuery.error ?? city.error;
+  const reload = city.error ? city.reload : shopsQuery.reload;
+  const proximity = useProximity();
+  const origin = proximity.origin?.coords ?? null;
+  const shops = useMemo(() => (rows ? sortByDistance(rows, origin) : null), [rows, origin]);
+  const covers = useCovers((rows ?? []).map((shop) => shop.id));
   const { data: counts } = useCategoryCounts(cityId);
   const { data: queueEntry } = useMyQueueEntry(Boolean(session));
   // Sem banner no ar, a vitrine não ocupa espaço nem com esqueleto: a Home
@@ -124,11 +139,23 @@ export default function Home() {
 
         <View style={{ gap: 13 }}>
           <SectionHeader title="Perto de você" />
+          {total > 0 ? (
+            <ProximityBar
+              origin={proximity.origin}
+              permission={proximity.permission}
+              locating={proximity.locating}
+              failed={proximity.failed}
+              onRequest={proximity.request}
+              onRetry={proximity.retry}
+            />
+          ) : null}
           {loading ? (
             <View style={{ gap: 11 }}>
               <Shimmer width="100%" height={90} radius={18} />
               <Shimmer width="100%" height={90} radius={18} />
             </View>
+          ) : error ? (
+            <ErrorState error={error} onRetry={reload} what="as lojas" />
           ) : total === 0 ? (
             <Card radius={18} padding={20} style={{ gap: 10 }}>
               <Text style={sans(18, 800, { ls: -0.03 })}>Nenhuma loja por aqui ainda</Text>
@@ -138,7 +165,13 @@ export default function Home() {
             </Card>
           ) : (
             shops!.map((shop) => (
-              <LojaCard key={shop.id} shop={shop} onPress={() => router.push(`/loja/${shop.id}`)} />
+              <LojaCard
+                key={shop.id}
+                shop={shop}
+                coverUrl={covers.get(shop.id) ?? null}
+                distanceKm={shop.distanceKm}
+                onPress={() => router.push(`/loja/${shop.id}`)}
+              />
             ))
           )}
         </View>

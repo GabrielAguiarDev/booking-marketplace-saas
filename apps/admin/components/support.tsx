@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatBytes, type Attachment } from "@vez/supabase/attachments";
 
 import { Check, StatusChip } from "./blocks";
 import type { Chip } from "./data";
@@ -110,8 +111,7 @@ export function Support({
   const queue = data.tickets.slice().sort(byQueue);
   const visible = queue.filter(
     (t) =>
-      (status === "all" ||
-        (status === "queue" ? t.status !== "resolved" : t.status === status)) &&
+      (status === "all" || (status === "queue" ? t.status !== "resolved" : t.status === status)) &&
       (!priority || t.priority === priority) &&
       (owner === "" || (owner === "me" ? t.assignedTo === data.me.id : t.assignedTo === null)),
   );
@@ -193,14 +193,20 @@ export function Support({
                   <code className="ticket-no">#{item.number}</code> {item.subject}
                 </strong>
                 <code style={{ color: waitTone(item) }}>
-                  {waited(item.status === "resolved" ? (item.resolvedAt ?? item.waitingSince) : item.waitingSince)}
+                  {waited(
+                    item.status === "resolved"
+                      ? (item.resolvedAt ?? item.waitingSince)
+                      : item.waitingSince,
+                  )}
                 </code>
               </div>
               <div className="ticket-row-mid">
                 <small>{requesterText(item)}</small>
                 {item.status === "open" ? (
                   <b style={{ color: TICKET_PRIORITY_CHIP[item.priority].fg }}>
-                    {item.priority === "high" ? "Prioridade alta" : TICKET_PRIORITY_LABEL[item.priority]}
+                    {item.priority === "high"
+                      ? "Prioridade alta"
+                      : TICKET_PRIORITY_LABEL[item.priority]}
                   </b>
                 ) : (
                   <b style={{ color: TICKET_STATUS_CHIP[item.status].fg }}>
@@ -218,11 +224,7 @@ export function Support({
       </div>
 
       {ticket ? (
-        <TicketDetail
-          key={ticket.id}
-          onOpenEstablishment={onOpenEstablishment}
-          ticket={ticket}
-        />
+        <TicketDetail key={ticket.id} onOpenEstablishment={onOpenEstablishment} ticket={ticket} />
       ) : (
         <div className="card pad hint">Nenhum chamado com esses filtros.</div>
       )}
@@ -242,8 +244,11 @@ function TicketDetail({
   const answer = useRun(() => setReply(""));
   const change = useRun();
   const thread = useThread(ticket);
+  const attachments = useAttachments(ticket.id);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const resolved = ticket.status === "resolved";
-  const busy = answer.pending || change.pending;
+  const busy = answer.pending || change.pending || uploading;
 
   // Financeiro não atende; convite não aceito ainda não tem conta para trabalhar.
   const agents = data.team.filter(
@@ -319,6 +324,64 @@ function TicketDetail({
             )}
           </section>
 
+          <section>
+            <p className="field-group-label">Anexos</p>
+            <FormError message={attachments.error ?? attachmentError} />
+            {attachments.rows === null ? (
+              <p className="hint">Carregando anexos…</p>
+            ) : attachments.rows.length === 0 ? (
+              <p className="hint">Nenhum arquivo anexado.</p>
+            ) : (
+              <div className="field-list">
+                {attachments.rows.map((item) => (
+                  <div key={item.id}>
+                    <small>{item.fromStaff ? "Equipe Vez" : requesterText(ticket)}</small>
+                    {item.url ? (
+                      <a href={item.url} rel="noreferrer" target="_blank">
+                        {item.fileName}
+                      </a>
+                    ) : (
+                      <p>{item.fileName}</p>
+                    )}
+                    <code>{formatBytes(item.sizeBytes)}</code>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!resolved ? (
+              <label className="ghost small" style={{ display: "inline-flex", marginTop: 10 }}>
+                {uploading ? "Anexando…" : "Anexar imagem ou PDF"}
+                <input
+                  accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+                  disabled={uploading}
+                  hidden
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (!file) return;
+                    setAttachmentError(null);
+                    setUploading(true);
+                    try {
+                      await actions.uploadTicketAttachment(ticket.id, file);
+                      attachments.reload();
+                    } catch (cause) {
+                      setAttachmentError(
+                        cause instanceof Error
+                          ? cause.message
+                          : "Não foi possível anexar o arquivo.",
+                      );
+                    } finally {
+                      setUploading(false);
+                    }
+                  }}
+                  type="file"
+                />
+              </label>
+            ) : (
+              <p className="hint">Reabra o chamado antes de anexar outro arquivo.</p>
+            )}
+          </section>
+
           <section className="last">
             <label className="field-group-label" htmlFor="ticket-reply">
               Responder
@@ -337,9 +400,8 @@ function TicketDetail({
             <FormError message={answer.error} />
             <div className="reply-actions">
               <p className="hint">
-                O app do cliente mostra a conversa em Perfil › Ajuda, mas ninguém é avisado por
-                e-mail ou push — a pessoa só lê quando abrir o app. O portal da loja ainda não
-                mostra nada. Se for urgente, use o contato ao lado.
+                A resposta aparece no app e entra na fila de aviso por push e e-mail. Se o canal
+                externo ainda não estiver configurado, o aviso fica retido sem se perder.
               </p>
               <button
                 className="ghost"
@@ -554,4 +616,38 @@ function useThread(ticket: Ticket) {
   // Enquanto relê, mostra a versão anterior do mesmo chamado em vez de piscar.
   const shown = state && state.key.startsWith(`${ticket.id}:`) ? state : null;
   return { messages: shown?.messages ?? null, error: shown?.error ?? null };
+}
+
+function useAttachments(ticketId: string) {
+  const { actions } = useAdmin();
+  const [version, setVersion] = useState(0);
+  const [state, setState] = useState<{
+    ticketId: string;
+    rows: Attachment[];
+    error: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    actions.ticketAttachments(ticketId).then(
+      (rows) => live && setState({ ticketId, rows, error: null }),
+      (cause: unknown) =>
+        live &&
+        setState({
+          ticketId,
+          rows: [],
+          error: cause instanceof Error ? cause.message : "Os anexos não carregaram.",
+        }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [actions, ticketId, version]);
+
+  const shown = state?.ticketId === ticketId ? state : null;
+  return {
+    rows: shown?.rows ?? null,
+    error: shown?.error ?? null,
+    reload: () => setVersion((current) => current + 1),
+  };
 }

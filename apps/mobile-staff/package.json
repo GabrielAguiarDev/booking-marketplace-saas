@@ -8,7 +8,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test 'tests/*.test.ts'"
   },
   "dependencies": {
     "@expo-google-fonts/ibm-plex-mono": "0.4.1",
@@ -19,9 +20,13 @@
     "@vez/supabase": "workspace:*",
     "expo": "~57.0.19",
     "expo-constants": "~57.0.17",
+    "expo-device": "~57.0.2",
+    "expo-document-picker": "~57.0.2",
     "expo-font": "~57.0.3",
+    "expo-image-picker": "~57.0.18",
     "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.9",
+    "expo-notifications": "~57.0.19",
     "expo-router": "~57.0.18",
     "expo-secure-store": "~57.0.3",
     "expo-status-bar": "~57.0.1",

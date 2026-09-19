@@ -4,6 +4,8 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "allowJs": true,
+    // Os testes rodam com `node --test`, que importa `.ts` pelo nome inteiro.
+    "allowImportingTsExtensions": true,
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": { "@/*": ["./*"] }

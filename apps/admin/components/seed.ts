@@ -419,6 +419,7 @@ export function seedState(now = Date.now()): AdminData {
     audit,
     banners: [],
     tickets: [],
+    leads: [],
     accessSessions: [],
     accountConsoleAccess: true,
     supportAccess: true,

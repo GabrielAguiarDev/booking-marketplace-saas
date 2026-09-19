@@ -35,6 +35,14 @@ export type Establishment = {
   cancellation_window_minutes: number;
   rating_avg: number | null;
   rating_count: number;
+  /** Motivo da recusa ou da suspensão, escrito pela equipe da Vez. */
+  status_reason: string | null;
+  /** Último envio do cadastro; a correção só vale se for mais nova que ele. */
+  submitted_at: string;
+  plan_id: string | null;
+  plan_changed_at: string | null;
+  discount_percent: number | null;
+  discount_until: string | null;
 };
 
 export type Membership = { establishment: Establishment; role: Role };
@@ -42,7 +50,8 @@ export type Membership = { establishment: Establishment; role: Role };
 const COLUMNS =
   "id, name, slug, status, booking_mode, description, address_line, neighborhood, phone," +
   " accent_color, timezone, slot_interval_minutes, min_lead_minutes, deposit_percent," +
-  " cancellation_window_minutes, rating_avg, rating_count";
+  " cancellation_window_minutes, rating_avg, rating_count, status_reason, submitted_at," +
+  " plan_id, plan_changed_at, discount_percent, discount_until";
 
 type ContextValue = {
   loading: boolean;

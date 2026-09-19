@@ -13,6 +13,7 @@ import { color, radius } from "../../src/theme/tokens";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { BackHeader, Card, OutlineButton, PrimaryButton, Shimmer } from "../../src/ui/primitives";
 import { Screen, ScreenScroll } from "../../src/ui/Screen";
+import { TicketAttachments } from "../../src/ui/TicketAttachments";
 
 /**
  * A conversa de um chamado.
@@ -152,6 +153,11 @@ export default function Chamado() {
                 ))}
               </View>
 
+              <TicketAttachments
+                ticketId={data.ticket.id}
+                writable={data.ticket.status !== "resolved"}
+              />
+
               {/* Chamado resolvido não recebe resposta pela RPC; oferecer o campo
                   seria prometer um envio que o banco recusa. */}
               {data.ticket.status === "resolved" ? (
@@ -198,7 +204,7 @@ export default function Chamado() {
                     background={resposta.trim() === "" ? color.chevron : color.coral}
                   />
                   <Text style={sans(12.5, 400, { lh: 1.5, color: color.muted })}>
-                    A resposta da equipe aparece nesta tela. Ainda não enviamos aviso no celular.
+                    A resposta aparece nesta tela e, com avisos ligados, também chega ao celular.
                   </Text>
                 </View>
               )}

@@ -24,11 +24,8 @@ const CLOSE_AFTER = [30, 60, 90];
 /**
  * Configurações da fila.
  *
- * Cada barbearia trabalha de um jeito, e o produto não escolhe por elas. O que
- * o produto faz é ser honesto sobre o que já vale: os ajustes marcados como
- * "ainda não atua" são gravados no banco e nenhuma superfície os lê ainda.
- * Escondê-los seria mais limpo e menos verdadeiro — quem opera precisa saber
- * onde ainda não pode confiar.
+ * Cada barbearia trabalha de um jeito, e as regras abaixo sao aplicadas pelas
+ * RPCs e pelo gatilho da fila, independentemente da tela usada para operar.
  */
 export default function FilaConfig() {
   const toast = useToast();
@@ -93,7 +90,6 @@ export default function FilaConfig() {
           label="Cliente pode entrar na fila antes de chegar"
           help="Ele pega posição pelo celular e vem depois."
           value={settings.queue_remote_join}
-          pending
           onChange={(next) =>
             save(() => patchSettings({ queue_remote_join: next }), "Ajuste salvo.")
           }
@@ -128,7 +124,6 @@ export default function FilaConfig() {
           label="Entrada por QR code no balcão"
           help="Um cartaz com QR na recepção; o cliente entra sozinho."
           value={settings.queue_qr_enabled}
-          pending
           onChange={(next) =>
             save(() => patchSettings({ queue_qr_enabled: next }), "Ajuste salvo.")
           }
@@ -138,7 +133,6 @@ export default function FilaConfig() {
           label="Uma fila por profissional"
           help="Desligado, todos esperam na mesma fila da loja."
           value={settings.queue_per_professional}
-          pending
           onChange={(next) =>
             save(() => patchSettings({ queue_per_professional: next }), "Ajuste salvo.")
           }
@@ -148,7 +142,6 @@ export default function FilaConfig() {
           label="Fechar a fila quando encher"
           help="Para de aceitar gente nova se a espera passar do tempo abaixo."
           value={settings.queue_auto_close}
-          pending
           onChange={(next) =>
             save(() => patchSettings({ queue_auto_close: next }), "Ajuste salvo.")
           }
@@ -169,7 +162,6 @@ export default function FilaConfig() {
           label="Pular quem não responde"
           help="Depois de dois minutos sem aparecer, passa para o próximo."
           value={settings.queue_auto_skip}
-          pending
           onChange={(next) => save(() => patchSettings({ queue_auto_skip: next }), "Ajuste salvo.")}
         />
 
@@ -177,7 +169,6 @@ export default function FilaConfig() {
           label="Avisar o cliente na vez dele"
           help="Como o aviso chega quando você chama."
           value={settings.queue_notify_enabled}
-          pending
           onChange={(next) =>
             save(() => patchSettings({ queue_notify_enabled: next }), "Ajuste salvo.")
           }
@@ -196,10 +187,9 @@ export default function FilaConfig() {
 
         <View style={{ paddingTop: 22 }}>
           <Caveat>
-            Os ajustes marcados como “ainda não atua” estão gravados na sua loja, mas nenhuma tela
-            os obedece por enquanto — inclusive o aviso na vez, que depende de notificação push, e
-            ela não existe em nenhum dos dois apps ainda. Deixamos ligáveis para você já dizer como
-            quer trabalhar; quando a peça chegar, ela vem ligada do jeito que você deixou.
+            Entrada remota, QR, filas por profissional, fechamento e pulo automaticos ja sao
+            aplicados no banco. O aviso na vez entra na caixa de saida; a entrega depende do canal
+            configurado pela plataforma.
           </Caveat>
         </View>
       </ScreenScroll>

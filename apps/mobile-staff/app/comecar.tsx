@@ -1,14 +1,16 @@
 import { sans } from "@vez/mobile-kit/theme";
 import { useRouter } from "expo-router";
 import { Check } from "lucide-react-native";
-import { Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 
+import { useApplicationState } from "../src/data/application";
 import { useProfessionals, useServices } from "../src/data/catalog";
 import { useEstablishment } from "../src/data/establishment";
 import { setupSteps } from "../src/data/onboarding";
 import { useBusinessHours, useProfessionalSchedules } from "../src/data/schedule";
 import { color } from "../src/theme/tokens";
-import { Card, Caveat, SectionLabel } from "../src/ui/primitives";
+import { portalUrl } from "../src/portal";
+import { Card, Caveat, OutlineButton, SectionLabel } from "../src/ui/primitives";
 import { PlainHeader, Screen, ScreenScroll } from "../src/ui/Screen";
 
 /**
@@ -21,7 +23,8 @@ import { PlainHeader, Screen, ScreenScroll } from "../src/ui/Screen";
  */
 export default function Comecar() {
   const router = useRouter();
-  const { establishment } = useEstablishment();
+  const { establishment, role } = useEstablishment();
+  const application = useApplicationState(establishment);
 
   const id = establishment?.id ?? null;
   const services = useServices(id);
@@ -144,27 +147,49 @@ export default function Comecar() {
         </View>
 
         <View style={{ paddingHorizontal: 20, paddingTop: 26, gap: 10 }}>
-          <SectionLabel>Enquanto isso</SectionLabel>
+          <SectionLabel>
+            {establishment?.status === "active" ? "Enquanto isso" : "Aprovação"}
+          </SectionLabel>
           <Card radius={16} padding={16} background={color.rest} borderColor={color.rest}>
             <Text style={sans(13, 700)}>
               {establishment?.status === "active"
                 ? "Sua loja já aparece nas buscas do app do cliente."
-                : "Ninguém consegue agendar ainda."}
+                : (application?.title ?? "Ninguém consegue agendar ainda.")}
             </Text>
             <Text style={[sans(12.5, 400, { lh: 1.45, color: color.muted }), { marginTop: 4 }]}>
               {establishment?.status === "active"
                 ? "Cada passo acima que faltar tira horários da sua grade — sem escala, por exemplo, a agenda nasce vazia."
-                : "A loja está como pendente. Publicar depende de aprovação da plataforma, e essa etapa ainda não existe em nenhuma superfície."}
+                : (application?.body ?? "")}
             </Text>
+            {application?.ownerAction && role === "owner" ? (
+              <OutlineButton
+                label={application.ownerAction}
+                style={{ marginTop: 12 }}
+                onPress={() =>
+                  void Linking.openURL(portalUrl({ establishmentId: establishment?.id }))
+                }
+              />
+            ) : application?.ownerAction ? (
+              <Text style={[sans(12.5, 600, { lh: 1.45 }), { marginTop: 8 }]}>
+                Só o dono reenvia o cadastro, pelo portal.
+              </Text>
+            ) : null}
           </Card>
         </View>
 
-        <View style={{ paddingTop: 18 }}>
+        <View style={{ paddingTop: 18, gap: 12 }}>
           <Caveat>
-            Os passos 1 e 2 dependem de cadastro que ainda não tem tela aqui — serviço já dá para
-            criar, mas profissional e escala ainda são trabalho do portal web da loja. Este roteiro
-            existe para você saber o que falta, mesmo quando a ferramenta ainda não é esta.
+            Serviço, perfil público e regras dá para fazer aqui. Cadastrar profissional e editar a
+            escala de cada um é pelo portal web da loja, com a mesma conta.
           </Caveat>
+          <View style={{ paddingHorizontal: 20 }}>
+            <OutlineButton
+              label="Abrir o portal"
+              onPress={() =>
+                void Linking.openURL(portalUrl({ establishmentId: establishment?.id }))
+              }
+            />
+          </View>
         </View>
       </ScreenScroll>
     </Screen>

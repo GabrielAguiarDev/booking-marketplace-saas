@@ -25,8 +25,6 @@ const EARNINGS = [
   { name: "Bru", value: "R$ 4.110", pct: 38, tone: "green" },
 ];
 
-const PAYMENTS = ["maquininha", "pix na hora", "dinheiro", "pagamento no app (opcional)"];
-
 export function Features() {
   return (
     <section id="recursos" className="band">
@@ -189,18 +187,12 @@ export function Features() {
 
         <div data-reveal className="payments">
           <div className="payments__text">
-            <h3>Receber pelo app é opcional</h3>
+            <h3>Seu recebimento continua com você</h3>
             <p>
-              Se você prefere continuar recebendo na maquininha, no pix ou em dinheiro, continue. O
-              Vez marca o horário e registra o valor; quem recebe é você, do jeito que já recebe
-              hoje. Pagamento no app existe para quem quer cobrar sinal e reduzir falta.
+              O Vez organiza agenda e fila. Maquininha, pix e dinheiro continuam sendo combinados e
+              recebidos diretamente pelo estabelecimento.
             </p>
           </div>
-          <ul className="mono payments__list">
-            {PAYMENTS.map((p) => (
-              <li key={p}>✓ {p}</li>
-            ))}
-          </ul>
         </div>
       </div>
     </section>

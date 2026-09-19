@@ -42,21 +42,10 @@ function PagamentoConteudo() {
     );
   }
 
-  // A política comercial da loja decide o bloco inteiro: clínica cobra sinal,
-  // barbearia não cobra nada pelo app. Mesmo componente, duas políticas.
-  const depositCents = Math.round((service.price_cents * shop.deposit_percent) / 100);
-  const rows =
-    shop.deposit_percent > 0
-      ? [
-          { k: service.name, v: money(service.price_cents), strong: false },
-          { k: `Sinal agora (${shop.deposit_percent}%)`, v: money(depositCents), strong: true },
-          { k: "Na recepção", v: money(service.price_cents - depositCents), strong: false },
-        ]
-      : [
-          { k: service.name, v: money(service.price_cents), strong: false },
-          { k: "Sinal", v: "NÃO EXIGE", strong: false },
-          { k: "Total no balcão", v: money(service.price_cents), strong: true },
-        ];
+  const rows = [
+    { k: service.name, v: money(service.price_cents), strong: false },
+    { k: "Pagamento", v: "DIRETO NO ESTABELECIMENTO", strong: true },
+  ];
 
   async function confirmar() {
     setBusy(true);
@@ -124,7 +113,7 @@ function PagamentoConteudo() {
         </View>
 
         <View style={{ gap: 11 }}>
-          <Label>VALORES</Label>
+          <Label>VALOR INFORMADO</Label>
           <Card radius={16}>
             {rows.map((row, index) => (
               <Linha
@@ -154,12 +143,6 @@ function PagamentoConteudo() {
           </Card>
         ) : null}
 
-        {/*
-          Nenhuma forma de pagamento aqui ainda: cobrar exige provedor, conta e
-          uma decisão sobre quem recebe. Enquanto isso a reserva é criada e o
-          pagamento acontece no balcão — mostrar PIX e cartão que não cobram
-          nada seria a pior das opções.
-        */}
       </ScreenScroll>
 
       <StickyFooter bottomInset={0}>
@@ -210,7 +193,7 @@ function Linha({
   );
 }
 
-/** Exige conta: pagamento cria compromisso com o estabelecimento. */
+/** Exige conta: confirmar cria um compromisso com o estabelecimento. */
 export default function Pagamento() {
   return (
     <AuthGate>

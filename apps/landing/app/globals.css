@@ -117,6 +117,50 @@ textarea {
   }
 }
 
+/* ── acessibilidade ────────────────────────────────────────── */
+
+/* Foco visível só para quem navega por teclado; o clique não ganha anel. */
+:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.footer :focus-visible {
+  outline-color: #fff;
+}
+
+main:focus {
+  outline: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px 14px;
+  border-radius: 9px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
 /* ── botões e links ────────────────────────────────────────── */
 
 .btn {
@@ -1901,9 +1945,65 @@ textarea {
   font-family: var(--mono);
 }
 
-.field > input:focus {
+.field > select,
+.field > textarea {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.field > textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.field > input:focus,
+.field > select:focus,
+.field > textarea:focus {
   border-color: var(--ink);
   background: #fff;
+}
+
+.field > input:disabled,
+.field > select:disabled,
+.field > textarea:disabled {
+  color: var(--faint);
+  cursor: not-allowed;
+}
+
+.field__optional {
+  color: var(--faint);
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* Recusa da `submit_lead`: texto curto, no lugar onde o dedo já está. */
+.signup__error {
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid #f3c3b6;
+  border-radius: 10px;
+  background: var(--coral-soft);
+  color: var(--coral-ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.signup__done {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.signup__done > b {
+  color: var(--ink);
 }
 
 .signup__fine {
@@ -1911,6 +2011,17 @@ textarea {
   color: var(--faint);
   font-size: 12.5px;
   line-height: 1.5;
+}
+
+.signup__fine a {
+  border-bottom: 1px solid var(--line-2);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.signup__fine a:hover {
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 /* ── rodapé ────────────────────────────────────────────────── */
@@ -1983,4 +2094,156 @@ textarea {
   color: rgb(255 255 255 / 0.35);
   font-family: var(--mono);
   font-size: 11.5px;
+}
+
+/* ── páginas de texto: termos, privacidade, app do cliente ─── */
+
+.doc {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 56px 20px 80px;
+}
+
+.doc__eyebrow {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.doc h1 {
+  margin: 10px 0 12px;
+  font-size: clamp(30px, 5vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.doc__lead {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.doc__meta {
+  margin: 0 0 36px;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.doc h2 {
+  margin: 40px 0 10px;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 80px;
+}
+
+.doc p,
+.doc li {
+  color: #3a3e43;
+  font-size: 15.5px;
+  line-height: 1.7;
+}
+
+.doc ul,
+.doc ol {
+  padding-left: 22px;
+}
+
+.doc a:not(.btn) {
+  border-bottom: 1px solid var(--line-dark);
+  font-weight: 600;
+}
+
+.doc a:not(.btn):hover {
+  border-color: var(--ink);
+}
+
+.doc__card {
+  margin: 20px 0;
+  padding: 18px 20px;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.doc__card > p {
+  margin: 0;
+}
+
+.doc__card > p + p {
+  margin-top: 6px;
+}
+
+.doc__card--warn {
+  border-color: #f0dfa8;
+  background: var(--amber-soft);
+}
+
+.doc__card dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.doc__card dt {
+  color: var(--muted);
+}
+
+.doc__card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.doc__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.doc__steps {
+  counter-reset: step;
+  list-style: none;
+  padding: 0;
+}
+
+.doc__steps > li {
+  position: relative;
+  padding-left: 40px;
+  margin-bottom: 12px;
+}
+
+.doc__steps > li::before {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--coral-soft);
+  color: var(--coral-ink);
+  content: counter(step);
+  counter-increment: step;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 26px;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .doc__card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .doc__card dd {
+    margin-bottom: 8px;
+  }
 }

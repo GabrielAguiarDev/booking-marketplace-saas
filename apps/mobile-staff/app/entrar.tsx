@@ -2,11 +2,12 @@ import { authErrorMessage, emailError, normalizeEmail } from "@vez/mobile-kit/au
 import { sans } from "@vez/mobile-kit/theme";
 import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 
 import { supabase } from "../lib/supabase";
 import { AuthShell } from "../src/auth/AuthShell";
 import { useSession } from "../src/auth/session";
+import { portalUrl } from "../src/portal";
 import { color } from "../src/theme/tokens";
 import { Field } from "../src/ui/Field";
 import { PrimaryButton } from "../src/ui/primitives";
@@ -15,9 +16,8 @@ import { PrimaryButton } from "../src/ui/primitives";
  * Entrar.
  *
  * Não existe "criar conta" aqui, e a ausência é deliberada: quem entra neste
- * app é equipe de uma loja que já existe. Cadastro de estabelecimento ainda não
- * existe em superfície nenhuma (item 3 de proximos-passos.md) — inventar um
- * botão daria a impressão contrária.
+ * app é equipe de uma loja que já existe. A loja nasce no portal web (conta,
+ * cadastro e aprovação pela Vez); o link abaixo leva para lá.
  */
 export default function Entrar() {
   const router = useRouter();
@@ -88,6 +88,17 @@ export default function Entrar() {
             O acesso é dado pelo dono da loja. Se você deveria estar aqui e não consegue entrar,
             fale com ele.
           </Text>
+
+          <Pressable
+            onPress={() => void Linking.openURL(portalUrl({ signup: true }))}
+            hitSlop={8}
+            style={{ alignSelf: "center" }}
+            accessibilityRole="link"
+          >
+            <Text style={sans(13.5, 600, { color: color.coral })}>
+              Ainda não tem loja no Vez? Cadastre no portal
+            </Text>
+          </Pressable>
         </View>
       }
     >

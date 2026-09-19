@@ -8,26 +8,22 @@ import type {
   PortalException,
   PortalFinance,
   PortalMember,
+  PortalInvitation,
   PortalPhoto,
   PortalPlan,
   PortalProfessional,
   PortalSchedule,
   PortalService,
   PortalSettings,
+  PortalCommitments,
 } from "./model";
-
-export const PHOTO_BUCKET = "establishment-photos";
-
-/** Colunas de `establishments` que as seções de cadastro e negócio precisam. */
-export const ESTABLISHMENT_EXTRA_COLUMNS =
-  "slug, accent_color, booking_mode, timezone, slot_interval_minutes, min_lead_minutes," +
-  " deposit_percent, cancellation_window_minutes, rating_avg, rating_count," +
-  " plan_id, plan_changed_at, discount_percent, discount_until";
+import { PHOTO_BUCKET } from "./photo-bucket";
 
 export type CadastroData = {
   services: PortalService[];
   professionals: PortalProfessional[];
   members: PortalMember[];
+  invitations: PortalInvitation[];
   businessHours: PortalBusinessHour[];
   schedules: PortalSchedule[];
   exceptions: PortalException[];
@@ -35,6 +31,7 @@ export type CadastroData = {
   settings: PortalSettings | null;
   business: PortalBusiness;
   finance: PortalFinance;
+  commitments: PortalCommitments;
 };
 
 type PlanRow = {
@@ -63,7 +60,20 @@ function toPlan(row: PlanRow): PortalPlan {
   };
 }
 
-const MONTH_LABEL = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MONTH_LABEL = [
+  "jan",
+  "fev",
+  "mar",
+  "abr",
+  "mai",
+  "jun",
+  "jul",
+  "ago",
+  "set",
+  "out",
+  "nov",
+  "dez",
+];
 
 /** Primeiro dia do mês, `back` meses atrás. */
 function monthStart(now: Date, back: number): Date {
@@ -86,10 +96,16 @@ export async function loadCadastroData(
     plan_changed_at: string | null;
     discount_percent: number | null;
     discount_until: string | null;
+    role: "owner" | "manager" | "staff";
   },
 ): Promise<CadastroData> {
   const now = new Date();
   const financeFrom = monthStart(now, 5);
+
+  const invitationsPromise =
+    establishment.role === "staff"
+      ? Promise.resolve({ data: [], error: null })
+      : supabase.rpc("establishment_invites", { p_establishment_id: establishmentId });
 
   const [
     servicesResult,
@@ -105,6 +121,8 @@ export async function loadCadastroData(
     completedResult,
     depositResult,
     queueResult,
+    futureResult,
+    invitationsResult,
   ] = await Promise.all([
     supabase
       .from("services")
@@ -134,7 +152,9 @@ export async function loadCadastroData(
       .order("opens_at"),
     supabase
       .from("professional_schedules")
-      .select("id, professional_id, weekday, starts_at, ends_at, professionals!inner(establishment_id)")
+      .select(
+        "id, professional_id, weekday, starts_at, ends_at, professionals!inner(establishment_id)",
+      )
       .eq("professionals.establishment_id", establishmentId)
       .order("weekday")
       .order("starts_at"),
@@ -142,7 +162,10 @@ export async function loadCadastroData(
       .from("schedule_exceptions")
       .select("id, professional_id, exception_date, starts_at, ends_at, is_available, reason")
       .eq("establishment_id", establishmentId)
-      .gte("exception_date", new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 10))
+      .gte(
+        "exception_date",
+        new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 10),
+      )
       .order("exception_date"),
     supabase
       .from("establishment_photos")
@@ -179,6 +202,16 @@ export async function loadCadastroData(
       .eq("establishment_id", establishmentId)
       .eq("status", "done")
       .gte("finished_at", monthStart(now, 0).toISOString()),
+    // Reserva viva e futura, por serviço e por profissional. É o número que a
+    // regra R9 precisa mostrar antes de deixar mudar duração ou desativar quem
+    // atende: sem ele o aviso seria uma frase genérica.
+    supabase
+      .from("appointments")
+      .select("service_id, professional_id")
+      .eq("establishment_id", establishmentId)
+      .in("status", ["scheduled", "confirmed"])
+      .gte("starts_at", now.toISOString()),
+    invitationsPromise,
   ]);
 
   for (const [label, result] of [
@@ -195,6 +228,8 @@ export async function loadCadastroData(
     ["faturamento", completedResult],
     ["sinais", depositResult],
     ["fila", queueResult],
+    ["reservas futuras", futureResult],
+    ["convites", invitationsResult],
   ] as const) {
     if (result.error) throw new Error(`Falha ao carregar ${label}: ${result.error.message}`);
   }
@@ -206,7 +241,10 @@ export async function loadCadastroData(
   const byService = new Map<string, string[]>();
   const byProfessional = new Map<string, string[]>();
   for (const link of links) {
-    byService.set(link.service_id, (byService.get(link.service_id) ?? []).concat(link.professional_id));
+    byService.set(
+      link.service_id,
+      (byService.get(link.service_id) ?? []).concat(link.professional_id),
+    );
     byProfessional.set(
       link.professional_id,
       (byProfessional.get(link.professional_id) ?? []).concat(link.service_id),
@@ -248,6 +286,18 @@ export async function loadCadastroData(
       isSelf: row.user_id === userId,
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+
+  const invitations: PortalInvitation[] = (invitationsResult.data ?? []).map((row) => ({
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    role: row.role as "manager" | "staff",
+    professionalId: row.professional_id,
+    status: row.status,
+    sentByAuth: row.sent_by_auth,
+    invitedAt: row.invited_at,
+    acceptedAt: row.accepted_at,
+  }));
 
   const schedules: PortalSchedule[] = (
     (schedulesResult.data ?? []) as unknown as {
@@ -315,7 +365,10 @@ export async function loadCadastroData(
     byServiceRevenue.set(serviceName, serviceBucket);
 
     const professionalName = row.professionals?.display_name ?? "Sem profissional";
-    const professionalBucket = byProfessionalRevenue.get(professionalName) ?? { cents: 0, count: 0 };
+    const professionalBucket = byProfessionalRevenue.get(professionalName) ?? {
+      cents: 0,
+      count: 0,
+    };
     professionalBucket.cents += row.price_cents;
     professionalBucket.count += 1;
     byProfessionalRevenue.set(professionalName, professionalBucket);
@@ -337,9 +390,19 @@ export async function loadCadastroData(
     byProfessional: [...byProfessionalRevenue.entries()]
       .map(([name, value]) => ({ name, ...value }))
       .sort((a, b) => b.cents - a.cents),
-    scheduledDepositCents: (depositResult.data ?? []).reduce((sum, row) => sum + row.deposit_cents, 0),
+    scheduledDepositCents: (depositResult.data ?? []).reduce(
+      (sum, row) => sum + row.deposit_cents,
+      0,
+    ),
     queueCompleted: (queueResult.data ?? []).length,
   };
+
+  const commitments: PortalCommitments = { byService: {}, byProfessional: {} };
+  for (const row of futureResult.data ?? []) {
+    commitments.byService[row.service_id] = (commitments.byService[row.service_id] ?? 0) + 1;
+    commitments.byProfessional[row.professional_id] =
+      (commitments.byProfessional[row.professional_id] ?? 0) + 1;
+  }
 
   const business: PortalBusiness = {
     plan: catalog.find((plan) => plan.id === establishment.plan_id) ?? null,
@@ -353,6 +416,7 @@ export async function loadCadastroData(
     services,
     professionals,
     members,
+    invitations,
     businessHours: (hoursResult.data ?? []).map((row) => ({
       id: row.id,
       weekday: row.weekday,
@@ -373,5 +437,6 @@ export async function loadCadastroData(
     settings: settingsResult.data ?? null,
     business,
     finance,
+    commitments,
   };
 }

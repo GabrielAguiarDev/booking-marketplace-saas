@@ -1,12 +1,14 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 
 import { accentOf, CATEGORY, initialsOfName, shade } from "../../src/data/catalog";
 import { useAvailabilitySummary } from "../../src/data/availability";
+import { useFavoriteIds } from "../../src/data/account";
 import { useEstablishment, useReviews } from "../../src/data/establishments";
 import { joinQueue, useMyQueueEntry } from "../../src/data/queue";
 import { useSession } from "../../src/auth/session";
+import { usableImageUrl } from "../../src/domain/photos";
 import { duration, moneyShort, relativeDays } from "@vez/mobile-kit/format";
 import { useAppState } from "../../src/state/app-state";
 import { color } from "../../src/theme/tokens";
@@ -20,8 +22,10 @@ import {
   Shimmer,
   StickyFooter,
 } from "../../src/ui/primitives";
+import { FavoriteButton } from "../../src/ui/FavoriteButton";
 import { Ring } from "../../src/ui/Ring";
 import { Screen } from "../../src/ui/Screen";
+import { ErrorState } from "../../src/ui/States";
 
 const SHOP_TABS = [
   { key: "servicos", label: "SERVIÇOS" },
@@ -38,6 +42,9 @@ export default function Loja() {
   const [queueError, setQueueError] = useState<string | null>(null);
   const { user } = useSession();
   const { data: myQueue, reload: reloadQueue } = useMyQueueEntry(Boolean(user));
+  const favorites = useFavoriteIds(Boolean(user));
+  const { width } = useWindowDimensions();
+  const [photoIndex, setPhotoIndex] = useState(0);
 
   const { data: shop, loading, error, reload } = useEstablishment(id ?? null);
   const { data: reviews } = useReviews(id ?? null);
@@ -61,11 +68,16 @@ export default function Loja() {
           <Pressable onPress={() => router.back()} hitSlop={12}>
             <Text style={sans(24, 400, { lh: 1 })}>‹</Text>
           </Pressable>
-          <Text style={sans(21, 800, { ls: -0.03 })}>Loja indisponível</Text>
-          <Text style={sans(14.5, 400, { lh: 1.5, color: color.muted })}>
-            Não conseguimos carregar esta loja. Ela pode ter saído do ar.
-          </Text>
-          <PrimaryButton label="Tentar de novo" height={50} onPress={reload} />
+          {error ? (
+            <ErrorState error={error} onRetry={reload} what="esta loja" />
+          ) : (
+            <>
+              <Text style={sans(21, 800, { ls: -0.03 })}>Loja indisponível</Text>
+              <Text style={sans(14.5, 400, { lh: 1.5, color: color.muted })}>
+                Esta loja saiu do ar ou não existe mais.
+              </Text>
+            </>
+          )}
         </View>
       </Screen>
     );
@@ -106,15 +118,68 @@ export default function Loja() {
     <Screen>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View>
-          <Photo
-            duotone={duo2(shade(accent, -0.45), shade(accent, 0.35))}
-            width="100%"
-            height={246}
-            radius={0}
-            mono={initialsOfName(shop.name)}
-            monoSize={34}
-            style={{ padding: 18 }}
-          />
+          {shop.photos.length > 1 ? (
+            // Galeria só quando há mais de uma foto; com uma, a capa basta.
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(event) =>
+                setPhotoIndex(Math.round(event.nativeEvent.contentOffset.x / width))
+              }
+            >
+              {shop.photos.map((photo, index) => (
+                <Photo
+                  key={photo.url}
+                  duotone={duo2(shade(accent, -0.45), shade(accent, 0.35))}
+                  width={width}
+                  height={246}
+                  radius={0}
+                  mono={index === 0 ? initialsOfName(shop.name) : undefined}
+                  monoSize={34}
+                  style={{ padding: 18 }}
+                  uri={photo.url}
+                  alt={photo.alt ?? `Foto ${index + 1} de ${shop.name}`}
+                />
+              ))}
+            </ScrollView>
+          ) : (
+            <Photo
+              duotone={duo2(shade(accent, -0.45), shade(accent, 0.35))}
+              width="100%"
+              height={246}
+              radius={0}
+              mono={initialsOfName(shop.name)}
+              monoSize={34}
+              style={{ padding: 18 }}
+              uri={shop.photos[0]?.url ?? null}
+              alt={shop.photos[0]?.alt ?? `Foto de ${shop.name}`}
+            />
+          )}
+          {shop.photos.length > 1 ? (
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                bottom: 12,
+                alignSelf: "center",
+                flexDirection: "row",
+                gap: 6,
+              }}
+            >
+              {shop.photos.map((photo, index) => (
+                <View
+                  key={photo.url}
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: index === photoIndex ? "#fff" : "rgba(255,255,255,0.5)",
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
           <Pressable
             onPress={() => router.back()}
             style={{
@@ -132,12 +197,20 @@ export default function Loja() {
             <Text style={sans(20, 400)}>‹</Text>
           </Pressable>
 
+          <View style={{ position: "absolute", top: 12, right: 16 }}>
+            <FavoriteButton
+              establishmentId={shop.id}
+              favorite={favorites.data?.has(shop.id) ?? false}
+              onChanged={favorites.reload}
+            />
+          </View>
+
           {freeToday !== null && freeToday > 0 ? (
             <View
               style={{
                 position: "absolute",
                 top: 12,
-                right: 16,
+                right: 64,
                 flexDirection: "row",
                 gap: 7,
                 alignItems: "center",
@@ -321,6 +394,8 @@ export default function Loja() {
                       mono={initialsOfName(pro.display_name)}
                       monoSize={14}
                       center
+                      uri={usableImageUrl(pro.avatar_url)}
+                      alt={`Foto de ${pro.display_name}`}
                     />
                     <View style={{ gap: 3, flex: 1 }}>
                       <Text style={sans(15, 700, { ls: -0.02 })}>{pro.display_name}</Text>

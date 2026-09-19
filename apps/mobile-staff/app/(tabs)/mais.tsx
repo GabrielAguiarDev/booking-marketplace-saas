@@ -49,8 +49,7 @@ export default function Mais() {
           <HubRow
             icon={<CreditCard size={19} color={color.ink} strokeWidth={1.8} />}
             label="Assinatura e plano"
-            sub="Quanto a plataforma cobra de você"
-            tag={{ label: "a definir", tint: color.muted, background: color.rest }}
+            sub="Seu plano na Vez e o que ele inclui"
             onPress={() => router.push("/assinatura")}
           />
           <HubRow

@@ -18,7 +18,13 @@ export default async function Page({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return <PortalAuth key="signed-out" />;
+  // `?mode=signup` é o link "Cadastrar minha loja" da landing: abre direto na
+  // criação de conta, que termina no formulário de cadastro da loja.
+  if (!user) {
+    return (
+      <PortalAuth initialMode={query.mode === "signup" ? "signup" : "login"} key="signed-out" />
+    );
+  }
   if (query.mode === "recovery") return <PortalAuth initialMode="update-password" />;
 
   const requested = typeof query.establishment === "string" ? query.establishment : undefined;

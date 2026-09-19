@@ -72,7 +72,7 @@ export default function Suporte() {
           ]}
         >
           O chamado é da loja: qualquer pessoa da equipe vê a conversa e pode responder. A resposta
-          chega aqui — não por e-mail nem por push, que ainda não existem.
+          chega aqui e também pode gerar aviso, conforme as preferências do aparelho.
         </Text>
 
         {tickets.loading ? (

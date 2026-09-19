@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
 
 import { useSession } from "../../src/auth/session";
 import {
@@ -9,6 +9,7 @@ import {
   useAppointments,
 } from "../../src/data/appointments";
 import { accentOf, initialsOfName, shade } from "../../src/data/catalog";
+import { useCovers } from "../../src/data/photos";
 import { useMyQueueEntry } from "../../src/data/queue";
 import { hourMinute, money, slotLabel } from "@vez/mobile-kit/format";
 import { color } from "../../src/theme/tokens";
@@ -16,6 +17,7 @@ import { mono, sans } from "@vez/mobile-kit/theme";
 import { duo2, Photo } from "../../src/ui/Photo";
 import { Card, OutlineButton, PrimaryButton, Segmented, Shimmer } from "../../src/ui/primitives";
 import { Screen, ScreenScroll } from "../../src/ui/Screen";
+import { ErrorState } from "../../src/ui/States";
 
 type AgendaTab = "prox" | "fila" | "hist";
 
@@ -30,8 +32,18 @@ export default function Agenda() {
   const { session, loading } = useSession();
   const [tab, setTab] = useState<AgendaTab>("prox");
 
-  const { data, loading: loadingAppointments, reload } = useAppointments(Boolean(session));
+  const { data, loading: loadingAppointments, error, reload } = useAppointments(Boolean(session));
   const { data: queueEntry } = useMyQueueEntry(Boolean(session));
+  const covers = useCovers(
+    [...(data?.upcoming ?? []), ...(data?.history ?? [])].map((item) => item.establishments.id),
+  );
+
+  // Voltar do detalhe (remarcou, cancelou, avaliou) precisa refletir aqui.
+  useFocusEffect(
+    useCallback(() => {
+      if (session) reload();
+    }, [session, reload]),
+  );
 
   // Aba, não tela empilhada: aqui não se redireciona. Trocar o conteúdo por um
   // convite deixa a barra inferior intacta e o usuário decide se quer entrar.
@@ -55,6 +67,8 @@ export default function Agenda() {
         {tab === "prox" ? (
           loadingAppointments ? (
             <Carregando />
+          ) : error ? (
+            <ErrorState error={error} onRetry={reload} what="sua agenda" />
           ) : !data || data.upcoming.length === 0 ? (
             <Vazio
               titulo="Nada marcado"
@@ -64,7 +78,12 @@ export default function Agenda() {
             />
           ) : (
             data.upcoming.map((item) => (
-              <ReservaCard key={item.id} item={item} onChanged={reload} />
+              <ReservaCard
+                key={item.id}
+                item={item}
+                coverUrl={covers.get(item.establishments.id) ?? null}
+                onChanged={reload}
+              />
             ))
           )
         ) : null}
@@ -96,11 +115,19 @@ export default function Agenda() {
         {tab === "hist" ? (
           loadingAppointments ? (
             <Carregando />
+          ) : error ? (
+            <ErrorState error={error} onRetry={reload} what="seu histórico" />
           ) : !data || data.history.length === 0 ? (
             <Vazio titulo="Sem histórico" texto="Seus atendimentos concluídos ficam aqui." />
           ) : (
             data.history.map((item) => (
-              <ReservaCard key={item.id} item={item} historico onChanged={reload} />
+              <ReservaCard
+                key={item.id}
+                item={item}
+                historico
+                coverUrl={covers.get(item.establishments.id) ?? null}
+                onChanged={reload}
+              />
             ))
           )
         ) : null}
@@ -121,10 +148,12 @@ const STATUS_LABEL: Record<string, string> = {
 function ReservaCard({
   item,
   historico = false,
+  coverUrl,
   onChanged,
 }: {
   item: AppointmentRow;
   historico?: boolean;
+  coverUrl: string | null;
   onChanged: () => void;
 }) {
   const router = useRouter();
@@ -135,6 +164,15 @@ function ReservaCard({
   const podeCancelar = ["scheduled", "confirmed"].includes(item.status) && !historico;
   const jaAvaliou = item.reviews !== null;
   const podeAvaliar = item.status === "completed" && !jaAvaliou;
+
+  // Cancelar libera o horário para outra pessoa na hora: não pode ser um toque
+  // acidental no cartão.
+  function confirmarCancelamento() {
+    Alert.alert("Cancelar reserva?", `${item.establishments.name} · ${slotLabel(item.starts_at)}`, [
+      { text: "Manter", style: "cancel" },
+      { text: "Cancelar reserva", style: "destructive", onPress: () => void cancelar() },
+    ]);
+  }
 
   async function cancelar() {
     setBusy(true);
@@ -153,7 +191,14 @@ function ReservaCard({
 
   return (
     <Card radius={18} padding={15} style={{ gap: 13 }}>
-      <View style={{ flexDirection: "row", gap: 13, alignItems: "center" }}>
+      {/* O topo do cartão abre o detalhe: é lá que ficam remarcar, política
+          da loja e o endereço. */}
+      <Pressable
+        onPress={() => router.push(`/reserva/${item.id}`)}
+        accessibilityRole="button"
+        accessibilityLabel={`Detalhes da reserva em ${item.establishments.name}`}
+        style={{ flexDirection: "row", gap: 13, alignItems: "center" }}
+      >
         <Photo
           duotone={duo2(shade(accent, -0.4), shade(accent, 0.35))}
           size={50}
@@ -161,6 +206,8 @@ function ReservaCard({
           mono={initialsOfName(item.establishments.name)}
           monoSize={14}
           center
+          uri={coverUrl}
+          alt={`Foto de ${item.establishments.name}`}
         />
         <View style={{ gap: 4, flex: 1 }}>
           <Text style={sans(15.5, 700, { ls: -0.02 })} numberOfLines={1}>
@@ -170,7 +217,8 @@ function ReservaCard({
             {item.services.name.toUpperCase()} · {item.professionals.display_name.toUpperCase()}
           </Text>
         </View>
-      </View>
+        <Text style={sans(17, 400, { lh: 1, color: color.chevron })}>›</Text>
+      </Pressable>
 
       <View
         style={{
@@ -195,11 +243,20 @@ function ReservaCard({
       ) : null}
 
       {podeCancelar ? (
-        <OutlineButton
-          label={busy ? "Cancelando…" : "Cancelar reserva"}
-          height={42}
-          onPress={busy ? undefined : cancelar}
-        />
+        <View style={{ flexDirection: "row", gap: 9 }}>
+          <OutlineButton
+            label="Remarcar"
+            height={42}
+            style={{ flex: 1 }}
+            onPress={() => router.push({ pathname: "/reserva/remarcar", params: { id: item.id } })}
+          />
+          <OutlineButton
+            label={busy ? "Cancelando…" : "Cancelar"}
+            height={42}
+            style={{ flex: 1 }}
+            onPress={busy ? undefined : confirmarCancelamento}
+          />
+        </View>
       ) : null}
 
       {podeAvaliar ? (

@@ -21,6 +21,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 import { SessionProvider } from "../src/auth/session";
 import { EstablishmentProvider } from "../src/data/establishment";
+import { PushBridge } from "../src/push";
 import { color } from "../src/theme/tokens";
 import { ToastProvider } from "../src/ui/Toast";
 
@@ -86,6 +87,7 @@ export default function RootLayout() {
               <Stack.Screen name="suporte" />
               <Stack.Screen name="chamado/[id]" />
             </Stack>
+            <PushBridge />
           </ToastProvider>
         </EstablishmentProvider>
       </SessionProvider>

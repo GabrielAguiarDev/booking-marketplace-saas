@@ -1,6 +1,8 @@
 import { supabase } from "../../lib/supabase";
 import { useAsync } from "@vez/mobile-kit/async";
+import { rescheduleMessage } from "../domain/reschedule";
 import type { CategoryKey } from "./catalog";
+import { customerDb } from "./customer-db";
 
 export type AppointmentStatus =
   | "scheduled"
@@ -143,7 +145,9 @@ export async function cancelAppointment(
 }
 
 /** Extrai `{code, message}` do corpo do erro da Edge Function, se houver. */
-async function readErrorBody(error: unknown): Promise<{ code: string; message: string } | null> {
+export async function readErrorBody(
+  error: unknown,
+): Promise<{ code: string; message: string } | null> {
   const context = (error as { context?: unknown }).context;
   if (!(context instanceof Response)) return null;
   try {
@@ -183,7 +187,10 @@ export function useProfileStats(userId: string | null) {
           .select("id", { count: "exact", head: true })
           .not("status", "in", `(${CANCELLED.join(",")})`),
         supabase.from("appointments").select("establishment_id").eq("status", "completed"),
-        supabase.from("reviews").select("rating").eq("customer_id", userId ?? ""),
+        supabase
+          .from("reviews")
+          .select("rating")
+          .eq("customer_id", userId ?? ""),
       ]);
 
       const failure = bookings.error ?? completed.error ?? reviews.error;
@@ -201,4 +208,84 @@ export function useProfileStats(userId: string | null) {
     },
     { enabled: userId !== null },
   );
+}
+
+export type AppointmentDetail = AppointmentRow & {
+  notes: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  created_at: string;
+  establishments: AppointmentRow["establishments"] & {
+    address_line: string | null;
+    phone: string | null;
+    cancellation_window_minutes: number;
+    timezone: string;
+    status: string;
+  };
+  services: AppointmentRow["services"] & { price_cents: number };
+  professionals: AppointmentRow["professionals"] & { avatar_url: string | null };
+};
+
+/**
+ * Uma reserva inteira, para a tela de detalhe.
+ *
+ * Nula quando não é da pessoa ou não existe — a RLS (`appointments_select_own`)
+ * não distingue os dois casos, e a tela também não deve distinguir.
+ */
+export function useAppointment(id: string | null) {
+  return useAsync(
+    `appointment:${id}`,
+    async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select(
+          `id, starts_at, ends_at, status, price_cents, deposit_cents, notes, cancelled_at,
+           cancellation_reason, created_at,
+           establishments(id, name, category, accent_color, neighborhood, address_line, phone,
+             cancellation_window_minutes, timezone, status),
+           services(id, name, duration_minutes, price_cents),
+           professionals(id, display_name, avatar_url),
+           reviews(id)`,
+        )
+        .eq("id", id!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data ?? null) as unknown as AppointmentDetail | null;
+    },
+    { enabled: Boolean(id) },
+  );
+}
+
+export type RescheduleResult =
+  | { ok: true; startsAt: string; professionalId: string }
+  | { ok: false; code: string; message: string };
+
+/**
+ * Remarca pela RPC `customer_reschedule_appointment` — que confere dono, janela
+ * da loja e `available_slots()` numa transação só. O código estável do erro
+ * vem em `hint`.
+ */
+export async function rescheduleAppointment(input: {
+  appointmentId: string;
+  startsAt: string;
+  professionalId: string | null;
+}): Promise<RescheduleResult> {
+  const { data, error } = await customerDb.rpc("customer_reschedule_appointment", {
+    p_appointment_id: input.appointmentId,
+    p_starts_at: input.startsAt,
+    ...(input.professionalId ? { p_professional_id: input.professionalId } : {}),
+  });
+
+  if (error) {
+    const code = error.hint ?? (error.code === "P0001" ? "rejected" : "network");
+    return {
+      ok: false,
+      code,
+      message: rescheduleMessage(code, error.code === "P0001" ? error.message : undefined),
+    };
+  }
+
+  const row = (data ?? [])[0];
+  if (!row) return { ok: false, code: "unknown", message: rescheduleMessage(null) };
+  return { ok: true, startsAt: row.starts_at, professionalId: row.professional_id };
 }

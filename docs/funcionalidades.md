@@ -17,7 +17,7 @@ Cinco superfícies sobre um backend Supabase único.
 | `mobile-staff`   | Expo  |  8082 |  9.631 | **Funcional** — tudo vem do banco                 |
 | `portal`         | Next  |  3001 |  8.071 | **Protótipo** — dado fixo, não fala com o banco   |
 | `admin`          | Next  |  3002 |      — | **Funcional** — Auth, leitura e ações no Supabase |
-| `landing`        | Next  |  3000 |  3.229 | **Protótipo** — dado fixo, formulário não envia   |
+| `landing`        | Next  |  3000 |  3.229 | **Funcional** — formulário grava; leva ao portal  |
 
 `packages/mobile-kit` (471 linhas) é o que os dois apps Expo compartilham:
 tokens, tipografia, formatação, `useAsync` e sessão.
@@ -169,9 +169,9 @@ não basta, é preciso ser equipe de alguma loja.
 | Profissionais                   | Leitura (o cadastro é trabalho do portal)                                                          |
 | Horários                        | Funcionamento, jornadas e o gráfico de interseção com `available_slots`                            |
 | Regras                          | Aprovação automática, sinal percentual, janela de cancelamento, antecedência mínima                |
-| Perfil público                  | O que o cliente vê: descrição, endereço, cor                                                       |
+| Perfil público                  | O que o cliente vê: descrição, endereço, cor e fotos (envio e remoção pelo bucket)                 |
 | Financeiro                      | Faturamento, ticket médio, atendimentos e mais vendidos — soma do preço congelado                  |
-| Assinatura                      | **Sem plano.** A tela explica os dois modelos em estudo em vez de inventar número                  |
+| Assinatura                      | Plano real da loja e catálogo de `plans`, só leitura; sem fatura porque não há cobrança            |
 | Ajustes                         | Preferências de aviso da pessoa                                                                    |
 | Avaliações                      | O que o cliente escreveu; dono e gerência pedem revisão à plataforma e respondem ao esclarecimento |
 | Ajuda e suporte                 | Abrir chamado da loja, acompanhar e responder — citando uma reserva se couber                      |
@@ -182,7 +182,7 @@ não basta, é preciso ser equipe de alguma loja.
 do app que muda sem ninguém tocar em nada.
 
 **Lacunas conhecidas:** cadastro de profissional e edição de escala não têm tela
-(é o portal). Upload de foto depende do Storage, que não foi ligado. Sete
+(é o portal, e o app abre o portal nessas telas). Sete
 interruptores gravam e ainda não atuam — esperam a peça que vai lê-los.
 Notificação push não existe, e é a lacuna mais séria: a fila só se move na tela
 com o app aberto.
@@ -264,13 +264,46 @@ compensa (o ponto de virada da tabela).
 | Mensalidade e comissão   | `components/data.ts` — R$ 189 e 6%, props do canvas   |
 | Tabela e ponto de virada | Calculados de mensalidade, comissão e ticket de R$ 60 |
 
-O que a página promete e não entrega:
+### O formulário grava
 
-- **O formulário não envia.** Não existe tabela de interessados nem a Edge
-  Function de cadastro que validaria a cota (ver "Cadastro de loja" abaixo).
-- **"Entrar" aponta para `#entrar`**, âncora que não existe — o portal ainda não
-  tem login.
-- Termos, privacidade, o telefone e o CNPJ do rodapé são texto do canvas.
+"Cadastrar meu estabelecimento" chama `submit_lead` como `anon` e grava em
+`public.leads` (nome, estabelecimento, WhatsApp, tipo de negócio e mensagem, os
+dois últimos opcionais). A tela tem os três estados de verdade: enviando, o erro
+que a função devolveu e o aviso de recebido com o número que a pessoa digitou.
+
+Não há política de INSERT para `anon` na tabela: a escrita é toda pela RPC
+`security definer`, que valida formato e segura abuso em duas camadas — o mesmo
+número em menos de dez minutos recebe de volta o `id` do envio anterior (dedo
+duplo no botão não vira duas linhas na fila), e a partir do quarto envio no
+mesmo dia a função recusa. O telefone é normalizado antes: `+55 47 9…` e
+`47 9…` são a mesma chave.
+
+O `supabase-js` entra por `import()` dentro do envio, e não no topo do módulo:
+sem isso, toda visita pagaria o cliente que quase ninguém usa. A página continua
+estática no build.
+
+Quem lê os interessados é a equipe da plataforma, em `Admin › Interessados`
+([admin.md](admin.md)). Nada sai daqui automaticamente: o contato é humano, pelo
+WhatsApp, e a landing diz isso.
+
+### "Entrar" e "Cadastrar minha loja" levam ao portal
+
+Os dois links apontam para `NEXT_PUBLIC_PORTAL_URL` (padrão
+`http://localhost:3001`): `/` abre o login e `/?mode=signup` abre a criação de
+conta, que termina no cadastro da loja. São dois caminhos declarados: o
+formulário é para quem quer conversar antes; o link do portal, para quem prefere
+fazer sozinho.
+
+### Páginas e dados da empresa
+
+`/termos`, `/privacidade` e `/cliente` (baixar o app, como agendar, fila) são
+páginas reais, estáticas no build. Razão social, CNPJ, endereço, e-mail,
+WhatsApp, canal de privacidade e links das lojas de app vêm de
+`NEXT_PUBLIC_*` (ver `apps/landing/.env.example` e `components/site-config.ts`):
+o que não estiver configurado — ou não passar na validação, como CNPJ com
+dígito errado — some da página em vez de virar exemplo. Sem link de loja, a
+página do app diz que ele ainda não foi publicado. Testes:
+`pnpm --filter @vez/landing test`.
 
 ---
 

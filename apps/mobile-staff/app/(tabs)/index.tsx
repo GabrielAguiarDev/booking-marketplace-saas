@@ -13,6 +13,7 @@ import {
   useAppointments,
   usePending,
 } from "../../src/data/appointments";
+import { useApplicationState } from "../../src/data/application";
 import { onTheWayRows, useEstablishment, waitingRows } from "../../src/data/establishment";
 import { useTodayRevenue } from "../../src/data/finance";
 import { callEntry, finishEntry, type QueueRow } from "../../src/data/queue";
@@ -66,6 +67,7 @@ export default function Hoje() {
   const router = useRouter();
   const toast = useToast();
   const { establishment, settings, queue, queueError } = useEstablishment();
+  const application = useApplicationState(establishment);
   const [accountOpen, setAccountOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   // Três relógios com granularidades diferentes, e a diferença importa: o
@@ -194,12 +196,12 @@ export default function Hoje() {
         ) : null}
         {queueError ? <ErrorNote message={queueError} /> : null}
 
-        {establishment && establishment.status !== "active" ? (
+        {application && application.kind !== "active" ? (
           <Alert
-            tint={color.amber}
-            background={color.amberTint}
-            title="A loja ainda não aparece nas buscas"
-            body="Ela está como pendente. Termine a configuração; a publicação depende da aprovação da plataforma."
+            tint={application.kind === "review" ? color.amber : color.danger}
+            background={application.kind === "review" ? color.amberTint : color.dangerTint}
+            title={`A loja ainda não aparece nas buscas · ${application.title.toLowerCase()}`}
+            body={application.body}
             cta="Ver o que falta"
             onPress={() => router.push("/comecar")}
           />

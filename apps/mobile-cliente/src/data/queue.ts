@@ -113,10 +113,9 @@ export async function joinQueue(input: {
   customerId: string;
   serviceId?: string | null;
 }): Promise<{ ok: boolean; message?: string }> {
-  const { error } = await supabase.from("queue_entries").insert({
-    establishment_id: input.establishmentId,
-    customer_id: input.customerId,
-    service_id: input.serviceId ?? null,
+  const { error } = await supabase.rpc("queue_join", {
+    p_establishment_id: input.establishmentId,
+    p_service_id: input.serviceId ?? undefined,
   });
 
   if (error) {
@@ -129,17 +128,11 @@ export async function joinQueue(input: {
 }
 
 export async function leaveQueue(entryId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("queue_entries")
-    .update({ status: "left" })
-    .eq("id", entryId);
+  const { error } = await supabase.rpc("queue_leave", { p_entry_id: entryId });
   return !error;
 }
 
 export async function confirmArrival(entryId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("queue_entries")
-    .update({ arrived_at: new Date().toISOString() })
-    .eq("id", entryId);
+  const { error } = await supabase.rpc("queue_confirm_arrival", { p_entry_id: entryId });
   return !error;
 }

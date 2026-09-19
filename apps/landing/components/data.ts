@@ -117,7 +117,7 @@ export const PROBLEMS = [
 export const FAQ = [
   {
     q: "Preciso mudar a forma como recebo dos meus clientes?",
-    a: "Não. Maquininha, pix e dinheiro continuam do jeito que estão. O Vez cuida do horário. Se você quiser cobrar sinal para reduzir falta, aí sim o pagamento passa pelo app — e é você que decide isso serviço por serviço.",
+    a: "Não. Maquininha, pix e dinheiro continuam do jeito que estão. O Vez organiza horários e fila; o pagamento continua direto entre você e o cliente.",
   },
   {
     q: "Tem fidelidade ou multa se eu sair?",
@@ -126,10 +126,6 @@ export const FAQ = [
   {
     q: "Já uso outro sistema de agenda. Dá pra trazer meus clientes e horários?",
     a: "Sim. Se você conseguir exportar sua lista de clientes e a agenda dos próximos dias em planilha, a gente importa para você antes de você começar. Muita gente roda os dois em paralelo por duas semanas antes de desligar o antigo, e isso é normal.",
-  },
-  {
-    q: "Quem paga a taxa do cartão?",
-    a: "Se você recebe fora do app, nenhuma taxa passa por nós. Se você optar por receber pelo app, a taxa da operadora é descontada do repasse e aparece linha por linha no extrato: valor do serviço, taxa, valor líquido. A gente não coloca nada em cima dela.",
   },
   {
     q: "Meus clientes precisam baixar o app?",

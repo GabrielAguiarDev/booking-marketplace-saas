@@ -1,5 +1,14 @@
 import { supabase } from "../../lib/supabase";
 import { useAsync } from "@vez/mobile-kit/async";
+import {
+  attachmentMime,
+  attachmentProblem,
+  listAttachments,
+  uploadAttachment,
+  type Attachment,
+} from "@vez/supabase/attachments";
+
+export type { Attachment } from "@vez/supabase/attachments";
 
 /**
  * Chamados de ajuda do cliente.
@@ -128,6 +137,37 @@ export function useTicketThread(ticketId: string | null) {
     },
     { enabled: Boolean(ticketId) },
   );
+}
+
+/** Anexos usam URL assinada curta; cada recarga renova os links. */
+export function useTicketAttachments(ticketId: string | null) {
+  return useAsync(`support-attachments:${ticketId}`, () => listAttachments(supabase, ticketId!), {
+    enabled: Boolean(ticketId),
+  });
+}
+
+export async function addTicketAttachment(
+  ticketId: string,
+  file: { uri: string; name?: string | null; mimeType?: string | null; size?: number | null },
+  current: Attachment[],
+): Promise<Result<null>> {
+  const mime = attachmentMime(file);
+  const problem = attachmentProblem({ mime, size: file.size, count: current.length });
+  if (problem || !mime) return { ok: false, message: problem ?? "Formato não aceito." };
+
+  try {
+    const response = await fetch(file.uri);
+    if (!response.ok) throw new Error("fetch failed");
+    const result = await uploadAttachment(supabase, {
+      ticketId,
+      body: await response.arrayBuffer(),
+      mime,
+      fileName: file.name,
+    });
+    return result.ok ? { ok: true, value: null } : result;
+  } catch {
+    return { ok: false, message: "Não foi possível ler o arquivo. Tente de novo." };
+  }
 }
 
 type Result<T> = { ok: true; value: T } | { ok: false; message: string };

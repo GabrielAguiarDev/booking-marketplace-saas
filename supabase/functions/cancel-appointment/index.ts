@@ -1,4 +1,4 @@
-import { asAdmin, asUser } from "../_shared/client.ts";
+import { asUser } from "../_shared/client.ts";
 import { corsHeaders, fail, json } from "../_shared/cors.ts";
 
 /**
@@ -17,9 +17,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return fail("method_not_allowed", "Use POST.", 405);
 
+  const userClient = asUser(req);
   const {
     data: { user },
-  } = await asUser(req).auth.getUser();
+  } = await userClient.auth.getUser();
   if (!user) return fail("unauthorized", "Entre para cancelar.", 401);
 
   let body: { appointment_id?: string; reason?: string };
@@ -31,51 +32,26 @@ Deno.serve(async (req) => {
 
   if (!body.appointment_id) return fail("missing_fields", "Informe a reserva.");
 
-  const admin = asAdmin();
-
-  const { data: appointment } = await admin
-    .from("appointments")
-    .select("id, customer_id, status, starts_at, deposit_cents, establishment_id")
-    .eq("id", body.appointment_id)
-    .maybeSingle();
-
-  if (!appointment) return fail("not_found", "Reserva não encontrada.", 404);
-  if (appointment.customer_id !== user.id) {
-    // Mesma resposta de "não existe": dizer "existe, mas não é sua" confirma a
-    // existência de uma reserva alheia para quem está sondando ids.
-    return fail("not_found", "Reserva não encontrada.", 404);
+  const { data, error } = await userClient.rpc("customer_cancel_appointment", {
+    p_appointment_id: body.appointment_id,
+    p_reason: body.reason ?? null,
+  });
+  if (error) {
+    if (error.hint === "not_found") return fail("not_found", "Reserva não encontrada.", 404);
+    if (error.hint === "not_cancellable") return fail("not_cancellable", error.message, 409);
+    console.error("cancel-appointment: RPC falhou", error);
+    return fail("update_failed", "Não foi possível cancelar.", 500);
   }
-  if (!["scheduled", "confirmed"].includes(appointment.status)) {
-    return fail("not_cancellable", "Esta reserva não pode mais ser cancelada.", 409);
-  }
-
-  const { data: establishment } = await admin
-    .from("establishments")
-    .select("cancellation_window_minutes")
-    .eq("id", appointment.establishment_id)
-    .maybeSingle();
-
-  const windowMinutes = establishment?.cancellation_window_minutes ?? 0;
-  const minutesUntilStart = (new Date(appointment.starts_at).getTime() - Date.now()) / 60_000;
-  const withinFreeWindow = minutesUntilStart >= windowMinutes;
-
-  const { error: updateError } = await admin
-    .from("appointments")
-    .update({
-      status: "cancelled_by_customer",
-      cancelled_at: new Date().toISOString(),
-      cancellation_reason: body.reason ?? null,
-    })
-    .eq("id", appointment.id);
-
-  if (updateError) return fail("update_failed", "Não foi possível cancelar.", 500);
+  const result = (data ?? [])[0] as
+    | { within_free_window: boolean; deposit_cents: number; minutes_until_start: number }
+    | undefined;
 
   return json({
     cancelled: true,
-    within_free_window: withinFreeWindow,
+    within_free_window: result?.within_free_window ?? false,
     // O app usa isto para dizer se o sinal volta ou não. Quem decide o estorno
     // de fato é a fase de pagamento; aqui só se registra o veredito.
-    deposit_cents: appointment.deposit_cents,
-    minutes_until_start: Math.round(minutesUntilStart),
+    deposit_cents: result?.deposit_cents ?? 0,
+    minutes_until_start: result?.minutes_until_start ?? 0,
   });
 });

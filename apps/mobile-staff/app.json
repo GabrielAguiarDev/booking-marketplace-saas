@@ -14,6 +14,18 @@
     "android": {
       "package": "app.vez.vezstaff"
     },
-    "plugins": ["expo-router", "expo-secure-store"]
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Vez usa suas fotos para você escolher as imagens do perfil público da loja.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }

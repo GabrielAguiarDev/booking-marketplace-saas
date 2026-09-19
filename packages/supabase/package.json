@@ -8,11 +8,13 @@
     "./server": "./src/server.ts",
     "./next": "./src/next.ts",
     "./native": "./src/native.ts",
-    "./types": "./src/database.types.ts"
+    "./types": "./src/database.types.ts",
+    "./attachments": "./src/attachments.ts"
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
+    "test": "node --test 'test/*.test.ts'"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",

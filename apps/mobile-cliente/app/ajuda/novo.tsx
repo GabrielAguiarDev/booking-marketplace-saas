@@ -157,8 +157,8 @@ export default function NovoChamado() {
           />
 
           <Text style={sans(13, 400, { lh: 1.5, color: color.muted })}>
-            A equipe responde dentro do próprio chamado. Como ainda não existe aviso no celular,
-            volte em Perfil › Ajuda para ver a resposta.
+            A equipe responde dentro do próprio chamado. Com avisos ativos, o app também informa
+            quando houver resposta; você sempre pode acompanhar em Perfil › Ajuda.
           </Text>
         </ScreenScroll>
       </KeyboardAvoidingView>

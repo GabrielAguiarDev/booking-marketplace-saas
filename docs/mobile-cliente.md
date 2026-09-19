@@ -65,13 +65,13 @@ Duas Edge Functions em `supabase/functions/`:
 - **`cancel-appointment`** — aplica `cancellation_window_minutes` e devolve
   `within_free_window`, para o app avisar quando foi fora do prazo.
 
-- **`assistant`** — conversa com a OpenAI. Existe como função pelo motivo mais
-  duro de todos: a chave. Bundle de app se abre com um zip. Ver
-  [assistente.md](assistente.md) para ligar, e
-  [decisions/0005](decisions/0005-assistente-openai.md) para o porquê.
+- **`assistant`** — conversa com a OpenAI. Chave só no servidor: bundle de app se abre com um zip.
+  Ver [assistente.md](assistente.md) para ligar. O porquê de ser
+  função está em [decisions/0005](decisions/0005-assistente-openai.md).
 
-Entrar na fila e avaliar vão direto pela RLS: não há preço a congelar, e as
-políticas já expressam a regra inteira.
+Avaliar vai direto pela RLS. Entrar, confirmar chegada e sair da fila passam
+pelas RPCs `queue_join`, `queue_confirm_arrival` e `queue_leave` desde o gate de
+lançamento (2026-09-18): a escrita direta deixava o cliente mexer em `joined_at`.
 
 ## Traduções de CSS para React Native
 

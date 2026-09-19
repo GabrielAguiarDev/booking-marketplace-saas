@@ -1,9 +1,10 @@
 import { sans } from "@vez/mobile-kit/theme";
 import { Redirect } from "expo-router";
 import type { ReactNode } from "react";
-import { Text, View } from "react-native";
+import { Linking, Text, View } from "react-native";
 
 import { useEstablishment } from "../data/establishment";
+import { portalUrl } from "../portal";
 import { color } from "../theme/tokens";
 import { EmptyState } from "../ui/primitives";
 import { Screen } from "../ui/Screen";
@@ -40,7 +41,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <View style={{ flex: 1, justifyContent: "center" }}>
           <EmptyState
             title="Esta conta não é equipe de nenhuma loja"
-            body="O app do estabelecimento é para quem atende. Peça ao dono da loja para incluir seu e-mail na equipe — o cadastro de estabelecimento ainda não existe no app."
+            body="Se você trabalha numa loja, peça ao dono para incluir seu e-mail na equipe pelo portal. Se a loja é sua, cadastre-a no portal web com esta mesma conta: depois da aprovação da Vez, ela aparece aqui."
+            action="Cadastrar minha loja no portal"
+            onAction={() => void Linking.openURL(portalUrl())}
           />
           <Text
             style={[

@@ -1,6 +1,6 @@
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { useMemo, useState } from "react";
-import { type DimensionValue, Text, View } from "react-native";
+import { type DimensionValue, Linking, Text, View } from "react-native";
 
 import { useAppointments } from "../src/data/appointments";
 import { useProfessionals, useServices } from "../src/data/catalog";
@@ -11,8 +11,9 @@ import {
   useProfessionalSchedules,
 } from "../src/data/schedule";
 import { clockFromTime, minutesLabel, weekdayLong } from "../src/format";
+import { portalUrl } from "../src/portal";
 import { color } from "../src/theme/tokens";
-import { Card, Caveat, Pill, SectionLabel } from "../src/ui/primitives";
+import { Card, Caveat, OutlineButton, Pill, SectionLabel } from "../src/ui/primitives";
 import { PlainHeader, Screen, ScreenScroll } from "../src/ui/Screen";
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
@@ -318,9 +319,18 @@ export default function Horarios() {
 
         <View style={{ paddingTop: 18, gap: 12 }}>
           <Caveat>
-            Editar funcionamento, escala e folga ainda não tem tela: hoje isso é cadastro do portal
-            web da loja. O que existe aqui é bloquear um período pontual, na Agenda.
+            Funcionamento, escala de cada profissional e exceções se editam no portal web da loja —
+            lá ele avisa antes de salvar se alguma reserva já vendida fica de fora. Aqui dá para
+            bloquear um período pontual, na Agenda.
           </Caveat>
+          <View style={{ paddingHorizontal: 20 }}>
+            <OutlineButton
+              label="Editar horários no portal"
+              onPress={() =>
+                void Linking.openURL(portalUrl({ establishmentId: establishment?.id }))
+              }
+            />
+          </View>
           <Caveat>
             Não existe intervalo de limpeza entre um atendimento e outro no banco. O que existe é o
             intervalo da grade acima, que é outra coisa: ele diz de quanto em quanto tempo um

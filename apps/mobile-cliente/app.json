@@ -14,6 +14,19 @@
     "android": {
       "package": "app.vez.vezcliente"
     },
-    "plugins": ["expo-router", "expo-secure-store"]
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Vez usa sua localização só para mostrar as lojas mais perto de você. Ela não sai do aparelho.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false
+        }
+      ],
+      "expo-font"
+    ]
   }
 }

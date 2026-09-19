@@ -1,24 +1,40 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { accentOf, CATEGORY, type CategoryKey, initialsOfName, shade } from "../src/data/catalog";
 import { type EstablishmentRow, useEstablishments } from "../src/data/establishments";
-import { useCityId } from "../src/data/use-cities";
+import { useProximity } from "../src/data/location";
+import { useCovers } from "../src/data/photos";
+import { useCity } from "../src/data/use-cities";
+import { formatDistance, sortByDistance } from "../src/domain/geo";
 import { color } from "../src/theme/tokens";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { duo2, Photo } from "../src/ui/Photo";
-import { BackHeader, Card, PrimaryButton, Shimmer } from "../src/ui/primitives";
+import { BackHeader, Card, Shimmer } from "../src/ui/primitives";
+import { ProximityBar } from "../src/ui/Proximity";
 import { Screen, ScreenScroll } from "../src/ui/Screen";
+import { ErrorState } from "../src/ui/States";
 
 export default function Resultados() {
   const router = useRouter();
-  const cityId = useCityId();
+  const city = useCity();
+  const cityId = city.id;
   const params = useLocalSearchParams<{ term?: string; category?: string }>();
 
   const category = (params.category || null) as CategoryKey | null;
   const term = params.term ?? "";
 
-  const { data, loading, error, reload } = useEstablishments(cityId, { category, term });
+  const shopsQuery = useEstablishments(cityId, { category, term });
+  const rows = shopsQuery.data;
+  const error = shopsQuery.error ?? city.error;
+  const loading = shopsQuery.loading || city.loading;
+  const reload = city.error ? city.reload : shopsQuery.reload;
+  const proximity = useProximity();
+  const origin = proximity.origin?.coords ?? null;
+  // A posição nunca sai do aparelho: a ordem por distância é local.
+  const data = useMemo(() => (rows ? sortByDistance(rows, origin) : null), [rows, origin]);
+  const covers = useCovers((rows ?? []).map((shop) => shop.id));
 
   const titulo = category ? CATEGORY[category].label : term ? `"${term}"` : "Resultados";
 
@@ -34,12 +50,7 @@ export default function Resultados() {
             <Shimmer width="100%" height={96} radius={18} />
           </View>
         ) : error ? (
-          <Card radius={16} padding={18} style={{ gap: 12 }}>
-            <Text style={sans(14.5, 400, { lh: 1.5, color: color.body })}>
-              Não conseguimos carregar a busca.
-            </Text>
-            <PrimaryButton label="Tentar de novo" height={44} onPress={reload} />
-          </Card>
+          <ErrorState error={error} onRetry={reload} what="a busca" />
         ) : !data || data.length === 0 ? (
           <Card radius={16} padding={20} style={{ gap: 10 }}>
             <Text style={sans(18, 800, { ls: -0.03 })}>Nada encontrado</Text>
@@ -54,8 +65,22 @@ export default function Resultados() {
             <Text style={mono(10, 600, { ls: 0.1, color: color.muted })}>
               {data.length} {data.length === 1 ? "LOJA" : "LOJAS"}
             </Text>
+            <ProximityBar
+              origin={proximity.origin}
+              permission={proximity.permission}
+              locating={proximity.locating}
+              failed={proximity.failed}
+              onRequest={proximity.request}
+              onRetry={proximity.retry}
+            />
             {data.map((shop) => (
-              <LojaCard key={shop.id} shop={shop} onPress={() => router.push(`/loja/${shop.id}`)} />
+              <LojaCard
+                key={shop.id}
+                shop={shop}
+                coverUrl={covers.get(shop.id) ?? null}
+                distanceKm={shop.distanceKm}
+                onPress={() => router.push(`/loja/${shop.id}`)}
+              />
             ))}
           </>
         )}
@@ -64,12 +89,25 @@ export default function Resultados() {
   );
 }
 
-export function LojaCard({ shop, onPress }: { shop: EstablishmentRow; onPress: () => void }) {
+export function LojaCard({
+  shop,
+  onPress,
+  coverUrl = null,
+  distanceKm = null,
+}: {
+  shop: EstablishmentRow;
+  onPress: () => void;
+  /** Capa real da loja; sem ela, o duotom com monograma. */
+  coverUrl?: string | null;
+  /** Distância até a origem de "perto de você", quando conhecida. */
+  distanceKm?: number | null;
+}) {
+  const distance = formatDistance(distanceKm);
   const accent = accentOf(shop);
   const category = CATEGORY[shop.category];
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={shop.name}>
       <Card
         radius={18}
         padding={13}
@@ -82,6 +120,8 @@ export function LojaCard({ shop, onPress }: { shop: EstablishmentRow; onPress: (
           mono={initialsOfName(shop.name)}
           monoSize={16}
           center
+          uri={coverUrl}
+          alt={`Foto de ${shop.name}`}
         />
         <View style={{ gap: 5, flex: 1 }}>
           <Text style={sans(15.5, 700, { ls: -0.02 })} numberOfLines={1}>
@@ -90,6 +130,7 @@ export function LojaCard({ shop, onPress }: { shop: EstablishmentRow; onPress: (
           <Text style={mono(9.5, 400, { ls: 0.05, color: color.muted })} numberOfLines={1}>
             {category.label.toUpperCase()}
             {shop.neighborhood ? ` · ${shop.neighborhood.toUpperCase()}` : ""}
+            {distance ? ` · ${distance.toUpperCase()}` : ""}
           </Text>
           <View style={{ flexDirection: "row", gap: 9, alignItems: "center" }}>
             {shop.rating_count > 0 ? (

@@ -8,6 +8,7 @@ import type {
   AdminData,
   Banner,
   Establishment,
+  Lead,
   Param,
   PlanDef,
   RecentReview,
@@ -83,6 +84,7 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     auditResult,
     bannersResult,
     ticketsResult,
+    leadsResult,
     accessSessionsResult,
   ] = await Promise.all([
     supabase.rpc("admin_cities"),
@@ -103,6 +105,7 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     supabase.rpc("admin_audit"),
     supabase.rpc("admin_showcase_banners"),
     supabase.rpc("admin_support_tickets"),
+    supabase.rpc("admin_leads"),
     supabase.rpc("admin_active_access_sessions"),
   ]);
 
@@ -437,6 +440,23 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     })),
   };
 
+  const leads: Lead[] = rows(leadsResult, "interessados").map((lead) => ({
+    id: lead.id,
+    name: lead.name,
+    establishmentName: lead.establishment_name,
+    contact: lead.contact,
+    // `null` é quem preferiu contar o ramo na conversa, e não um erro de leitura.
+    category: lead.category ? categoryLabel(lead.category) : "",
+    message: lead.message ?? "",
+    source: lead.source,
+    status: lead.status,
+    handledBy: lead.handled_by,
+    handledAt: lead.handled_at,
+    handledNote: lead.handled_note ?? "",
+    previousAttempts: lead.previous_attempts,
+    createdAt: lead.created_at,
+  }));
+
   return {
     overview,
     me: { id: me.id, name: me.name, role: ROLE_LABEL[me.role], roleKey: me.role },
@@ -462,6 +482,7 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     audit,
     banners,
     tickets,
+    leads,
     accessSessions,
     accountConsoleAccess,
     supportAccess,

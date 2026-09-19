@@ -81,7 +81,8 @@ dia de hoje ficam separados de propósito:
 pnpm db:demo
 ```
 
-Contas criadas, todas com senha `senha-forte-123`:
+Contas criadas, todas com senha `senha-forte-123` (roteiros de teste e
+endereços de cada superfície em [contas-de-teste.md](contas-de-teste.md)):
 
 | Conta               | Papel                                            |
 | ------------------- | ------------------------------------------------ |
@@ -108,6 +109,20 @@ pnpm db:stop        # derruba o stack
 `database.types.ts` é **gerado**, nunca editado à mão. Depois de qualquer
 migration, rode `pnpm db:types` e faça commit do resultado — a build não depende
 do banco estar no ar.
+
+## Edge Functions e avisos
+
+```bash
+cp -n supabase/functions/.env.example supabase/functions/.env   # e preencha
+pnpm exec supabase functions serve --env-file supabase/functions/.env
+```
+
+Os avisos (push, e-mail) só saem com `NOTIFICATIONS_DISPATCH_SECRET` no `.env`
+das funções **e** os dois segredos do Vault que o cron lê. Sem eles nada quebra:
+os avisos ficam na caixa de saída como `pending`/`unconfigured`. Passo a passo,
+secrets de provedor e contratos em [notificacoes.md](notificacoes.md). Depois
+de mudar `supabase/config.toml` (modelo de convite, `verify_jwt`), rode
+`pnpm db:stop && pnpm db:start`.
 
 ## Verificações do monorepo
 

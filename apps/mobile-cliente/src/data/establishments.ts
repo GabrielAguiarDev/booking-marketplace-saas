@@ -1,6 +1,8 @@
 import { supabase } from "../../lib/supabase";
 import { useAsync } from "@vez/mobile-kit/async";
+import { orderedPhotos } from "../domain/photos";
 import type { CategoryKey } from "./catalog";
+import { photoUrl } from "./photos";
 
 const LIST_COLUMNS =
   "id, name, slug, category, accent_color, booking_mode, neighborhood, latitude, longitude, rating_avg, rating_count, deposit_percent";
@@ -32,7 +34,14 @@ export type EstablishmentDetail = EstablishmentRow & {
     duration_minutes: number;
     price_cents: number;
   }[];
-  professionals: { id: string; display_name: string; title: string | null }[];
+  professionals: {
+    id: string;
+    display_name: string;
+    title: string | null;
+    avatar_url: string | null;
+  }[];
+  /** Fotos do perfil público, já em ordem e com a URL pública pronta. */
+  photos: { url: string; alt: string | null }[];
 };
 
 function unwrap<T>(result: { data: T | null; error: { message: string } | null }): T {
@@ -97,14 +106,20 @@ export function useEstablishment(id: string | null) {
           .select(
             `${LIST_COLUMNS}, description, address_line, cancellation_window_minutes, timezone,
              services(id, name, description, duration_minutes, price_cents, sort_order),
-             professionals(id, display_name, title, sort_order)`,
+             professionals(id, display_name, title, avatar_url, sort_order),
+             establishment_photos(storage_path, alt_text, sort_order)`,
           )
           .eq("id", id!)
           .eq("status", "active")
           .maybeSingle(),
-      ) as EstablishmentDetail & {
+      ) as Omit<EstablishmentDetail, "photos"> & {
         services: (EstablishmentDetail["services"][number] & { sort_order: number })[];
         professionals: (EstablishmentDetail["professionals"][number] & { sort_order: number })[];
+        establishment_photos: {
+          storage_path: string;
+          alt_text: string | null;
+          sort_order: number;
+        }[];
       };
 
       // A ordenação de tabela aninhada não é garantida pelo PostgREST; ordenar
@@ -113,6 +128,10 @@ export function useEstablishment(id: string | null) {
         ...data,
         services: [...data.services].sort((a, b) => a.sort_order - b.sort_order),
         professionals: [...data.professionals].sort((a, b) => a.sort_order - b.sort_order),
+        photos: orderedPhotos(data.establishment_photos ?? []).map((photo) => ({
+          url: photoUrl(photo.storage_path),
+          alt: photo.alt_text,
+        })),
       } satisfies EstablishmentDetail;
     },
     { enabled: Boolean(id) },

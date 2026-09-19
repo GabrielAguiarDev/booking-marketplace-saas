@@ -7,7 +7,7 @@ type City = {
 };
 
 /**
- * A cidade que alimenta a busca, as contagens e o assistente — escolhida sem
+ * A cidade que alimenta a busca e as contagens — escolhida sem
  * interface.
  *
  * O MVP não mostra localidade ao cliente: nenhum nome de cidade, seletor ou
@@ -29,7 +29,20 @@ function resolveCity(cities: City[], withShops: Set<string>): City | null {
 
 /** O id da cidade em uso — o que as três telas de descoberta precisam. */
 export function useCityId(): string | null {
-  const { data } = useAsync("current-city", async () => {
+  return useCity().id;
+}
+
+/**
+ * A cidade com estado de erro: sem rede, a resolução falha, e a tela precisa
+ * dizer "sem conexão" em vez de "nenhuma loja por aqui".
+ */
+export function useCity(): {
+  id: string | null;
+  loading: boolean;
+  error: string | null;
+  reload: () => void;
+} {
+  const { data, loading, error, reload } = useAsync("current-city", async () => {
     // As duas leituras são públicas (RLS como `anon`): buscar funciona deslogado.
     const [cities, shops] = await Promise.all([
       supabase.from("cities").select("id, name").eq("is_active", true).order("name"),
@@ -42,5 +55,5 @@ export function useCityId(): string | null {
     return resolveCity(cities.data ?? [], withShops);
   });
 
-  return data?.id ?? null;
+  return { id: data?.id ?? null, loading, error, reload };
 }

@@ -1,5 +1,7 @@
 import type { Database } from "@vez/supabase/types";
 
+import type { PortalOperationData } from "./operation-model";
+
 export type EstablishmentRole = Database["public"]["Enums"]["establishment_role"];
 export type EstablishmentStatus = Database["public"]["Enums"]["establishment_status"];
 export type EstablishmentCategory = Database["public"]["Enums"]["establishment_category"];
@@ -96,6 +98,18 @@ export type PortalMember = {
   isSelf: boolean;
 };
 
+export type PortalInvitation = {
+  id: string;
+  email: string;
+  name: string;
+  role: Exclude<EstablishmentRole, "owner">;
+  professionalId: string | null;
+  status: "pending" | "accepted" | "revoked";
+  sentByAuth: boolean;
+  invitedAt: string;
+  acceptedAt: string | null;
+};
+
 export type PortalBusinessHour = {
   id: string;
   weekday: number;
@@ -170,6 +184,12 @@ export type PortalFinance = {
   queueCompleted: number;
 };
 
+/** Quantas reservas vivas e futuras dependem de cada serviço e de cada pessoa. */
+export type PortalCommitments = {
+  byService: Record<string, number>;
+  byProfessional: Record<string, number>;
+};
+
 export type PortalData = {
   user: { id: string; email: string; name: string };
   establishments: MembershipOption[];
@@ -180,10 +200,13 @@ export type PortalData = {
     decidedAt: string;
   } | null;
   setup: SetupStep[];
+  /* P5 — agenda, fila e histórico operacional */
+  operation: PortalOperationData | null;
   /* P6 — cadastro e negócio */
   services: PortalService[];
   professionals: PortalProfessional[];
   members: PortalMember[];
+  invitations: PortalInvitation[];
   businessHours: PortalBusinessHour[];
   schedules: PortalSchedule[];
   exceptions: PortalException[];
@@ -191,7 +214,63 @@ export type PortalData = {
   settings: PortalSettings | null;
   business: PortalBusiness;
   finance: PortalFinance;
+  commitments: PortalCommitments;
 };
+
+/* ── Entradas das escritas de cadastro e negócio (P6) ───────────────────── */
+
+export type TimeWindow = { startsAt: string; endsAt: string };
+
+export type ServiceInput = {
+  id: string | null;
+  establishmentId: string;
+  name: string;
+  description: string | null;
+  durationMinutes: number;
+  priceCents: number;
+  isActive: boolean;
+  professionalIds: string[];
+};
+
+export type ProfessionalInput = {
+  id: string | null;
+  establishmentId: string;
+  displayName: string;
+  title: string | null;
+  isActive: boolean;
+  userId: string | null;
+  serviceIds: string[];
+};
+
+export type ExceptionInput = {
+  establishmentId: string;
+  professionalId: string | null;
+  date: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  isAvailable: boolean;
+  reason: string | null;
+};
+
+export type PublicProfilePatch = {
+  description: string | null;
+  addressLine: string | null;
+  neighborhood: string | null;
+  phone: string | null;
+  accentColor: string | null;
+};
+
+export type RulesPatch = Partial<{
+  bookingMode: BookingMode;
+  slotIntervalMinutes: number;
+  minLeadMinutes: number;
+  depositPercent: number;
+  cancellationWindowMinutes: number;
+}>;
+
+export type SettingsPatch = Partial<
+  Database["public"]["Tables"]["establishment_settings"]["Update"]
+>;
 
 /** Reserva já vendida que uma mudança de agenda deixaria de fora (regra R9). */
 export type ScheduleImpact = {
@@ -227,15 +306,7 @@ export const BOOKING_MODE_LABEL: Record<BookingMode, string> = {
   both: "Agendamento e fila",
 };
 
-export const WEEKDAY_LABEL = [
-  "Domingo",
-  "Segunda",
-  "Terça",
-  "Quarta",
-  "Quinta",
-  "Sexta",
-  "Sábado",
-];
+export const WEEKDAY_LABEL = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 /** Semana começando na segunda, que é como a loja pensa a própria escala. */
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];

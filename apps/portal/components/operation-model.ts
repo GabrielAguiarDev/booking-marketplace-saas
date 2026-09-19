@@ -1,7 +1,6 @@
 import type { Database } from "@vez/supabase/types";
 
-export type OperationAppointmentStatus =
-  Database["public"]["Enums"]["appointment_status"];
+export type OperationAppointmentStatus = Database["public"]["Enums"]["appointment_status"];
 export type OperationQueueStatus = Database["public"]["Enums"]["queue_status"];
 export type OperationQueueSource = Database["public"]["Enums"]["queue_source"];
 
@@ -87,6 +86,7 @@ export type PortalOperationData = {
     finalized30: number;
   };
   appointments: OperationAppointment[];
+  pendingAppointments: OperationAppointment[];
   professionals: OperationProfessional[];
   services: OperationService[];
   queue: OperationQueueEntry[];
@@ -140,9 +140,5 @@ export type PortalOperationActions = {
   markQueueEntryAbsent: (id: string) => Promise<void>;
   confirmQueueArrival: (id: string) => Promise<void>;
   addWalkIn: (input: WalkInInput) => Promise<void>;
-  reorderQueueEntry: (
-    establishmentId: string,
-    entryId: string,
-    beforeId: string,
-  ) => Promise<void>;
+  reorderQueueEntry: (establishmentId: string, entryId: string, beforeId: string) => Promise<void>;
 };

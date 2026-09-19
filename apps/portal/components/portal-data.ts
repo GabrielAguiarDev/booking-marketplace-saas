@@ -9,6 +9,8 @@ import type {
   PortalEstablishment,
   SetupStep,
 } from "./model";
+import { loadPortalOperationData } from "./operation-data";
+import { loadCadastroData } from "./portal-cadastro-data";
 
 type DbError = { message: string } | null;
 
@@ -32,10 +34,7 @@ export async function loadPortalData(
   requestedEstablishmentId?: string,
 ): Promise<PortalData | null> {
   const [membersResult, profileResult] = await Promise.all([
-    supabase
-      .from("establishment_members")
-      .select("establishment_id, role")
-      .eq("user_id", user.id),
+    supabase.from("establishment_members").select("establishment_id, role").eq("user_id", user.id),
     supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
   ]);
   if (membersResult.error) {
@@ -51,8 +50,10 @@ export async function loadPortalData(
   const ids = memberRows.map((row) => row.establishment_id);
   const establishmentsResult = await supabase
     .from("establishments")
+    // Literal de propósito: o postgrest-js só infere o tipo das linhas quando a
+    // lista de colunas é uma constante de string, não uma concatenação.
     .select(
-      "id, name, status, category, cnpj, legal_name, responsible_name, contact_email, phone, address_line, neighborhood, description, status_reason, submitted_at",
+      "id, name, status, category, cnpj, legal_name, responsible_name, contact_email, phone, address_line, neighborhood, description, status_reason, submitted_at, slug, accent_color, booking_mode, timezone, slot_interval_minutes, min_lead_minutes, deposit_percent, cancellation_window_minutes, rating_avg, rating_count, plan_id, plan_changed_at, discount_percent, discount_until",
     )
     .in("id", ids)
     .order("name");
@@ -84,10 +85,7 @@ export async function loadPortalData(
       .select("id, name, duration_minutes, price_cents, is_active, sort_order")
       .eq("establishment_id", chosen.id)
       .order("sort_order"),
-    supabase
-      .from("professionals")
-      .select("id, is_active")
-      .eq("establishment_id", chosen.id),
+    supabase.from("professionals").select("id, is_active").eq("establishment_id", chosen.id),
     supabase.from("business_hours").select("id").eq("establishment_id", chosen.id),
     supabase
       .from("establishment_decisions")
@@ -141,7 +139,24 @@ export async function loadPortalData(
     statusReason: row.status_reason,
     submittedAt: row.submitted_at,
     services,
+    slug: row.slug,
+    accentColor: row.accent_color,
+    bookingMode: row.booking_mode,
+    timezone: row.timezone,
+    slotIntervalMinutes: row.slot_interval_minutes,
+    minLeadMinutes: row.min_lead_minutes,
+    depositPercent: row.deposit_percent,
+    cancellationWindowMinutes: row.cancellation_window_minutes,
+    ratingAvg: row.rating_avg === null ? null : Number(row.rating_avg),
+    ratingCount: row.rating_count,
   };
+
+  // Cadastro e negócio (P6) carregam depois da loja escolhida: as consultas
+  // precisam do id dela, e sem status ativo a página nem chega até aqui.
+  const [cadastro, operation] = await Promise.all([
+    loadCadastroData(supabase, chosen.id, user.id, { ...row, role: chosen.role }),
+    row.status === "active" ? loadPortalOperationData(supabase, chosen.id) : Promise.resolve(null),
+  ]);
 
   const hasService = (servicesResult.data ?? []).some((service) => service.is_active);
   const hasProfessional = (professionalsResult.data ?? []).some((professional) =>
@@ -197,5 +212,7 @@ export async function loadPortalData(
         }
       : null,
     setup,
+    operation,
+    ...cadastro,
   };
 }

@@ -57,13 +57,13 @@ vale desde a primeira tela.
 | Profissionais    | `professionals` + `establishment_members` + escalas (leitura)                 |
 | Horários         | `business_hours`, `professional_schedules` e **`available_slots`** no gráfico |
 | Regras           | `establishment_settings` + `deposit_percent`, `min_lead_minutes`, janela      |
-| Perfil público   | `establishments`, leitura e escrita                                           |
+| Perfil público   | `establishments` e fotos em `establishment_photos` + bucket                   |
 | Financeiro       | soma de `appointments` concluídos, por período                                |
 | Ajustes          | `member_notification_prefs` + `auth.updateUser`                               |
 | **Avaliações**   | `establishment_reviews()`: avaliação, denúncia e decisão da equipe            |
 | **Ajuda**        | `support_tickets` e `support_ticket_messages` pela RLS de membro              |
 | Começar          | derivado do estado real da loja, sem coluna de progresso                      |
-| **Assinatura**   | **nada** — a tela diz por quê (ver abaixo)                                    |
+| Assinatura       | `establishments.plan_id` + catálogo de `plans`, só leitura, só o dono         |
 
 ### Nenhum cálculo de horário em TypeScript
 
@@ -217,17 +217,35 @@ nunca recebeu uma linha. Faturamento, ticket médio, atendimentos e mais vendido
 são reais — soma do preço congelado de cada atendimento concluído. Repasse,
 retenção e contestação não aparecem porque não existem.
 
-**"Assinatura" não tem plano.** O canvas mostrava Vez Pro por R$ 89/mês, quatro
-faturas pagas e um cartão terminado em 4417. Nada disso existe: monetização é
-decisão em aberto (item 4 de proximos-passos.md). A tela explica os dois modelos
-em estudo em vez de inventar números — R7.
+**"Assinatura" mostra o plano real, sem cobrança.** O canvas mostrava Vez Pro
+por R$ 89/mês, quatro faturas pagas e um cartão terminado em 4417. A tela lê o
+plano que a equipe da Vez definiu na aprovação (`establishments.plan_id`), o
+desconto e o catálogo ativo de `plans` — a mesma leitura da seção Plano do
+portal, e como lá, só para o dono. Fatura, cartão e histórico não aparecem
+porque o provedor de pagamento não existe ainda (R7).
 
-**Cadastro de profissional e edição de escala não têm tela.** São leitura aqui;
-o cadastro é trabalho do portal web da loja (item 2). A tela de Profissionais e
-a de Horários dizem isso.
+**Cadastro de profissional e edição de escala ficam no portal.** São leitura
+aqui; Profissionais, Horários e Começar têm botão que abre o portal
+(`EXPO_PUBLIC_PORTAL_URL`) na loja atual.
 
-**Envio de foto não existe.** O Storage do projeto não foi ligado.
-`establishment_photos` está lá, vazia.
+**Fotos do perfil público.** Envio pela galeria (`expo-image-picker`) para o
+bucket `establishment-photos`, com a mesma regra do portal: caminho
+`<loja>/<arquivo>`, JPG/PNG/WebP até 5 MB, só dono ou gerência. Arquivo primeiro,
+linha depois; se a linha falhar, o arquivo é apagado. Apagar pede confirmação.
+Regras em `src/data/photo-rules.ts`, testadas.
+
+**Aprovação.** Hoje, Começar e Perfil público leem a situação do cadastro como o
+portal: em análise, correção pedida (a decisão mais nova que o último envio),
+recusada ou suspensa, com o motivo escrito pela equipe. Corrigir e reenviar é no
+portal, pelo dono. Conta sem loja vê o caminho para cadastrar no portal.
+
+**Deep links.** Esquema `vezstaff://` sempre; link universal só com
+`EXPO_PUBLIC_STAFF_LINK_HOST` (ver `app.config.ts`). `app/+native-intent.tsx`
+traduz o link para a rota (`/reserva/<id>` → `/agendamento/<id>`, `/plano` →
+`/assinatura`…) e manda o que não reconhece para Hoje. Regras em
+`src/linking-rules.ts`, testadas.
+
+Testes: `pnpm --filter @vez/mobile-staff test` (`node --test`, só módulos puros).
 
 **"R$ 20 fixo" de sinal não existe.** O canvas oferecia sinal fixo ou
 percentual; o schema e a Edge Function calculam percentual. A tela oferece 30% e

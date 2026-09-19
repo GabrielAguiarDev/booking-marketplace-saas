@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import type { DimensionValue, StyleProp, ViewStyle } from "react-native";
-import { Text } from "react-native";
+import { Image, StyleSheet, Text } from "react-native";
 
 import { sans } from "@vez/mobile-kit/theme";
 
@@ -56,6 +56,13 @@ type Props = {
   monoSize?: number;
   /** Centraliza o monograma em vez de ancorar embaixo (cards de profissional). */
   center?: boolean;
+  /**
+   * Foto real (URL pública). Cobre o duotom quando carrega; se falhar, o
+   * duotom com monograma fica — o enquadramento é o mesmo, a tela não salta.
+   */
+  uri?: string | null;
+  /** Texto alternativo para leitor de tela. */
+  alt?: string | null;
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
 };
@@ -69,10 +76,16 @@ export function Photo({
   mono,
   monoSize = 13,
   center = false,
+  uri = null,
+  alt = null,
   style,
   children,
 }: Props) {
   const axis = gradientAxis(duotone.angle);
+  // Guarda qual URL falhou, não um booleano: trocar de foto (outra loja na
+  // mesma célula de lista) precisa tentar de novo sem efeito para resetar.
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+  const showImage = Boolean(uri) && failedUri !== uri;
 
   return (
     <LinearGradient
@@ -93,7 +106,17 @@ export function Photo({
         style,
       ]}
     >
-      {mono ? (
+      {showImage ? (
+        <Image
+          source={{ uri: uri! }}
+          onError={() => setFailedUri(uri)}
+          accessible={Boolean(alt)}
+          accessibilityLabel={alt ?? undefined}
+          resizeMode="cover"
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+      {mono && !showImage ? (
         <Text
           style={sans(monoSize, center ? 700 : 800, {
             ls: center ? 0 : -0.035,

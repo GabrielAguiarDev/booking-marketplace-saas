@@ -2,9 +2,9 @@ import { mono, sans } from "@vez/mobile-kit/theme";
 import { Check, LogOut } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 
-import { supabase } from "../../lib/supabase";
 import { useSession } from "../auth/session";
 import { useEstablishment } from "../data/establishment";
+import { signOut } from "../push";
 import { color } from "../theme/tokens";
 import { Sheet } from "./Sheet";
 
@@ -67,7 +67,7 @@ export function AccountSheet({ visible, onClose }: { visible: boolean; onClose: 
       <Pressable
         onPress={() => {
           onClose();
-          void supabase.auth.signOut();
+          void signOut();
         }}
         style={{
           flexDirection: "row",

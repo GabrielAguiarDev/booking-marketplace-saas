@@ -9,6 +9,35 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_deletions: {
+        Row: {
+          anonymized_reviews: number
+          cancelled_appointments: number
+          requested_at: string
+          user_id: string
+        }
+        Insert: {
+          anonymized_reviews?: number
+          cancelled_appointments?: number
+          requested_at?: string
+          user_id: string
+        }
+        Update: {
+          anonymized_reviews?: number
+          cancelled_appointments?: number
+          requested_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_deletions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_access_sessions: {
         Row: {
           admin_id: string | null
@@ -397,6 +426,62 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_addresses: {
+        Row: {
+          complement: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          is_default: boolean
+          label: string
+          latitude: number | null
+          longitude: number | null
+          neighborhood: string | null
+          number: string | null
+          postal_code: string | null
+          street: string
+          updated_at: string
+        }
+        Insert: {
+          complement?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          is_default?: boolean
+          label: string
+          latitude?: number | null
+          longitude?: number | null
+          neighborhood?: string | null
+          number?: string | null
+          postal_code?: string | null
+          street: string
+          updated_at?: string
+        }
+        Update: {
+          complement?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          latitude?: number | null
+          longitude?: number | null
+          neighborhood?: string | null
+          number?: string | null
+          postal_code?: string | null
+          street?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_addresses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_blocks: {
         Row: {
           blocked_at: string
@@ -427,6 +512,77 @@ export type Database = {
           {
             foreignKeyName: "customer_blocks_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_favorites: {
+        Row: {
+          created_at: string
+          customer_id: string
+          establishment_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          establishment_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          establishment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_favorites_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_favorites_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_notification_prefs: {
+        Row: {
+          appointment_changes: boolean
+          appointment_reminder: boolean
+          customer_id: string
+          marketing: boolean
+          queue_turn: boolean
+          review_request: boolean
+          updated_at: string
+        }
+        Insert: {
+          appointment_changes?: boolean
+          appointment_reminder?: boolean
+          customer_id: string
+          marketing?: boolean
+          queue_turn?: boolean
+          review_request?: boolean
+          updated_at?: string
+        }
+        Update: {
+          appointment_changes?: boolean
+          appointment_reminder?: boolean
+          customer_id?: string
+          marketing?: boolean
+          queue_turn?: boolean
+          review_request?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_notification_prefs_customer_id_fkey"
+            columns: ["customer_id"]
             isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -481,6 +637,89 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      establishment_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          establishment_id: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          name: string
+          professional_id: string | null
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["establishment_role"]
+          sent_by_auth: boolean
+          status: Database["public"]["Enums"]["establishment_invite_status"]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          establishment_id: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          name: string
+          professional_id?: string | null
+          revoked_at?: string | null
+          role: Database["public"]["Enums"]["establishment_role"]
+          sent_by_auth: boolean
+          status?: Database["public"]["Enums"]["establishment_invite_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          establishment_id?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          name?: string
+          professional_id?: string | null
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["establishment_role"]
+          sent_by_auth?: boolean
+          status?: Database["public"]["Enums"]["establishment_invite_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_invitations_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_invitations_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_invitations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -555,6 +794,42 @@ export type Database = {
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      establishment_queue_codes: {
+        Row: {
+          code: string
+          establishment_id: string
+          rotated_at: string
+          rotated_by: string | null
+        }
+        Insert: {
+          code: string
+          establishment_id: string
+          rotated_at?: string
+          rotated_by?: string | null
+        }
+        Update: {
+          code?: string
+          establishment_id?: string
+          rotated_at?: string
+          rotated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_queue_codes_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: true
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_queue_codes_rotated_by_fkey"
+            columns: ["rotated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -854,6 +1129,150 @@ export type Database = {
           },
           {
             foreignKeyName: "member_notification_prefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mfa_recovery_attempts: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          method: string
+          succeeded: boolean
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          method: string
+          succeeded: boolean
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          method?: string
+          succeeded?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mfa_recovery_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          id?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          id?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_outbox: {
+        Row: {
+          app: Database["public"]["Enums"]["notification_app"] | null
+          attempts: number
+          available_at: string
+          body: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at: string
+          data: Json
+          dedupe_key: string | null
+          email: string | null
+          establishment_id: string | null
+          expires_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          locked_at: string | null
+          max_attempts: number
+          phone: string | null
+          provider_message_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["notification_status"]
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          app?: Database["public"]["Enums"]["notification_app"] | null
+          attempts?: number
+          available_at?: string
+          body: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          data?: Json
+          dedupe_key?: string | null
+          email?: string | null
+          establishment_id?: string | null
+          expires_at?: string
+          id?: string
+          kind: string
+          last_error?: string | null
+          locked_at?: string | null
+          max_attempts?: number
+          phone?: string | null
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_status"]
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          app?: Database["public"]["Enums"]["notification_app"] | null
+          attempts?: number
+          available_at?: string
+          body?: string
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          data?: Json
+          dedupe_key?: string | null
+          email?: string | null
+          establishment_id?: string | null
+          expires_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          locked_at?: string | null
+          max_attempts?: number
+          phone?: string | null
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_outbox_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_outbox_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1198,6 +1617,56 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      push_devices: {
+        Row: {
+          app: Database["public"]["Enums"]["notification_app"]
+          created_at: string
+          device_name: string | null
+          disabled_at: string | null
+          disabled_reason: string | null
+          expo_token: string
+          id: string
+          last_seen_at: string
+          platform: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app: Database["public"]["Enums"]["notification_app"]
+          created_at?: string
+          device_name?: string | null
+          disabled_at?: string | null
+          disabled_reason?: string | null
+          expo_token: string
+          id?: string
+          last_seen_at?: string
+          platform: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app?: Database["public"]["Enums"]["notification_app"]
+          created_at?: string
+          device_name?: string | null
+          disabled_at?: string | null
+          disabled_reason?: string | null
+          expo_token?: string
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       queue_entries: {
         Row: {
@@ -1673,6 +2142,70 @@ export type Database = {
           },
         ]
       }
+      support_ticket_attachments: {
+        Row: {
+          created_at: string
+          expires_at: string
+          file_name: string
+          from_staff: boolean
+          id: string
+          message_id: string | null
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          ticket_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          file_name: string
+          from_staff: boolean
+          id?: string
+          message_id?: string | null
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          ticket_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          file_name?: string
+          from_staff?: boolean
+          id?: string
+          message_id?: string | null
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          ticket_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "support_ticket_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_attachments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_ticket_messages: {
         Row: {
           author_id: string | null
@@ -2104,12 +2637,23 @@ export type Database = {
         }[]
       }
       admin_mfa_policy: { Args: never; Returns: boolean }
+      admin_mfa_reset_check: { Args: { p_user_id: string }; Returns: string }
       admin_no_result_searches: {
         Args: never
         Returns: {
           city: string
           searches: number
           term: string
+        }[]
+      }
+      admin_notification_health: {
+        Args: never
+        Returns: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          last_error: string
+          oldest_due: string
+          status: Database["public"]["Enums"]["notification_status"]
+          total: number
         }[]
       }
       admin_open_city: {
@@ -2445,6 +2989,15 @@ export type Database = {
           used: number
         }[]
       }
+      attach_support_file: {
+        Args: {
+          p_file_name: string
+          p_message_id?: string
+          p_storage_path: string
+          p_ticket_id: string
+        }
+        Returns: string
+      }
       availability_summary: {
         Args: {
           p_days?: number
@@ -2474,10 +3027,10 @@ export type Database = {
       }
       block_impact: {
         Args: {
-          p_date: string
+          p_date?: string
           p_ends_at?: string
           p_establishment_id: string
-          p_professional_id: string
+          p_professional_id?: string
           p_starts_at?: string
         }
         Returns: {
@@ -2495,6 +3048,39 @@ export type Database = {
         Returns: string
       }
       current_establishment_ids: { Args: never; Returns: string[] }
+      customer_cancel_appointment: {
+        Args: { p_appointment_id: string; p_reason?: string }
+        Returns: {
+          deposit_cents: number
+          minutes_until_start: number
+          within_free_window: boolean
+        }[]
+      }
+      customer_delete_account: {
+        Args: { p_user_id: string }
+        Returns: {
+          anonymized_reviews: number
+          cancelled_appointments: number
+        }[]
+      }
+      customer_reschedule_appointment: {
+        Args: {
+          p_appointment_id: string
+          p_professional_id?: string
+          p_starts_at: string
+        }
+        Returns: {
+          ends_at: string
+          id: string
+          professional_id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["appointment_status"]
+        }[]
+      }
+      customer_set_default_address: {
+        Args: { p_address_id: string }
+        Returns: undefined
+      }
       customer_support_ticket_messages: {
         Args: { p_ticket_id: string }
         Returns: {
@@ -2522,13 +3108,66 @@ export type Database = {
         }[]
       }
       default_cancellation_window_minutes: { Args: never; Returns: number }
+      establishment_accept_invites: {
+        Args: never
+        Returns: {
+          accepted: number
+          establishment_id: string
+        }[]
+      }
+      establishment_add_member: {
+        Args: {
+          p_email: string
+          p_establishment_id: string
+          p_name: string
+          p_professional_id?: string
+          p_role: Database["public"]["Enums"]["establishment_role"]
+          p_sent_by_auth?: boolean
+        }
+        Returns: string
+      }
       establishment_application_normalize: {
         Args: { p_application: Json; p_establishment_id?: string }
         Returns: Json
       }
+      establishment_invite_check: {
+        Args: {
+          p_email: string
+          p_establishment_id: string
+          p_professional_id?: string
+          p_role: Database["public"]["Enums"]["establishment_role"]
+        }
+        Returns: undefined
+      }
+      establishment_invites: {
+        Args: { p_establishment_id: string }
+        Returns: {
+          accepted_at: string
+          email: string
+          id: string
+          invited_at: string
+          name: string
+          professional_id: string
+          role: Database["public"]["Enums"]["establishment_role"]
+          sent_by_auth: boolean
+          status: Database["public"]["Enums"]["establishment_invite_status"]
+        }[]
+      }
       establishment_photo_can_write: {
         Args: { p_object_name: string }
         Returns: boolean
+      }
+      establishment_record_invite: {
+        Args: {
+          p_email: string
+          p_establishment_id: string
+          p_invited_by: string
+          p_name: string
+          p_professional_id: string
+          p_role: Database["public"]["Enums"]["establishment_role"]
+          p_sent_by_auth: boolean
+        }
+        Returns: string
       }
       establishment_reviews: {
         Args: { p_establishment_id: string }
@@ -2556,6 +3195,10 @@ export type Database = {
           tags: string[]
         }[]
       }
+      establishment_revoke_invite: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
       has_establishment_role: {
         Args: {
           p_establishment_id: string
@@ -2569,7 +3212,87 @@ export type Database = {
       }
       is_platform_admin: { Args: never; Returns: boolean }
       is_support_agent: { Args: never; Returns: boolean }
+      mfa_recovery_completed: {
+        Args: { p_actor_id?: string; p_method: string; p_user_id: string }
+        Returns: undefined
+      }
+      mfa_recovery_generate_codes: { Args: never; Returns: string[] }
+      mfa_recovery_status: {
+        Args: never
+        Returns: {
+          generated_at: string
+          remaining: number
+          total: number
+        }[]
+      }
+      mfa_redeem_recovery_code: {
+        Args: { p_code: string; p_user_id: string }
+        Returns: boolean
+      }
       normalize_cnpj: { Args: { p_value: string }; Returns: string }
+      notification_appointment_reminders: { Args: never; Returns: number }
+      notification_claim: {
+        Args: {
+          p_channels: Database["public"]["Enums"]["notification_channel"][]
+          p_limit?: number
+        }
+        Returns: {
+          app: Database["public"]["Enums"]["notification_app"]
+          attempts: number
+          body: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          data: Json
+          email: string
+          expo_tokens: string[]
+          id: string
+          kind: string
+          phone: string
+          title: string
+        }[]
+      }
+      notification_complete: { Args: { p_results: Json }; Returns: number }
+      notification_customer_allows: {
+        Args: { p_pref: string; p_user_id: string }
+        Returns: boolean
+      }
+      notification_daily_summaries: { Args: never; Returns: number }
+      notification_dispatch_kick: { Args: never; Returns: string }
+      notification_expire: { Args: never; Returns: number }
+      notification_hold_unconfigured: {
+        Args: {
+          p_channels: Database["public"]["Enums"]["notification_channel"][]
+        }
+        Returns: number
+      }
+      notification_staff_recipients: {
+        Args: {
+          p_establishment_id: string
+          p_pref: string
+          p_professional_id?: string
+        }
+        Returns: string[]
+      }
+      notification_when: {
+        Args: { p_at: string; p_establishment_id: string }
+        Returns: string
+      }
+      notify_enqueue: {
+        Args: {
+          p_app?: Database["public"]["Enums"]["notification_app"]
+          p_available_at?: string
+          p_body: string
+          p_channel: Database["public"]["Enums"]["notification_channel"]
+          p_data?: Json
+          p_dedupe_key?: string
+          p_email?: string
+          p_establishment_id?: string
+          p_kind: string
+          p_phone?: string
+          p_title: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       open_support_ticket: {
         Args: {
           p_body: string
@@ -2642,6 +3365,27 @@ export type Database = {
         }
         Returns: string
       }
+      queue_code_matches: {
+        Args: { p_code: string; p_establishment_id: string }
+        Returns: boolean
+      }
+      queue_confirm_arrival: {
+        Args: { p_code?: string; p_entry_id: string }
+        Returns: undefined
+      }
+      queue_join: {
+        Args: {
+          p_code?: string
+          p_establishment_id: string
+          p_professional_id?: string
+          p_service_id?: string
+        }
+        Returns: string
+      }
+      queue_leave: { Args: { p_entry_id: string }; Returns: undefined }
+      queue_maintenance: { Args: never; Returns: number }
+      queue_new_code: { Args: never; Returns: string }
+      queue_qr_code: { Args: { p_establishment_id: string }; Returns: string }
       queue_state: {
         Args: { p_establishment_id: string }
         Returns: {
@@ -2652,6 +3396,19 @@ export type Database = {
           queue_position: number
           status: Database["public"]["Enums"]["queue_status"]
         }[]
+      }
+      queue_wait_for_newcomer: {
+        Args: { p_establishment_id: string; p_professional_id?: string }
+        Returns: number
+      }
+      register_push_device: {
+        Args: {
+          p_app: Database["public"]["Enums"]["notification_app"]
+          p_device_name?: string
+          p_expo_token: string
+          p_platform: string
+        }
+        Returns: string
       }
       reply_support_ticket: {
         Args: { p_body: string; p_ticket_id: string }
@@ -2668,6 +3425,10 @@ export type Database = {
       }
       review_in_moderation: { Args: { p_review_id: string }; Returns: boolean }
       review_report_reasons: { Args: never; Returns: string[] }
+      rotate_queue_qr_code: {
+        Args: { p_establishment_id: string }
+        Returns: string
+      }
       schedule_change_impact: {
         Args: {
           p_establishment_id: string
@@ -2749,6 +3510,32 @@ export type Database = {
         }
         Returns: string
       }
+      support_attachment_ticket_id: {
+        Args: { p_object_name: string }
+        Returns: string
+      }
+      support_attachment_upload_allowed: {
+        Args: { p_object_name: string }
+        Returns: boolean
+      }
+      support_attachments_orphans: {
+        Args: never
+        Returns: {
+          created_at: string
+          name: string
+        }[]
+      }
+      support_attachments_prunable: {
+        Args: never
+        Returns: {
+          attached: boolean
+          name: string
+        }[]
+      }
+      support_attachments_prune_metadata: {
+        Args: { p_names: string[] }
+        Returns: number
+      }
       support_priority_label: {
         Args: {
           p_priority: Database["public"]["Enums"]["support_ticket_priority"]
@@ -2758,6 +3545,27 @@ export type Database = {
       support_status_label: {
         Args: { p_status: Database["public"]["Enums"]["support_ticket_status"] }
         Returns: string
+      }
+      support_ticket_attachments: {
+        Args: { p_ticket_id: string }
+        Returns: {
+          created_at: string
+          file_name: string
+          from_staff: boolean
+          id: string
+          message_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+        }[]
+      }
+      support_ticket_can_access: {
+        Args: { p_ticket_id: string }
+        Returns: boolean
+      }
+      unregister_push_device: {
+        Args: { p_expo_token: string }
+        Returns: undefined
       }
     }
     Enums: {
@@ -2781,9 +3589,19 @@ export type Database = {
         | "nail_salon"
         | "dentistry"
         | "massage"
+      establishment_invite_status: "pending" | "accepted" | "revoked"
       establishment_role: "owner" | "manager" | "staff"
       establishment_status: "pending" | "active" | "suspended" | "rejected"
       lead_status: "new" | "contacted" | "discarded"
+      notification_app: "cliente" | "staff"
+      notification_channel: "push" | "email" | "sms" | "whatsapp"
+      notification_status:
+        | "pending"
+        | "sending"
+        | "sent"
+        | "failed"
+        | "unconfigured"
+        | "skipped"
       payment_method: "pix" | "credit_card" | "debit_card" | "cash" | "other"
       payment_status:
         | "pending"
@@ -2970,9 +3788,20 @@ export const Constants = {
         "dentistry",
         "massage",
       ],
+      establishment_invite_status: ["pending", "accepted", "revoked"],
       establishment_role: ["owner", "manager", "staff"],
       establishment_status: ["pending", "active", "suspended", "rejected"],
       lead_status: ["new", "contacted", "discarded"],
+      notification_app: ["cliente", "staff"],
+      notification_channel: ["push", "email", "sms", "whatsapp"],
+      notification_status: [
+        "pending",
+        "sending",
+        "sent",
+        "failed",
+        "unconfigured",
+        "skipped",
+      ],
       payment_method: ["pix", "credit_card", "debit_card", "cash", "other"],
       payment_status: [
         "pending",

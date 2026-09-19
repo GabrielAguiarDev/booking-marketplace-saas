@@ -28,6 +28,7 @@ dado (a cor de um tom, a largura de uma barra).
 | `components/accept-invite.tsx`   | Chegada pelo link do convite da equipe: grava a sessão e pede a senha                                                                         |
 | `components/showcase.tsx`        | Vitrine: banners da home do app, com upload da imagem e prévia no formato da home                                                             |
 | `components/account-console.tsx` | Console temporário e somente leitura da conta, com contagem regressiva e cinco seções auditadas                                               |
+| `components/leads.tsx`           | Interessados da landing: fila, ficha e triagem                                                                                                |
 | uma tela por arquivo             | `overview`, `approvals`, `establishments`, `support`, `cities`, `quotas`, `finance`, `services`, `reviews`, `customers`, `settings`, `modals` |
 
 ## Ligação com o Supabase
@@ -157,6 +158,27 @@ fluxo ao portal, `mobile-staff` e `mobile-cliente` é trabalho das outras partes
 o admin não simula esse envio. Para testar localmente sem elas,
 `supabase/snippets/support-demo.sql` abre cinco chamados pela RPC pública.
 
+## Interessados da landing
+
+A migration `20260912130000_leads.sql` cria `public.leads` e a RPC pública
+`submit_lead`, que é como o formulário da landing grava (ver
+[funcionalidades.md](funcionalidades.md#landing--landing)). A tabela não tem
+política de escrita: quem preenche é `anon` e entra pela função
+`security definer`, que valida o formato e segura abuso por número — repetição
+em dez minutos devolve o mesmo `id`, e do quarto envio do dia em diante recusa.
+Ler é da equipe da plataforma, pela política de `select` e por `admin_leads()`.
+
+A tela **Interessados** (grupo Operação) mostra a fila por chegada com filtro de
+situação, e a ficha traz o WhatsApp que a pessoa digitou, o que ela escreveu, o
+tipo de negócio quando informado e um aviso quando **aquele mesmo número já
+tinha escrito antes** — é o sinal de que alguém talvez já esteja falando com ele.
+A triagem é `admin_set_lead_status` (papéis `operations` e `admin`): "já falei
+com essa pessoa", "descartar" (exige o motivo, no banco e na tela) e "devolver
+para a fila". Toda mudança grava auditoria em português.
+
+Não é uma solicitação de cadastro: o interessado não tem conta nem loja. Quando
+ele se cadastrar de fato, a loja entra em **Aprovações**, por outro caminho.
+
 ## Console de leitura da conta
 
 A migration `20260911130000_account_console.sql` transforma **Registrar acesso**
@@ -275,7 +297,14 @@ Ao criar classe nova, evite palavra que seja utilitário do Tailwind.
 
 ## Limites atuais
 
-- **Notificação de chamado** ainda não envia e-mail nem push. A resposta fica
+- **Interessados** não avisa ninguém quando um contato chega: a equipe precisa
+  abrir a tela. O aviso por e-mail depende do provedor transacional (N6). O
+  contato em si é humano, pelo WhatsApp — o painel só guarda o que já foi feito,
+  e não manda mensagem.
+- **Notificação de chamado**: a resposta da equipe gera push e e-mail na caixa
+  de saída (ver [notificacoes.md](notificacoes.md)); sai de fato quando o
+  provedor estiver configurado. Anexos em chamado existem no banco (bucket
+  privado `support-attachments`), sem tela ainda. Antes disso, não enviava e-mail nem push. A resposta fica
   persistida e aparecerá nos outros apps quando eles adotarem as RPCs públicas.
 - **Convite da equipe**: o e-mail usa o modelo padrão do Supabase Auth, em
   inglês ("You've been invited"); o modelo próprio fica para a leva de
@@ -296,10 +325,9 @@ Ao criar classe nova, evite palavra que seja utilitário do Tailwind.
   abre a denúncia pela RPC `report_review`, e o pedido de esclarecimento tem
   resposta — `answer_review_clarification` grava o que a loja respondeu e
   devolve a denúncia para `open`. A resposta aparece na ficha da denúncia,
-  embaixo do que o estabelecimento alegou. O que ainda não existe é aviso: a
-  loja só vê a pergunta quando abrir o app, e a equipe só vê a resposta quando
-  recarregar a tela. As **solicitações de cadastro** continuam esperando o
-  onboarding.
+  embaixo do que o estabelecimento alegou. O pedido entra na caixa de saída de
+  avisos; o app mostra o feedback de entrega e abre a denúncia pelo toque. As
+  **solicitações de cadastro** usam a mesma infraestrutura de avisos.
 - **Os controles do editor do canvas** (`startScreen`, `queueFirst`,
   `showRiskFlags`) eram botões do Claude Design, não da tela. Viraram o
   comportamento padrão: começa na visão geral, fila de trabalho no topo,
@@ -310,12 +338,13 @@ Ao criar classe nova, evite palavra que seja utilitário do Tailwind.
   concluídos; não é histórico contábil.
 - **Mensagens de correção, decisão e moderação** ficam persistidas, mas e-mail,
   push e a caixa de resposta do portal dependem do onboarding/notificações.
-- **Autenticador perdido** não tem recuperação pela tela: não há código de
-  recuperação nem "redefinir o fator de alguém" na Equipe. Hoje é apagar o
-  fator pelo Studio/Admin API do Auth (ou
-  `delete from auth.mfa_factors where user_id = …`), e a pessoa cadastra de
-  novo no próximo login. Em produção, confira no projeto hospedado que o TOTP
-  está habilitado nas configurações do Auth (o `config.toml` só vale no local).
+- **Autenticador perdido** tem recuperação por códigos de uso único e
+  redefinição por outro admin (Edge Function `mfa-recovery`; ver
+  [notificacoes.md](notificacoes.md#autenticador-perdido)). Os códigos são
+  gerados em Configurações, o login aceita um deles e a aba Equipe permite
+  remover o fator de outra pessoa. Em produção, confira no projeto hospedado
+  que o TOTP está habilitado nas configurações do Auth (o `config.toml` só
+  vale no local).
 
 No banco local, `pnpm db:demo` cria `admin@vez.local` com a mesma senha das
 outras contas de demonstração, com o segundo fator desligado.

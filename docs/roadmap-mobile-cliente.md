@@ -194,7 +194,8 @@ Cota de 20 perguntas/dia por usuário, no servidor. Cartões nativos: tocar num
 horário leva à confirmação já preenchida.
 
 **Falta só a chave da OpenAI** — ver [assistente.md](assistente.md). Sem ela a
-tela diz que não está configurado, que é o estado correto.
+tela diz que não está configurado, que é o estado correto. Faz parte do
+lançamento; é a última frente a ser concluída.
 
 **Fora de escopo desta rodada:** streaming, lista de conversas anteriores,
 moderação de entrada, e registro de tokens consumidos.

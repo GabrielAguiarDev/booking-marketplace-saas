@@ -20,8 +20,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { supabase } from "../lib/supabase";
 import { SessionProvider } from "../src/auth/session";
+import { PushBridge } from "../src/push";
 import { AppStateProvider } from "../src/state/app-state";
 import { color } from "../src/theme/tokens";
+import { OfflineBanner } from "../src/ui/States";
 
 /**
  * Duas camadas de navegação.
@@ -68,6 +70,18 @@ export default function RootLayout() {
             <Stack.Screen name="fila" />
             <Stack.Screen name="avaliacao" />
 
+            {/* Reserva já feita: detalhe e remarcação. */}
+            <Stack.Screen name="reserva/[id]" />
+            <Stack.Screen name="reserva/remarcar" />
+
+            {/* Conta: dados, endereços, favoritos, avisos e exclusão. */}
+            <Stack.Screen name="conta/dados" />
+            <Stack.Screen name="conta/enderecos" />
+            <Stack.Screen name="conta/endereco" />
+            <Stack.Screen name="conta/favoritos" />
+            <Stack.Screen name="conta/avisos" />
+            <Stack.Screen name="conta/excluir" />
+
             {/* Ajuda: lista, formulário e conversa de um chamado. */}
             <Stack.Screen name="ajuda/index" />
             <Stack.Screen name="ajuda/novo" />
@@ -81,6 +95,8 @@ export default function RootLayout() {
             <Stack.Screen name="recuperar" />
             <Stack.Screen name="nova-senha" />
           </Stack>
+          <OfflineBanner />
+          <PushBridge />
         </AppStateProvider>
       </SessionProvider>
     </SafeAreaProvider>

@@ -71,7 +71,7 @@ export default function Ajuda() {
 
         <Text style={sans(14.5, 400, { lh: 1.5, color: color.muted })}>
           Conte o que aconteceu e a equipe do Vez responde por aqui mesmo. A resposta aparece nesta
-          tela — ainda não enviamos aviso no celular.
+          tela e pode gerar aviso quando as notificações estiverem ativas no aparelho.
         </Text>
 
         <PrimaryButton
@@ -100,7 +100,7 @@ export default function Ajuda() {
           <Card radius={18} padding={20} style={{ gap: 10 }}>
             <Text style={sans(18, 800, { ls: -0.03 })}>Nenhum chamado ainda</Text>
             <Text style={sans(14.5, 400, { lh: 1.5, color: color.muted })}>
-              Problema com uma reserva, com um pagamento ou com o app: abra um chamado e a gente
+              Problema com uma reserva ou com o app: abra um chamado e a gente
               responde.
             </Text>
           </Card>

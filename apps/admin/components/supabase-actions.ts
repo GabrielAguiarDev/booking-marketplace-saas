@@ -1,13 +1,14 @@
 "use client";
 
 import { createBrowserSupabaseClient } from "@vez/supabase/browser";
+import {
+  attachmentMime,
+  attachmentProblem,
+  listAttachments,
+  uploadAttachment,
+} from "@vez/supabase/attachments";
 
-import type {
-  AccessSession,
-  AccountSettings,
-  AdminData,
-  PlanKind,
-} from "./model";
+import type { AccessSession, AccountSettings, AdminData, PlanKind } from "./model";
 import { categoryValue } from "./model";
 import type { AdminActions } from "./store";
 
@@ -351,6 +352,17 @@ export function createSupabaseActions(get: GetData, refresh: () => void): AdminA
         }),
       ).then(() => undefined),
 
+    // Interessados da landing. `submit_lead` os cria por fora, como `anon`;
+    // aqui a equipe só diz o que fez com cada um.
+    setLeadStatus: (id, status, note) =>
+      changed(
+        supabase.rpc("admin_set_lead_status", {
+          p_lead_id: id,
+          p_status: status,
+          p_note: note.trim() === "" ? undefined : note.trim(),
+        }),
+      ).then(() => undefined),
+
     updateParam: (key, value) =>
       changed(supabase.rpc("admin_update_param", { p_key: key, p_value: value })).then(
         () => undefined,
@@ -360,6 +372,46 @@ export function createSupabaseActions(get: GetData, refresh: () => void): AdminA
       changed(supabase.rpc("admin_set_mfa_required", { p_required: required })).then(
         () => undefined,
       ),
+
+    mfaRecoveryStatus: async () => {
+      const { data, error } = await supabase.rpc("mfa_recovery_status");
+      if (error) throw new Error(error.message);
+      const row = (data ?? [])[0];
+      return {
+        remaining: row?.remaining ?? 0,
+        total: row?.total ?? 0,
+        generatedAt: row?.generated_at ?? null,
+      };
+    },
+
+    generateMfaRecoveryCodes: async () => {
+      const { data, error } = await supabase.rpc("mfa_recovery_generate_codes");
+      if (error) {
+        if (error.code === "PVMFA") refresh();
+        throw new Error(error.message);
+      }
+      return data ?? [];
+    },
+
+    resetMemberMfa: async (userId) => {
+      const { error } = await supabase.functions.invoke("mfa-recovery", {
+        body: { action: "reset_member", user_id: userId },
+      });
+      if (error) {
+        const context = (error as { context?: unknown }).context;
+        const body =
+          context instanceof Response
+            ? ((await context.json().catch(() => null)) as { error?: { message?: string } } | null)
+            : null;
+        throw new Error(
+          body?.error?.message ??
+            (error.name === "FunctionsFetchError"
+              ? "A recuperação de MFA ainda não está configurada neste ambiente."
+              : "Não foi possível redefinir o autenticador."),
+        );
+      }
+      refresh();
+    },
 
     // Convite usa a Admin API do Auth: vive na Edge Function `admin-invite`,
     // que confere o papel de quem chama e grava papel e auditoria pela RPC.
@@ -452,6 +504,22 @@ export function createSupabaseActions(get: GetData, refresh: () => void): AdminA
         body: message.body,
         at: message.created_at,
       }));
+    },
+
+    ticketAttachments: (id) => listAttachments(supabase, id),
+
+    uploadTicketAttachment: async (id, file) => {
+      const mime = attachmentMime({ mimeType: file.type, name: file.name });
+      const current = await listAttachments(supabase, id);
+      const problem = attachmentProblem({ mime, size: file.size, count: current.length });
+      if (problem || !mime) throw new Error(problem ?? "Formato não aceito.");
+      const result = await uploadAttachment(supabase, {
+        ticketId: id,
+        body: file,
+        mime,
+        fileName: file.name,
+      });
+      if (!result.ok) throw new Error(result.message);
     },
 
     replyTicket: (id, body, status) =>

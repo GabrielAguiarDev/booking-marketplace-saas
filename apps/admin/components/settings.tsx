@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Tabs } from "./blocks";
 import { SETTINGS_TABS, type SettingsTab } from "./data";
@@ -51,6 +51,7 @@ export function Settings() {
             <ParamRow key={param.key} param={param} />
           ))}
           <MfaParamRow />
+          {data.mfaRequired ? <MfaRecoveryRow /> : null}
         </div>
       ) : null}
 
@@ -132,7 +133,9 @@ function MfaParamRow() {
     <div className="param-row">
       <span>
         Segundo fator no painel
-        <small className="param-help">TOTP exigido pelo banco em todas as ações administrativas.</small>
+        <small className="param-help">
+          TOTP exigido pelo banco em todas as ações administrativas.
+        </small>
       </span>
       <code>{data.mfaRequired ? "Obrigatório" : "Desligado"}</code>
       {manages ? (
@@ -154,6 +157,88 @@ function MfaParamRow() {
         </button>
       ) : null}
       <FormError message={error} />
+    </div>
+  );
+}
+
+function MfaRecoveryRow() {
+  const { actions } = useAdmin();
+  const [status, setStatus] = useState<{
+    remaining: number;
+    total: number;
+    generatedAt: string | null;
+  } | null>(null);
+  const [codes, setCodes] = useState<string[] | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    actions.mfaRecoveryStatus().then(
+      (next) => live && setStatus(next),
+      (cause: unknown) =>
+        live &&
+        setError(cause instanceof Error ? cause.message : "Não foi possível ler os códigos."),
+    );
+    return () => {
+      live = false;
+    };
+  }, [actions]);
+
+  return (
+    <div className="param-row">
+      <span>
+        Códigos de recuperação do seu MFA
+        <small className="param-help">
+          Use um código se perder o autenticador. Gerar de novo invalida todos os anteriores.
+        </small>
+        {codes ? (
+          <code
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, max-content)",
+              gap: "6px 18px",
+              marginTop: 10,
+            }}
+          >
+            {codes.map((code) => (
+              <span key={code}>{code}</span>
+            ))}
+          </code>
+        ) : null}
+        <FormError message={error} />
+      </span>
+      <code>
+        {status
+          ? status.total > 0
+            ? `${status.remaining} de ${status.total} disponíveis`
+            : "Ainda não gerados"
+          : "Conferindo…"}
+      </code>
+      <button
+        className="ghost small"
+        disabled={pending}
+        onClick={async () => {
+          setPending(true);
+          setError(null);
+          try {
+            const generated = await actions.generateMfaRecoveryCodes();
+            setCodes(generated);
+            setStatus({
+              remaining: generated.length,
+              total: generated.length,
+              generatedAt: new Date().toISOString(),
+            });
+          } catch (cause) {
+            setError(cause instanceof Error ? cause.message : "Não foi possível gerar os códigos.");
+          } finally {
+            setPending(false);
+          }
+        }}
+        type="button"
+      >
+        {pending ? "Gerando…" : status?.total ? "Gerar novos" : "Gerar códigos"}
+      </button>
     </div>
   );
 }
@@ -224,6 +309,7 @@ const ROLES = Object.keys(ROLE_LABEL) as PlatformRole[];
 type TeamDialog =
   | { kind: "invite" }
   | { kind: "role"; member: TeamMember }
+  | { kind: "mfa"; member: TeamMember }
   | { kind: "remove"; member: TeamMember };
 
 /**
@@ -302,6 +388,15 @@ function TeamTab() {
                           >
                             Mudar papel
                           </button>
+                          {!member.pending ? (
+                            <button
+                              className="ghost small"
+                              onClick={() => setDialog({ kind: "mfa", member })}
+                              type="button"
+                            >
+                              Redefinir MFA
+                            </button>
+                          ) : null}
                           <button
                             className="ghost small danger"
                             onClick={() => setDialog({ kind: "remove", member })}
@@ -324,10 +419,52 @@ function TeamTab() {
       {dialog?.kind === "role" ? (
         <RoleDialog member={dialog.member} onClose={() => setDialog(null)} />
       ) : null}
+      {dialog?.kind === "mfa" ? (
+        <MfaResetDialog member={dialog.member} onClose={() => setDialog(null)} />
+      ) : null}
       {dialog?.kind === "remove" ? (
         <RemoveDialog member={dialog.member} onClose={() => setDialog(null)} />
       ) : null}
     </div>
+  );
+}
+
+function MfaResetDialog({ member, onClose }: { member: TeamMember; onClose: () => void }) {
+  const { actions } = useAdmin();
+  const { pending, error, run } = useRun(onClose);
+  return (
+    <Modal labelledBy="team-mfa-title" onClose={onClose} width={460}>
+      <div className="modal-head">
+        <h3 id="team-mfa-title">Redefinir o autenticador de {member.name}?</h3>
+        <p>
+          Os fatores atuais serão removidos. A pessoa recebe um e-mail de segurança e cadastra um
+          autenticador novo no próximo acesso.
+        </p>
+      </div>
+      {error ? (
+        <div className="modal-body">
+          <FormError message={error} />
+        </div>
+      ) : null}
+      <div className="modal-foot">
+        <button className="ghost" onClick={onClose} type="button">
+          Cancelar
+        </button>
+        <button
+          className="danger-solid"
+          disabled={pending}
+          onClick={() =>
+            void run(() => actions.resetMemberMfa(member.id), {
+              title: "Autenticador redefinido",
+              sub: `${member.name} cadastra um novo segundo fator no próximo acesso.`,
+            })
+          }
+          type="button"
+        >
+          {pending ? "Redefinindo…" : "Redefinir MFA"}
+        </button>
+      </div>
+    </Modal>
   );
 }
 

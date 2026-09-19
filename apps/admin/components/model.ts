@@ -488,6 +488,8 @@ export type AdminData = {
   audit: AuditEntry[];
   banners: Banner[];
   tickets: Ticket[];
+  /** Interessados do formulário da landing, ainda sem conta. */
+  leads: Lead[];
   accessSessions: AccessSession[];
   /** Só Suporte/Admin pode abrir a conta; Operações continua atendendo chamados. */
   accountConsoleAccess: boolean;
@@ -608,3 +610,33 @@ export function bannerState(b: Banner, now = Date.now()): BannerState {
   if (!b.targetAvailable) return "unavailable";
   return "live";
 }
+
+/* ── interessados da landing ────────────────────────────────── */
+
+export type LeadStatus = "new" | "contacted" | "discarded";
+
+/** Quem pediu contato pelo formulário da landing. Ainda não tem conta. */
+export type Lead = {
+  id: string;
+  name: string;
+  establishmentName: string;
+  /** O contato como a pessoa digitou — é por ele que a equipe liga. */
+  contact: string;
+  /** Rótulo em português; vazio quando a pessoa preferiu contar na conversa. */
+  category: string;
+  message: string;
+  source: string;
+  status: LeadStatus;
+  handledBy: string;
+  handledAt: string | null;
+  handledNote: string;
+  /** Quantas vezes o mesmo número já tinha aparecido antes deste envio. */
+  previousAttempts: number;
+  createdAt: string;
+};
+
+export const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {
+  new: "na fila",
+  contacted: "falamos",
+  discarded: "descartado",
+};

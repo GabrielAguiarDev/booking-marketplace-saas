@@ -165,8 +165,8 @@ grant execute on function public.schedule_change_impact(uuid, uuid, smallint, js
 -- dele. Hora nula dos dois lados é o dia inteiro.
 create function public.block_impact(
   p_establishment_id uuid,
-  p_professional_id uuid,
-  p_date date,
+  p_professional_id uuid default null,
+  p_date date default current_date,
   p_starts_at time default null,
   p_ends_at time default null
 )
@@ -330,3 +330,62 @@ create policy establishment_photos_objects_select on storage.objects
 alter table public.establishment_photos
   add constraint establishment_photos_storage_path_format
   check (storage_path ~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]+$');
+
+-- ---------------------------------------------------------------------------
+-- A loja nunca fica sem dono
+-- ---------------------------------------------------------------------------
+-- `establishment_members_write_owner` deixa o dono escrever a própria linha, e
+-- o portal precisa disso para promover a gerência. Sem a trava abaixo, o mesmo
+-- botão deixaria o único dono se rebaixar ou se remover — e a loja ficaria sem
+-- ninguém que pudesse desfazer, porque só dono escreve vínculo. A checagem é
+-- do banco, não da interface: RLS é a barreira, a tela é a conveniência.
+--
+-- `security invoker` de propósito. Num `security definer` o gatilho rodaria
+-- como `postgres` e a exceção passaria a valer também para a Edge Function de
+-- onboarding, que precisa criar o primeiro vínculo com service role.
+
+create function public.guard_last_establishment_owner()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  l_establishment_id uuid := coalesce(old.establishment_id, new.establishment_id);
+  l_privileged boolean :=
+    current_user = 'postgres' or current_setting('role', true) = 'service_role';
+begin
+  if l_privileged then
+    return coalesce(new, old);
+  end if;
+
+  -- Só interessa a mudança que TIRA um dono: promoção e remoção de gerente ou
+  -- de equipe não podem pagar o custo desta contagem.
+  if tg_op = 'UPDATE' and not (old.role = 'owner' and new.role <> 'owner') then
+    return new;
+  end if;
+  if tg_op = 'DELETE' and old.role <> 'owner' then
+    return old;
+  end if;
+
+  if not exists (
+    select 1
+    from public.establishment_members m
+    where m.establishment_id = l_establishment_id
+      and m.role = 'owner'
+      and m.user_id <> old.user_id
+  ) then
+    raise exception 'a loja precisa de ao menos um dono'
+      using errcode = '23514';
+  end if;
+
+  return coalesce(new, old);
+end;
+$$;
+
+comment on function public.guard_last_establishment_owner() is
+  'Recusa rebaixar ou remover o último dono de uma loja.';
+
+create trigger establishment_members_guard_last_owner
+  before update or delete on public.establishment_members
+  for each row execute function public.guard_last_establishment_owner();

@@ -1,15 +1,16 @@
 import { moneyShort } from "@vez/mobile-kit/format";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { useMemo } from "react";
-import { Text, View } from "react-native";
+import { Linking, Text, View } from "react-native";
 
 import { useAppointments } from "../src/data/appointments";
 import { useProfessionals, useServices, useTeam } from "../src/data/catalog";
 import { useEstablishment } from "../src/data/establishment";
 import { useProfessionalSchedules } from "../src/data/schedule";
 import { clockFromTime } from "../src/format";
+import { portalUrl } from "../src/portal";
 import { color } from "../src/theme/tokens";
-import { Card, Caveat, EmptyState, Initials, Tag } from "../src/ui/primitives";
+import { Card, Caveat, EmptyState, Initials, OutlineButton, Tag } from "../src/ui/primitives";
 import { PlainHeader, Screen, ScreenScroll } from "../src/ui/Screen";
 
 const ACCESS = {
@@ -56,7 +57,9 @@ export default function Profissionais() {
         {professionals.data && professionals.data.length === 0 ? (
           <EmptyState
             title="Ninguém cadastrado"
-            body="Cadastro de profissional ainda não existe no app. Por enquanto ele é feito no portal web da loja — que também está por vir."
+            body="Quem atende é cadastrado no portal web da loja, com a mesma conta. Assim que entrar lá, aparece aqui."
+            action="Abrir o portal"
+            onAction={() => void Linking.openURL(portalUrl({ establishmentId: id }))}
           />
         ) : null}
 
@@ -136,13 +139,18 @@ export default function Profissionais() {
         <View style={{ paddingTop: 20, gap: 12 }}>
           <Caveat>
             Acesso de equipe vê só a agenda dele e conclui os atendimentos dele. Não vê financeiro
-            nem muda cadastro da loja. Quem dá e tira acesso é o dono, e isso ainda não tem tela em
-            nenhuma superfície — hoje sai por SQL.
+            nem muda cadastro da loja. Quem dá e tira acesso é o dono, na seção Equipe do portal.
           </Caveat>
           <Caveat>
-            Cadastrar profissional, editar escala e ligar serviços a pessoas também não têm tela
-            aqui. Esta é uma tela de leitura: o cadastro é trabalho do portal web da loja.
+            Cadastrar profissional, editar a escala e ligar serviços a pessoas é pelo portal web da
+            loja. Aqui é leitura, para conferir no balcão quem atende o quê.
           </Caveat>
+          <View style={{ paddingHorizontal: 20 }}>
+            <OutlineButton
+              label="Abrir Equipe no portal"
+              onPress={() => void Linking.openURL(portalUrl({ establishmentId: id }))}
+            />
+          </View>
         </View>
       </ScreenScroll>
     </Screen>

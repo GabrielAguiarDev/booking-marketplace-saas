@@ -7,21 +7,30 @@
     "./theme": "./src/theme/index.ts",
     "./format": "./src/format.ts",
     "./async": "./src/async.ts",
-    "./auth": "./src/auth/index.ts"
+    "./auth": "./src/auth/index.ts",
+    "./push": "./src/push/index.tsx",
+    "./push/rules": "./src/push/rules.ts"
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
+    "test": "node --test 'test/*.test.ts'"
   },
   "peerDependencies": {
     "@supabase/supabase-js": "2.112.4",
     "react": "19.2.3",
-    "react-native": "0.86.3"
+    "react-native": "0.86.3",
+    "expo-constants": "~57.0.17",
+    "expo-device": "~57.0.2",
+    "expo-notifications": "~57.0.19"
   },
   "devDependencies": {
     "@supabase/supabase-js": "2.112.4",
     "@types/react": "19.2.18",
     "eslint-plugin-react-hooks": "7.1.1",
+    "expo-constants": "~57.0.18",
+    "expo-device": "~57.0.2",
+    "expo-notifications": "~57.0.19",
     "react": "19.2.3",
     "react-native": "0.86.3"
   }

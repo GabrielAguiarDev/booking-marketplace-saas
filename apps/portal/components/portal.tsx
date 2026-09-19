@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { Agenda, type NewAppointmentSeed } from "./agenda";
 import { SignOutButton } from "./auth";
+import { CADASTRO_SECTIONS, CadastroSection } from "./cadastro-sections";
+import { Customers } from "./customers";
 import { SECTION_META, type SectionId } from "./data";
 import { EstablishmentPicker } from "./establishment-picker";
+import { NewAppointment } from "./new-appointment";
+import { Overview } from "./overview";
+import { Queue } from "./queue";
 import { Sidebar } from "./sidebar";
 import { usePortal } from "./store";
 
@@ -35,10 +41,14 @@ function EmptySection({ section }: { section: SectionId }) {
       <span aria-hidden="true">○</span>
       <h2>{meta.title}</h2>
       <p>
-        Esta seção ainda não está ligada ao banco. Ela não exibe os dados de exemplo do canvas
-        para não transformar uma demonstração em informação da sua loja.
+        Esta seção ainda não está ligada ao banco. Ela não exibe os dados de exemplo do canvas para
+        não transformar uma demonstração em informação da sua loja.
       </p>
-      <small>{operation ? "A integração entra na P5 (operação)." : "A integração entra na P6 (cadastro e negócio)."}</small>
+      <small>
+        {operation
+          ? "A integração entra na P5 (operação)."
+          : "A integração entra na P6 (cadastro e negócio)."}
+      </small>
     </section>
   );
 }
@@ -56,18 +66,28 @@ function SetupSection({ go }: { go: (section: SectionId) => void }) {
             ? `${data.establishment.name} está pronta para receber clientes.`
             : `Vamos deixar ${data.establishment.name} pronta para receber clientes.`}
         </h2>
-        <p>{done} de {data.setup.length} concluídos. O progresso é calculado a partir dos dados reais.</p>
+        <p>
+          {done} de {data.setup.length} concluídos. O progresso é calculado a partir dos dados
+          reais.
+        </p>
         <div className="setup-progress" aria-label={`${done} de ${data.setup.length} concluídos`}>
-          {data.setup.map((step) => <i className={step.done ? "done" : ""} key={step.key} />)}
+          {data.setup.map((step) => (
+            <i className={step.done ? "done" : ""} key={step.key} />
+          ))}
         </div>
       </section>
       <section className="setup-list">
         {data.setup.map((step, index) => (
           <article className={step.done ? "done" : ""} key={step.key}>
             <b>{step.done ? "✓" : index + 1}</b>
-            <div><h3>{step.title}</h3><p>{step.body}</p></div>
+            <div>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </div>
             {!step.done && canOpen(step.section, data.establishment.role) ? (
-              <button className="ghost" onClick={() => go(step.section)} type="button">Abrir seção</button>
+              <button className="ghost" onClick={() => go(step.section)} type="button">
+                Abrir seção
+              </button>
             ) : null}
           </article>
         ))}
@@ -80,25 +100,94 @@ export function Portal() {
   const { data } = usePortal();
   const [section, setSection] = useState<SectionId>("overview");
   const [collapsed, setCollapsed] = useState(false);
+  const [appointmentSeed, setAppointmentSeed] = useState<NewAppointmentSeed | null>(null);
+  const [toast, setToast] = useState<{ title: string; sub: string } | null>(null);
+  const notify = useCallback<Notify>((next) => setToast(next), []);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
   if (!data) return null;
 
   const meta = SECTION_META[section];
   const allowed = canOpen(section, data.establishment.role);
   return (
     <div className={collapsed ? "shell collapsed" : "shell"}>
-      <Sidebar collapsed={collapsed} data={data} go={setSection} onToggle={() => setCollapsed((value) => !value)} section={section} />
+      <Sidebar
+        collapsed={collapsed}
+        data={data}
+        go={setSection}
+        onToggle={() => setCollapsed((value) => !value)}
+        section={section}
+      />
       <main>
         <header className="topbar">
-          <div><h1>{meta.title}</h1><code>{meta.sub}</code></div>
+          <div>
+            <h1>{meta.title}</h1>
+            <code>{meta.sub}</code>
+          </div>
           <div className="topbar-end">
-            <EstablishmentPicker establishments={data.establishments} value={data.establishment.id} />
+            <EstablishmentPicker
+              establishments={data.establishments}
+              value={data.establishment.id}
+            />
+            {data.operation && data.operation.summary.bookingMode !== "queue" ? (
+              <button className="primary" onClick={() => setAppointmentSeed({})} type="button">
+                Novo agendamento
+              </button>
+            ) : null}
             <SignOutButton />
           </div>
         </header>
         {!allowed ? (
-          <section className="empty-section"><span>!</span><h2>Acesso restrito</h2><p>Esta área exige papel de {OWNER_ONLY.has(section) ? "dono" : "dono ou gerente"}.</p></section>
-        ) : section === "onboarding" ? <SetupSection go={setSection} /> : <EmptySection section={section} />}
+          <section className="empty-section">
+            <span>!</span>
+            <h2>Acesso restrito</h2>
+            <p>Esta área exige papel de {OWNER_ONLY.has(section) ? "dono" : "dono ou gerente"}.</p>
+          </section>
+        ) : section === "onboarding" ? (
+          <SetupSection go={setSection} />
+        ) : section === "overview" ? (
+          <Overview go={setSection} notify={notify} />
+        ) : section === "agenda" ? (
+          <Agenda notify={notify} openNew={setAppointmentSeed} />
+        ) : section === "queue" ? (
+          <Queue notify={notify} />
+        ) : section === "customers" ? (
+          <Customers />
+        ) : CADASTRO_SECTIONS.has(section) ? (
+          <CadastroSection section={section} />
+        ) : (
+          <EmptySection section={section} />
+        )}
       </main>
+      {toast ? (
+        <div className="toast" role="status">
+          <svg fill="none" height="17" stroke="#4ADE80" viewBox="0 0 24 24" width="17">
+            <path
+              d="M20 6.5L9.5 17 4.5 12"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
+          <div>
+            <strong>{toast.title}</strong>
+            <small>{toast.sub}</small>
+          </div>
+          <button onClick={() => setToast(null)} type="button">
+            Fechar
+          </button>
+        </div>
+      ) : null}
+      {appointmentSeed ? (
+        <NewAppointment
+          onClose={() => setAppointmentSeed(null)}
+          onSuccess={(title, sub) => notify({ title, sub })}
+          seed={appointmentSeed}
+        />
+      ) : null}
     </div>
   );
 }

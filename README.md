@@ -15,6 +15,7 @@ pnpm dev
 
 - **[Próximos passos — por onde continuar](docs/proximos-passos.md)**
 - [Setup local, passo a passo](docs/setup-local.md)
+- [Contas e endereços para testar](docs/contas-de-teste.md)
 - [Arquitetura](docs/architecture.md)
 - [Convenções](docs/conventions.md)
 - [Funcionalidades do sistema, superfície por superfície](docs/funcionalidades.md)
@@ -30,4 +31,3 @@ pnpm dev
 - [Cliente sem conta entra na fila e na agenda](docs/decisions/0006-cliente-sem-conta.md)
 - [Como a loja trabalha vira dado](docs/decisions/0007-ajustes-da-loja-no-banco.md)
 - [Loja não se aprova sozinha](docs/decisions/0008-loja-nao-se-aprova-sozinha.md)
-- [Assistente: como ligar a chave](docs/assistente.md)

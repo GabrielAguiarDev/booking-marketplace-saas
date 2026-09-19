@@ -123,6 +123,8 @@ export function AdminMfaGate({
   const [factorId, setFactorId] = useState("");
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [code, setCode] = useState("");
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState("");
   const [pending, setPending] = useState(true);
   const [error, setError] = useState("");
 
@@ -167,7 +169,11 @@ export function AdminMfaGate({
 
     void prepare()
       .catch((cause: unknown) => {
-        setError(cause instanceof Error ? friendlyMfaError(cause.message) : "Falha ao preparar o segundo fator.");
+        setError(
+          cause instanceof Error
+            ? friendlyMfaError(cause.message)
+            : "Falha ao preparar o segundo fator.",
+        );
       })
       .finally(() => setPending(false));
   }, [needsEnrollment]);
@@ -179,7 +185,9 @@ export function AdminMfaGate({
           V
         </div>
         <p className="auth-eyebrow">Vez · proteção administrativa</p>
-        <h1 id="mfa-title">{needsEnrollment ? "Cadastre o segundo fator" : "Confirme o segundo fator"}</h1>
+        <h1 id="mfa-title">
+          {needsEnrollment ? "Cadastre o segundo fator" : "Confirme o segundo fator"}
+        </h1>
         <p className="auth-copy">
           {needsEnrollment
             ? "Escaneie o QR code no seu aplicativo autenticador e confirme o código de seis dígitos."
@@ -203,46 +211,141 @@ export function AdminMfaGate({
           </>
         ) : null}
 
-        <form
-          onSubmit={async (event) => {
-            event.preventDefault();
-            setPending(true);
-            setError("");
-            const { error: verifyError } = await createBrowserSupabaseClient().auth.mfa.challengeAndVerify({
-              factorId,
-              code,
-            });
-            if (verifyError) {
-              setError(friendlyMfaError(verifyError.message));
-              setPending(false);
-              return;
-            }
-            router.refresh();
-          }}
-        >
-          <label>
-            <span>Código de seis dígitos</span>
-            <input
-              autoComplete="one-time-code"
-              autoFocus={!needsEnrollment}
-              id="admin-totp"
-              inputMode="numeric"
-              maxLength={6}
-              onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-              pattern="[0-9]{6}"
-              placeholder="000000"
-              value={code}
-            />
-          </label>
-          {error ? (
-            <p className="auth-error" role="alert">
-              {error}
+        {recovering ? (
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setPending(true);
+              setError("");
+              const supabase = createBrowserSupabaseClient();
+              const { error: recoveryError } = await supabase.functions.invoke("mfa-recovery", {
+                body: { action: "redeem", code: recoveryCode },
+              });
+              if (recoveryError) {
+                const context = (recoveryError as { context?: unknown }).context;
+                const body =
+                  context instanceof Response
+                    ? ((await context.json().catch(() => null)) as {
+                        error?: { message?: string };
+                      } | null)
+                    : null;
+                setError(
+                  body?.error?.message ??
+                    (recoveryError.name === "FunctionsFetchError"
+                      ? "A recuperação ainda não está configurada neste ambiente. Fale com outro administrador."
+                      : "Não foi possível conferir o código de recuperação."),
+                );
+                setPending(false);
+                return;
+              }
+              await supabase.auth.signOut({ scope: "local" });
+              router.refresh();
+            }}
+          >
+            <p className="auth-copy">
+              Informe um dos códigos guardados quando o autenticador foi configurado. Ele só pode
+              ser usado uma vez.
             </p>
-          ) : null}
-          <button className="primary" disabled={pending || !factorId || code.length !== 6} type="submit">
-            {pending ? "Confirmando…" : needsEnrollment ? "Cadastrar e entrar" : "Confirmar e entrar"}
+            <label>
+              <span>Código de recuperação</span>
+              <input
+                autoComplete="one-time-code"
+                autoFocus
+                id="admin-recovery-code"
+                maxLength={11}
+                onChange={(event) => setRecoveryCode(event.target.value.toUpperCase())}
+                placeholder="XXXXX-XXXXX"
+                value={recoveryCode}
+              />
+            </label>
+            {error ? (
+              <p className="auth-error" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <button
+              className="primary"
+              disabled={pending || recoveryCode.length < 10}
+              type="submit"
+            >
+              {pending ? "Conferindo…" : "Remover autenticador"}
+            </button>
+            <button
+              className="auth-secondary"
+              disabled={pending}
+              onClick={() => {
+                setRecovering(false);
+                setError("");
+              }}
+              type="button"
+            >
+              Voltar ao código do autenticador
+            </button>
+          </form>
+        ) : (
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setPending(true);
+              setError("");
+              const { error: verifyError } =
+                await createBrowserSupabaseClient().auth.mfa.challengeAndVerify({
+                  factorId,
+                  code,
+                });
+              if (verifyError) {
+                setError(friendlyMfaError(verifyError.message));
+                setPending(false);
+                return;
+              }
+              router.refresh();
+            }}
+          >
+            <label>
+              <span>Código de seis dígitos</span>
+              <input
+                autoComplete="one-time-code"
+                autoFocus={!needsEnrollment}
+                id="admin-totp"
+                inputMode="numeric"
+                maxLength={6}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                pattern="[0-9]{6}"
+                placeholder="000000"
+                value={code}
+              />
+            </label>
+            {error ? (
+              <p className="auth-error" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <button
+              className="primary"
+              disabled={pending || !factorId || code.length !== 6}
+              type="submit"
+            >
+              {pending
+                ? "Confirmando…"
+                : needsEnrollment
+                  ? "Cadastrar e entrar"
+                  : "Confirmar e entrar"}
+            </button>
+          </form>
+        )}
+        {!needsEnrollment && !recovering ? (
+          <button
+            className="auth-secondary"
+            disabled={pending}
+            onClick={() => {
+              setRecovering(true);
+              setError("");
+            }}
+            type="button"
+          >
+            Perdi o acesso ao autenticador
           </button>
-        </form>
+        ) : null}
         <button
           className="auth-secondary"
           onClick={async () => {

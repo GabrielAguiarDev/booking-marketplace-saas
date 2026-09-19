@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import { PROBLEMS } from "./data";
+import { ROUTES } from "./site";
 import { Check, Mock, SectionHead } from "./ui";
 
 export function Problem() {
@@ -195,9 +198,9 @@ export function Customer() {
             Ele não precisa ligar, nem esperar resposta, nem saber se você está no meio de um
             atendimento.
           </p>
-          <a href="#app" className="link-muted">
+          <Link href={ROUTES.customerApp} className="link-muted">
             Sou cliente, quero baixar o app →
-          </a>
+          </Link>
         </div>
 
         <div className="phones">

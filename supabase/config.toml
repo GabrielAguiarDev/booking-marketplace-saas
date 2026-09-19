@@ -264,10 +264,12 @@ content_path = "./supabase/templates/confirmation.html"
 subject = "Seu código para redefinir a senha do Vez"
 content_path = "./supabase/templates/recovery.html"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Convite de conta (equipe da plataforma pela `admin-invite` e equipe da loja
+# pela `establishment-invite`). Aqui é link, não código: o convite abre no
+# navegador (admin ou portal), que é onde a pessoa cria a senha.
+[auth.email.template.invite]
+subject = "Você foi convidado para o Vez"
+content_path = "./supabase/templates/invite.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
@@ -405,6 +407,12 @@ deno_version = 2
 
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
+
+# Chamada pelo `pg_cron` (via `pg_net`) com `x-dispatch-secret`, sem JWT de
+# usuário. A função confere o segredo `NOTIFICATIONS_DISPATCH_SECRET` à mão e
+# recusa tudo se ele não estiver configurado.
+[functions.notifications-dispatch]
+verify_jwt = false
 
 [analytics]
 enabled = true

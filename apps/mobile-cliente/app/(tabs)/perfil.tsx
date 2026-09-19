@@ -1,9 +1,9 @@
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
-import { supabase } from "../../lib/supabase";
 import { useSession } from "../../src/auth/session";
+import { signOut } from "../../src/push";
 import { useProfileStats } from "../../src/data/appointments";
 import { initialsOf, memberSince, useProfile } from "../../src/data/use-profile";
 import { color } from "../../src/theme/tokens";
@@ -13,26 +13,31 @@ import { Card, Label, OutlineButton, PrimaryButton, Shimmer } from "../../src/ui
 import { Screen, ScreenScroll } from "../../src/ui/Screen";
 
 /**
- * Linhas do menu. As que têm `to` levam a uma tela de verdade; as sem `to`
- * ainda não existem e dizem isso. Ficam aqui, e não numa fixture, porque não
- * são dado: são a lista de telas que faltam construir. Troque a linha por `to`
- * quando a tela dela nascer, e apague-a quando ela sair do menu.
+ * Linhas do menu — todas levam a uma tela de verdade.
  *
- * "Cidade padrão" saiu: o app do cliente não mostra localidade nenhuma, e
- * oferecer a preferência seria reintroduzir o seletor por outra porta.
+ * O grupo PAGAMENTO saiu: o app não cobra nada ainda (a reserva é paga no
+ * balcão), e "Formas de pagamento" ou "Reembolsos" com "EM BREVE" eram
+ * promessa de cobrança fora do critério de lançamento. Volta quando houver
+ * provedor de pagamento de verdade.
+ *
+ * "Cidade padrão" também não existe: o app do cliente não mostra localidade
+ * nenhuma, e oferecer a preferência seria reintroduzir o seletor por outra
+ * porta.
  */
-const PROFILE_MENU: { name: string; rows: { t: string; to?: string }[] }[] = [
+const PROFILE_MENU: { name: string; rows: { t: string; to: string }[] }[] = [
   {
     name: "CONTA",
-    rows: [{ t: "Dados pessoais" }, { t: "Endereços" }],
-  },
-  {
-    name: "PAGAMENTO",
-    rows: [{ t: "Formas de pagamento" }, { t: "Histórico de cobranças" }, { t: "Reembolsos" }],
+    rows: [
+      { t: "Dados pessoais", to: "/conta/dados" },
+      { t: "Endereços", to: "/conta/enderecos" },
+    ],
   },
   {
     name: "PREFERÊNCIAS",
-    rows: [{ t: "Favoritos" }, { t: "Notificações de fila" }],
+    rows: [
+      { t: "Favoritos", to: "/conta/favoritos" },
+      { t: "Avisos", to: "/conta/avisos" },
+    ],
   },
   {
     name: "SUPORTE",
@@ -47,12 +52,23 @@ export default function Perfil() {
   const stats = useProfileStats(session ? (user?.id ?? null) : null);
   const [signingOut, setSigningOut] = useState(false);
 
+  // Voltar de "Dados pessoais" precisa mostrar o nome novo.
+  const reloadStats = stats.reload;
+  useFocusEffect(
+    useCallback(() => {
+      if (!session) return;
+      reload();
+      reloadStats();
+    }, [session, reload, reloadStats]),
+  );
+
   if (sessionLoading) return <PerfilCarregando />;
   if (!session) return <PerfilDeslogado onEntrar={() => router.push("/entrar")} />;
 
   async function sair() {
     setSigningOut(true);
-    await supabase.auth.signOut();
+    // Desliga o token deste aparelho antes: sem sessão o banco não sabe de quem é.
+    await signOut();
     // Não há navegação aqui: `onAuthStateChange` derruba a sessão e esta mesma
     // tela troca para o estado deslogado. Navegar também produziria duas
     // transições para o mesmo evento.
@@ -138,7 +154,10 @@ export default function Perfil() {
               }}
             >
               <Text
-                style={mono(22, 600, { ls: -0.03, color: valor === null ? color.chevron : color.ink })}
+                style={mono(22, 600, {
+                  ls: -0.03,
+                  color: valor === null ? color.chevron : color.ink,
+                })}
               >
                 {valor ?? "—"}
               </Text>
@@ -154,8 +173,8 @@ export default function Perfil() {
               {group.rows.map((row, index) => (
                 <Pressable
                   key={row.t}
-                  onPress={row.to ? () => router.push(row.to as never) : undefined}
-                  disabled={!row.to}
+                  onPress={() => router.push(row.to as never)}
+                  accessibilityRole="button"
                   style={({ pressed }) => ({
                     padding: 15,
                     flexDirection: "row",
@@ -166,16 +185,8 @@ export default function Perfil() {
                     backgroundColor: pressed ? color.rest : "transparent",
                   })}
                 >
-                  <Text
-                    style={sans(14.5, 600, { ls: -0.01, color: row.to ? color.ink : color.muted })}
-                  >
-                    {row.t}
-                  </Text>
-                  {row.to ? (
-                    <Text style={sans(20, 400, { lh: 1, color: color.chevron })}>›</Text>
-                  ) : (
-                    <Text style={mono(9, 600, { ls: 0.08, color: color.chevron })}>EM BREVE</Text>
-                  )}
+                  <Text style={sans(14.5, 600, { ls: -0.01 })}>{row.t}</Text>
+                  <Text style={sans(20, 400, { lh: 1, color: color.chevron })}>›</Text>
                 </Pressable>
               ))}
             </Card>
@@ -187,6 +198,15 @@ export default function Perfil() {
           height={50}
           onPress={signingOut ? undefined : sair}
         />
+
+        <Pressable
+          onPress={() => router.push("/conta/excluir")}
+          accessibilityRole="button"
+          hitSlop={8}
+          style={{ alignSelf: "center", paddingVertical: 4 }}
+        >
+          <Text style={sans(13, 600, { color: color.muted })}>Excluir minha conta</Text>
+        </Pressable>
       </ScreenScroll>
     </Screen>
   );

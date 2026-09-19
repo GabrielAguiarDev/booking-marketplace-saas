@@ -2,379 +2,213 @@
 
 import { useState } from "react";
 
-import { HOUR_RULER, type SectionId } from "./data";
+import type { SectionId } from "./data";
+import { dateTimeLabel, duration, money, phoneLabel, timeLabel } from "./operation-format";
+import type { OperationAppointment } from "./operation-model";
+import styles from "./operation.module.css";
 import type { Notify } from "./portal";
-import { AMBER, AMBER_LINE, GREEN, INK, RED, RED_LINE } from "./tokens";
-
-const KPIS = [
-  { label: "Atendimentos hoje", value: "19", delta: "+3", fg: GREEN, note: "de 24 vagas do dia" },
-  {
-    label: "Faturamento hoje",
-    value: "R$ 1.480",
-    delta: "+12%",
-    fg: GREEN,
-    note: "média de terça: R$ 1.320",
-  },
-  {
-    label: "Ocupação da agenda",
-    value: "78%",
-    delta: "−4%",
-    fg: AMBER,
-    note: "2h15 livres até 20:00",
-  },
-  { label: "Na fila agora", value: "5", delta: "21min", fg: AMBER, note: "espera média de hoje" },
-  { label: "Não comparecimento", value: "6,2%", delta: "+1,8", fg: RED, note: "últimos 30 dias" },
-];
-
-const ALERTS: {
-  tag: string;
-  title: string;
-  text: string;
-  action: string;
-  to: SectionId;
-  fg: string;
-  bd: string;
-}[] = [
-  {
-    tag: "CONFLITO",
-    title: "Dois agendamentos às 16:30 com o Bruno",
-    text: "Alguém marcou pelo app enquanto você lançava no balcão.",
-    action: "Resolver na agenda",
-    to: "agenda",
-    fg: RED,
-    bd: RED_LINE,
-  },
-  {
-    tag: "COBRANÇA",
-    title: "Assinatura com pendência",
-    text: "O cartão foi recusado na cobrança de 05/09.",
-    action: "Atualizar pagamento",
-    to: "billing",
-    fg: AMBER,
-    bd: AMBER_LINE,
-  },
-];
-
-const PENDING = [
-  {
-    customer: "Marcos Vieira",
-    note: "cliente desde 2024 · 18 visitas",
-    service: "Corte + barba",
-    pro: "Bruno",
-    dur: "50min",
-    when: "hoje 17:30",
-    value: "R$ 90",
-  },
-  {
-    customer: "Diego Salles",
-    note: "primeira vez aqui",
-    service: "Corte social",
-    pro: "Léo",
-    dur: "30min",
-    when: "qua 09:00",
-    value: "R$ 55",
-  },
-  {
-    customer: "Henrique Paz",
-    note: "2 faltas nos últimos 6 meses",
-    service: "Barba na navalha",
-    pro: "Bruno",
-    dur: "30min",
-    when: "qua 11:30",
-    value: "R$ 45",
-  },
-  {
-    customer: "Tiago Ramos",
-    note: "sinal de R$ 20 já pago",
-    service: "Platinado",
-    pro: "Ana",
-    dur: "1h40",
-    when: "qui 14:00",
-    value: "R$ 210",
-  },
-];
-
-const TRACK_STYLE = {
-  booked: { bg: "#F2F2F3", bd: "#E4E5E6", fg: "#3F4347" },
-  now: { bg: "#FFF1ED", bd: "#FFCDC0", fg: "#D9451F" },
-  blocked: { bg: "#FAFAFB", bd: "#DCDCDE", fg: "#A2A5A9" },
-} as const;
-
-type BlockType = keyof typeof TRACK_STYLE;
-
-const slot = (left: number, width: number, label: string, type: BlockType) => ({
-  left,
-  width,
-  label,
-  short: width >= 24 ? label : width >= 8 ? label.slice(0, 5) : "",
-  show: width >= 8,
-  ...TRACK_STYLE[type],
-});
-
-const TRACKS = [
-  {
-    name: "Bruno",
-    blocks: [
-      slot(0, 12, "08:00 Corte", "booked"),
-      slot(13, 8, "09:30 Barba", "booked"),
-      slot(33, 8, "12:00 Almoço", "blocked"),
-      slot(46, 14, "13:30 Corte+barba", "now"),
-      slot(75, 12, "17:00 Corte", "booked"),
-    ],
-  },
-  {
-    name: "Léo",
-    blocks: [
-      slot(4, 8, "08:30 Corte", "booked"),
-      slot(25, 12, "11:00 Corte", "booked"),
-      slot(50, 8, "14:00 Barba", "now"),
-      slot(62, 20, "15:30 Coloração", "booked"),
-    ],
-  },
-  {
-    name: "Ana",
-    blocks: [
-      slot(0, 20, "08:00 Luzes", "booked"),
-      slot(33, 8, "12:00 Almoço", "blocked"),
-      slot(58, 16, "15:00 Platinado", "booked"),
-    ],
-  },
-  {
-    name: "Sérgio",
-    blocks: [
-      slot(8, 10, "09:00 Corte", "booked"),
-      slot(29, 30, "11:30 Folga", "blocked"),
-      slot(70, 14, "16:30 Corte+barba", "booked"),
-    ],
-  },
-];
-
-const WEEKS = [3.9, 4.2, 4.0, 4.6, 4.3, 5.1, 4.8, 5.4].map((revenue, i) => {
-  const height = Math.round(46 + revenue * 11);
-  return {
-    week: `s${31 + i}`,
-    revenue: `R$ ${revenue.toFixed(1).replace(".", ",")}k`,
-    height,
-    line: height - Math.round(revenue * 9),
-  };
-});
-
-const QUEUE_PREVIEW = [
-  {
-    pos: "1",
-    name: "Caio Bertoldo",
-    service: "Corte social",
-    origin: "QR code no balcão",
-    wait: "31min",
-    fg: RED,
-  },
-  { pos: "2", name: "Everton Lima", service: "Barba", origin: "balcão", wait: "18min", fg: AMBER },
-  {
-    pos: "3",
-    name: "Rui Antunes",
-    service: "Corte + barba",
-    origin: "app remoto",
-    wait: "9min",
-    fg: INK,
-  },
-];
-
-type Pending = (typeof PENDING)[number];
+import { usePortal } from "./store";
 
 export function Overview({ go, notify }: { go: (section: SectionId) => void; notify: Notify }) {
-  const [pending, setPending] = useState<Pending[]>(PENDING);
+  const { data, actions } = usePortal();
+  const operation = data?.operation;
+  const [busy, setBusy] = useState<string | null>(null);
+  const [refusing, setRefusing] = useState<OperationAppointment | null>(null);
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
 
-  /** Aprovar e recusar tiram a reserva da lista; o aviso de 5s permite voltar atrás. */
-  const decide = (item: Pending, index: number, approved: boolean) => {
-    setPending((list) => list.filter((p) => p.customer !== item.customer));
-    notify({
-      title: approved ? "Reserva aprovada" : "Reserva recusada",
-      sub: approved
-        ? `${item.customer} foi avisado pelo app. ${item.when}, ${item.service}.`
-        : `${item.customer} foi avisado e o horário voltou a ficar livre.`,
-      undo: () =>
-        setPending((list) => {
-          const next = list.slice();
-          next.splice(Math.min(index, next.length), 0, item);
-          return next;
-        }),
-    });
+  if (!operation) return null;
+
+  const { summary } = operation;
+  const todayCount = summary.scheduledToday + summary.confirmedToday + summary.completedToday;
+  const noShowRate = summary.finalized30
+    ? `${Math.round((summary.noShow30 / summary.finalized30) * 100)}%`
+    : "—";
+  const pending = operation.pendingAppointments;
+
+  const run = async (id: string, action: () => Promise<void>, title: string) => {
+    setBusy(id);
+    setError("");
+    try {
+      await action();
+      notify({ title, sub: "O dado foi atualizado para toda a equipe." });
+      return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Não foi possível concluir a ação.");
+      return false;
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (
-    <div className="page">
-      <section className="overview-kpis">
-        {KPIS.map((k) => (
-          <article key={k.label}>
-            <span>{k.label}</span>
-            <div>
-              <strong>{k.value}</strong>
-              <b style={{ color: k.fg }}>{k.delta}</b>
-            </div>
-            <small>{k.note}</small>
-          </article>
-        ))}
+    <div className={styles.page}>
+      <section className={styles.kpis}>
+        <article className={styles.kpi}>
+          <span>Agendamentos hoje</span>
+          <strong>{todayCount}</strong>
+          <small>{summary.completedToday} concluídos</small>
+        </article>
+        <article className={styles.kpi}>
+          <span>Faturamento concluído hoje</span>
+          <strong>{money(summary.revenueTodayCents)}</strong>
+          <small>Preço congelado dos atendimentos concluídos</small>
+        </article>
+        <article className={styles.kpi}>
+          <span>Na fila agora</span>
+          <strong>{summary.queueActive}</strong>
+          <small>Esperando, chamados e em atendimento</small>
+        </article>
+        <article className={styles.kpi}>
+          <span>Não comparecimento</span>
+          <strong>{noShowRate}</strong>
+          <small>
+            {summary.finalized30
+              ? `${summary.noShow30} de ${summary.finalized30} finalizados em 30 dias`
+              : "Sem atendimentos finalizados em 30 dias"}
+          </small>
+        </article>
       </section>
 
-      <div className="alerts">
-        {ALERTS.map((a) => (
-          <div
-            className="alert"
-            key={a.tag}
-            style={{ borderColor: a.bd, borderLeft: `3px solid ${a.fg}` }}
-          >
-            <code style={{ color: a.fg }}>{a.tag}</code>
-            <strong>{a.title}</strong>
-            <span>{a.text}</span>
-            <button onClick={() => go(a.to)} type="button">
-              {a.action}
-            </button>
-          </div>
-        ))}
-      </div>
+      {error ? <p className={styles.error}>{error}</p> : null}
 
-      <div className="overview-grid">
-        <div>
-          <section className="panel">
-            <header className="panel-head">
-              <h2>Aguardando sua aprovação</h2>
-              <b className="count">{pending.length}</b>
-              <span>Aprovação manual está ligada</span>
-            </header>
-            <div className="table-scroll">
-              <div className="table-head pending-grid">
-                <div>CLIENTE</div>
-                <div>SERVIÇO</div>
-                <div>QUANDO</div>
-                <div style={{ textAlign: "right" }}>VALOR</div>
-                <div />
-              </div>
-              {pending.length === 0 ? (
-                <p className="queue-empty">Nenhuma reserva esperando aprovação.</p>
-              ) : null}
-              {pending.map((p, index) => (
-                <div className="table-row pending-grid" key={p.customer}>
-                  <div>
-                    <strong>{p.customer}</strong>
-                    <small>{p.note}</small>
+      <div className={styles.columns}>
+        <section className={styles.panel}>
+          <header className={styles.panelHeader}>
+            <h2>Aguardando aprovação</h2>
+            <span className={`${styles.badge} ${styles.badgePending}`}>{pending.length}</span>
+          </header>
+          <div className={styles.list}>
+            {pending.length === 0 ? (
+              <p className={styles.empty}>Nenhuma reserva esperando aprovação.</p>
+            ) : (
+              pending.map((item) => (
+                <div className={styles.row} key={item.id}>
+                  <div className={styles.rowMain}>
+                    <strong>{item.customerName}</strong>
+                    <span>
+                      {item.serviceName} · {item.professionalName} · {duration(item.serviceMinutes)}
+                    </span>
+                    <code>{phoneLabel(item.customerPhone)}</code>
                   </div>
-                  <div>
-                    <span>{p.service}</span>
-                    <code>
-                      {p.pro} · {p.dur}
-                    </code>
+                  <div className={styles.rowMeta}>
+                    <strong>{dateTimeLabel(item.startsAt, summary.timezone)}</strong>
+                    <code>{money(item.priceCents)}</code>
                   </div>
-                  <code>{p.when}</code>
-                  <code className="right">{p.value}</code>
-                  <div className="row-actions">
+                  <div className={styles.actions}>
                     <button
-                      className="primary small"
-                      onClick={() => decide(p, index, true)}
+                      className={styles.button}
+                      disabled={busy === item.id}
+                      onClick={() =>
+                        void run(
+                          item.id,
+                          () => actions.approveAppointment(item.id),
+                          "Reserva aprovada",
+                        )
+                      }
                       type="button"
                     >
                       Aprovar
                     </button>
                     <button
-                      className="ghost small danger-hover"
-                      onClick={() => decide(p, index, false)}
+                      className={styles.danger}
+                      disabled={busy === item.id}
+                      onClick={() => {
+                        setRefusing(item);
+                        setReason("");
+                      }}
                       type="button"
                     >
                       Recusar
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </section>
+              ))
+            )}
+          </div>
+        </section>
 
-          <section className="panel padded">
-            <header className="inline-head">
-              <h2>Hoje, hora por hora</h2>
-              <span>Os vãos claros são horários que você ainda pode vender.</span>
-              <code>2h15 livres</code>
-            </header>
-            <div className="tracks">
-              {TRACKS.map((t) => (
-                <div className="track" key={t.name}>
-                  <strong>{t.name}</strong>
-                  <div className="track-bar">
-                    {t.blocks.map((b) => (
-                      <div
-                        key={`${t.name}-${b.left}`}
-                        style={{
-                          left: `${b.left}%`,
-                          width: `${b.width}%`,
-                          background: b.bg,
-                          borderColor: b.bd,
-                        }}
-                        title={b.label}
-                      >
-                        {b.show ? <span style={{ color: b.fg }}>{b.short}</span> : null}
-                      </div>
-                    ))}
-                    <i className="now-line" />
+        <section className={styles.panel}>
+          <header className={styles.panelHeader}>
+            <h2>Fila agora</h2>
+            <button className={styles.secondary} onClick={() => go("queue")} type="button">
+              Abrir fila
+            </button>
+          </header>
+          <div className={styles.list}>
+            {operation.queue.length === 0 ? (
+              <p className={styles.empty}>Ninguém na fila agora.</p>
+            ) : (
+              operation.queue.slice(0, 5).map((entry) => (
+                <div className={styles.row} key={entry.id}>
+                  <span className={styles.position}>{entry.position || "•"}</span>
+                  <div className={styles.rowMain}>
+                    <strong>{entry.customerName}</strong>
+                    <span>{entry.serviceName ?? "Serviço não informado"}</span>
+                  </div>
+                  <div className={styles.rowMeta}>
+                    <strong>{entry.estimatedWaitMinutes} min</strong>
+                    <code>entrou {timeLabel(entry.joinedAt, summary.timezone)}</code>
                   </div>
                 </div>
-              ))}
-              <div className="track-ruler">
-                {HOUR_RULER.map((h) => (
-                  <span key={h}>{h}</span>
-                ))}
-              </div>
-            </div>
-          </section>
-        </div>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
 
-        <div>
-          <section className="panel padded">
-            <header className="inline-head">
-              <h2>Últimas 8 semanas</h2>
-              <div className="chart-legend">
-                <span>
-                  <i className="swatch-bar" />
-                  agendamentos
-                </span>
-                <span>
-                  <i className="swatch-line" />
-                  faturamento
-                </span>
+      {refusing ? (
+        <div className={styles.overlay} role="dialog" aria-modal="true">
+          <button className={styles.scrim} onClick={() => setRefusing(null)} type="button" />
+          <aside className={styles.drawer}>
+            <header className={styles.drawerHeader}>
+              <div>
+                <code>RECUSAR RESERVA</code>
+                <strong>{refusing.customerName}</strong>
               </div>
-            </header>
-            <div className="weeks">
-              {WEEKS.map((w) => (
-                <div key={w.week}>
-                  <code>{w.revenue}</code>
-                  <i style={{ height: w.height }}>
-                    <b style={{ top: w.line }} />
-                  </i>
-                  <small>{w.week}</small>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="panel">
-            <header className="panel-head">
-              <h2>Na fila agora</h2>
-              <button className="link" onClick={() => go("queue")} type="button">
-                Abrir fila
+              <button className={styles.iconButton} onClick={() => setRefusing(null)} type="button">
+                Fechar
               </button>
             </header>
-            {QUEUE_PREVIEW.map((q) => (
-              <div className="queue-preview" key={q.pos}>
-                <code>{q.pos}</code>
-                <div>
-                  <strong>{q.name}</strong>
-                  <small>
-                    {q.service} · {q.origin}
-                  </small>
-                </div>
-                <code style={{ color: q.fg }}>{q.wait}</code>
-              </div>
-            ))}
-          </section>
+            <div className={styles.drawerBody}>
+              <p className={styles.notice}>
+                O motivo fica salvo no agendamento e aparece para clientes com conta. Cliente de
+                balcão não recebe notificação automática.
+              </p>
+              <label className={styles.field}>
+                Motivo
+                <textarea
+                  autoFocus
+                  onChange={(event) => setReason(event.target.value)}
+                  placeholder="Explique por que a loja não poderá atender neste horário"
+                  value={reason}
+                />
+              </label>
+            </div>
+            <footer className={styles.drawerFooter}>
+              <button className={styles.secondary} onClick={() => setRefusing(null)} type="button">
+                Voltar
+              </button>
+              <button
+                className={styles.danger}
+                disabled={reason.trim().length < 3 || busy === refusing.id}
+                onClick={() =>
+                  void run(
+                    refusing.id,
+                    () => actions.refuseAppointment(refusing.id, reason.trim()),
+                    "Reserva recusada",
+                  ).then((succeeded) => {
+                    if (succeeded) setRefusing(null);
+                  })
+                }
+                type="button"
+              >
+                Confirmar recusa
+              </button>
+            </footer>
+          </aside>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

@@ -11,14 +11,16 @@ export function Landing() {
   return (
     <div className="page">
       <Header />
-      <Hero />
-      <Problem />
-      <Steps />
-      <Features />
-      <Customer />
-      <Plans />
-      <Faq />
-      <Signup />
+      <main id="conteudo" tabIndex={-1}>
+        <Hero />
+        <Problem />
+        <Steps />
+        <Features />
+        <Customer />
+        <Plans />
+        <Faq />
+        <Signup />
+      </main>
       <Footer />
       <Reveal />
     </div>
