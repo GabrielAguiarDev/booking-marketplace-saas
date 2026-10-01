@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { type Href, useRouter } from "expo-router";
 import { useCallback } from "react";
 
 /**
@@ -12,9 +12,9 @@ export function useGoToTab() {
   const router = useRouter();
 
   return useCallback(
-    (route: string) => {
+    (route: Href) => {
       if (router.canDismiss()) router.dismissAll();
-      router.navigate(route as never);
+      router.navigate(route);
     },
     [router],
   );

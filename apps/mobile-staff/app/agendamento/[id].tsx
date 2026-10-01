@@ -1,8 +1,8 @@
 import { moneyShort } from "@vez/mobile-kit/format";
 import { sans } from "@vez/mobile-kit/theme";
 import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { Linking, Pressable, Text, View } from "react-native";
+import { useRef, useState } from "react";
+import { ActivityIndicator, Linking, Pressable, Text, View } from "react-native";
 
 import {
   approveAppointment,
@@ -19,6 +19,7 @@ import { color } from "../../src/theme/tokens";
 import {
   Caveat,
   EmptyState,
+  ErrorNote,
   Initials,
   KeyRow,
   OutlineButton,
@@ -49,22 +50,46 @@ const REASONS = [
  */
 export default function AgendamentoDetalhe() {
   const toast = useToast();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, recusar } = useLocalSearchParams<{ id: string; recusar?: string }>();
   const { establishment } = useEstablishment();
 
   const query = useAppointment(id ?? null);
   const appointment = query.data;
   const history = useCustomerHistory(establishment?.id ?? null, appointment?.customerId ?? null);
 
-  const [refuseOpen, setRefuseOpen] = useState(false);
+  // Quem toca "Recusar…" no cartão de Hoje chega aqui com a folha de motivos
+  // já aberta: a recusa continua a um passo, mas nunca sai sem motivo.
+  const [refuseOpen, setRefuseOpen] = useState(recusar === "1");
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [slot, setSlot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const running = useRef(false);
 
   if (query.loading) {
     return (
       <Screen>
         <PlainHeader title="Agendamento" />
+        <View
+          accessible
+          accessibilityLabel="Carregando agendamento"
+          style={{ paddingTop: 48, alignItems: "center" }}
+        >
+          <ActivityIndicator color={color.muted} />
+        </View>
+      </Screen>
+    );
+  }
+
+  // Falha de leitura não é "não encontrado": uma manda tentar de novo, a outra
+  // manda desistir.
+  if (query.error) {
+    return (
+      <Screen>
+        <PlainHeader title="Agendamento" />
+        <ErrorNote
+          message="Não foi possível carregar este agendamento."
+          onRetry={() => void query.reload()}
+        />
       </Screen>
     );
   }
@@ -87,8 +112,13 @@ export default function AgendamentoDetalhe() {
   const open = appointment.status === "scheduled" || appointment.status === "confirmed";
 
   async function run(action: () => Promise<{ ok: boolean; message?: string }>, success: string) {
+    // `busy` desabilita os botões no próximo desenho; o segundo toque pode
+    // chegar antes dele. A trava de verdade é esta.
+    if (running.current) return;
+    running.current = true;
     setBusy(true);
     const result = await action();
+    running.current = false;
     setBusy(false);
 
     if (!result.ok) {
@@ -205,12 +235,14 @@ export default function AgendamentoDetalhe() {
               <OutlineButton
                 label="Remarcar"
                 height={50}
+                disabled={busy}
                 style={{ flex: 1 }}
                 onPress={() => setRescheduleOpen(true)}
               />
               <OutlineButton
                 label="Concluir"
                 height={50}
+                disabled={busy}
                 style={{ flex: 1 }}
                 onPress={() =>
                   run(
@@ -225,7 +257,8 @@ export default function AgendamentoDetalhe() {
               <OutlineButton
                 label="Não compareceu"
                 height={50}
-                tint={color.amber}
+                tint={color.amberDeep}
+                disabled={busy}
                 style={{ flex: 1 }}
                 onPress={() =>
                   run(() => markNoShow(appointment.id), `${appointment.name} marcado como falta.`)
@@ -235,6 +268,7 @@ export default function AgendamentoDetalhe() {
                 label="Recusar"
                 height={50}
                 tint={color.danger}
+                disabled={busy}
                 style={{ flex: 1 }}
                 onPress={() => setRefuseOpen(true)}
               />
@@ -262,7 +296,9 @@ export default function AgendamentoDetalhe() {
       </ScreenScroll>
 
       <Sheet
-        visible={refuseOpen}
+        // Só enquanto o pedido está em aberto: a folha pode ter vindo pedida
+        // de Hoje para um agendamento que outra pessoa da equipe já resolveu.
+        visible={refuseOpen && open}
         onClose={() => setRefuseOpen(false)}
         title="Por que está recusando?"
         subtitle="O motivo vai junto com o aviso. Recusar em silêncio é o que faz a pessoa não voltar."
@@ -278,6 +314,8 @@ export default function AgendamentoDetalhe() {
                   `Recusado. ${appointment.name} foi avisado.`,
                 );
               }}
+              accessibilityRole="button"
+              accessibilityLabel={`Recusar: ${reason}`}
               style={{
                 paddingVertical: 15,
                 paddingHorizontal: 15,
@@ -328,6 +366,9 @@ function ContactButton({ label, onPress }: { label: string; onPress: () => void 
   return (
     <Pressable
       onPress={onPress}
+      hitSlop={{ top: 4, bottom: 4 }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       style={{
         flex: 1,
         paddingVertical: 11,

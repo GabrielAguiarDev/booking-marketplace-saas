@@ -209,7 +209,7 @@ export function Finance() {
           </div>
         )}
         <footer className="card-foot" style={{ background: SURFACE_5 }}>
-          Não há linha de repasse, taxa ou recebimento pelo app: a Vez ainda não escolheu o provedor
+          Não há linha de repasse, taxa ou recebimento pelo app: o Vez ainda não escolheu o provedor
           de pagamento, e nenhum dinheiro passa por ela hoje. O que a loja recebe no balcão não
           entra aqui — o portal só sabe o que foi vendido pelo app.
         </footer>

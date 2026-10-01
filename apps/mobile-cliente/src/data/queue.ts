@@ -1,7 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { supabase } from "../../lib/supabase";
 import { useAsync } from "@vez/mobile-kit/async";
+
+/**
+ * Nome de canal próprio de cada tela que assina.
+ *
+ * `supabase.channel(nome)` devolve o canal que já existe com aquele nome. Duas
+ * telas montadas ao mesmo tempo com o mesmo nome — a Home e a Agenda são abas,
+ * ficam as duas vivas — recebiam o mesmo objeto: a segunda chamava `.on()`
+ * num canal já inscrito, o que lança erro e derruba a tela, e a que
+ * desmontasse primeiro removia o canal da outra. O sufixo vem de `useId`, que
+ * é estável por instância do hook.
+ */
+function useChannelName(base: string): string {
+  const id = useId().replace(/[^a-zA-Z0-9]/g, "");
+  return `${base}:${id}`;
+}
 
 export type QueueStatus = "waiting" | "called" | "in_service" | "done" | "left" | "no_show";
 
@@ -33,6 +48,7 @@ export type MyQueueEntry = {
  */
 export function useQueueState(establishmentId: string | null) {
   const [tick, setTick] = useState(0);
+  const channelName = useChannelName(`queue:${establishmentId}`);
 
   const query = useAsync(
     `queue:${establishmentId}:${tick}`,
@@ -50,7 +66,7 @@ export function useQueueState(establishmentId: string | null) {
     if (!establishmentId) return;
 
     const channel = supabase
-      .channel(`queue:${establishmentId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -66,7 +82,7 @@ export function useQueueState(establishmentId: string | null) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [establishmentId]);
+  }, [establishmentId, channelName]);
 
   return query;
 }
@@ -74,6 +90,7 @@ export function useQueueState(establishmentId: string | null) {
 /** A entrada ativa do próprio usuário, em qualquer loja. */
 export function useMyQueueEntry(enabled: boolean) {
   const [tick, setTick] = useState(0);
+  const channelName = useChannelName("my-queue");
 
   const query = useAsync(
     `my-queue:${tick}`,
@@ -95,7 +112,7 @@ export function useMyQueueEntry(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     const channel = supabase
-      .channel("my-queue")
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "queue_entries" }, () =>
         setTick((value) => value + 1),
       )
@@ -103,7 +120,7 @@ export function useMyQueueEntry(enabled: boolean) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [enabled]);
+  }, [enabled, channelName]);
 
   return query;
 }

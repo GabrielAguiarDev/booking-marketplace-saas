@@ -51,7 +51,9 @@ export function AuthShell({
           <BackHeader onBack={() => router.back()} />
 
           <View style={{ gap: 9 }}>
-            <Text style={sans(30, 800, { ls: -0.04 })}>{title}</Text>
+            <Text accessibilityRole="header" style={sans(30, 800, { ls: -0.04 })}>
+              {title}
+            </Text>
             <Text style={sans(15, 400, { lh: 1.45, color: color.muted })}>{subtitle}</Text>
           </View>
 
@@ -66,7 +68,13 @@ export function AuthShell({
                 paddingHorizontal: 14,
               }}
             >
-              <Text style={sans(13.5, 500, { lh: 1.4, color: "#B33A1F" })}>{error}</Text>
+              <Text
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                style={sans(13.5, 500, { lh: 1.4, color: "#B33A1F" })}
+              >
+                {error}
+              </Text>
             </View>
           ) : null}
 

@@ -280,28 +280,37 @@ export type Database = {
       assistant_messages: {
         Row: {
           cards: Json | null
+          completion_tokens: number | null
           content: string
           conversation_id: string
           created_at: string
           id: string
+          model: string | null
+          prompt_tokens: number | null
           role: Database["public"]["Enums"]["assistant_role"]
           user_id: string
         }
         Insert: {
           cards?: Json | null
+          completion_tokens?: number | null
           content: string
           conversation_id: string
           created_at?: string
           id?: string
+          model?: string | null
+          prompt_tokens?: number | null
           role: Database["public"]["Enums"]["assistant_role"]
           user_id: string
         }
         Update: {
           cards?: Json | null
+          completion_tokens?: number | null
           content?: string
           conversation_id?: string
           created_at?: string
           id?: string
+          model?: string | null
+          prompt_tokens?: number | null
           role?: Database["public"]["Enums"]["assistant_role"]
           user_id?: string
         }
@@ -315,6 +324,35 @@ export type Database = {
           },
           {
             foreignKeyName: "assistant_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assistant_usage_daily: {
+        Row: {
+          updated_at: string
+          usage_date: string
+          used: number
+          user_id: string
+        }
+        Insert: {
+          updated_at?: string
+          usage_date: string
+          used?: number
+          user_id: string
+        }
+        Update: {
+          updated_at?: string
+          usage_date?: string
+          used?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_usage_daily_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -2981,6 +3019,38 @@ export type Database = {
         Args: { p_establishment_id: string }
         Returns: undefined
       }
+      assistant_abort_turn: {
+        Args: { p_message_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      assistant_begin_turn: {
+        Args: {
+          p_conversation_id: string
+          p_message: string
+          p_user_id: string
+        }
+        Returns: {
+          conversation_id: string
+          day_limit: number
+          message_id: string
+          remaining: number
+          used: number
+        }[]
+      }
+      assistant_day_limit: { Args: never; Returns: number }
+      assistant_finish_turn: {
+        Args: {
+          p_cards?: Json
+          p_completion_tokens?: number
+          p_conversation_id: string
+          p_model?: string
+          p_prompt_tokens?: number
+          p_reply: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      assistant_local_day: { Args: never; Returns: string }
       assistant_usage_today: {
         Args: never
         Returns: {

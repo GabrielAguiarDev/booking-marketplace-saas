@@ -40,7 +40,7 @@ export function useCity(): {
   id: string | null;
   loading: boolean;
   error: string | null;
-  reload: () => void;
+  reload: () => Promise<void>;
 } {
   const { data, loading, error, reload } = useAsync("current-city", async () => {
     // As duas leituras são públicas (RLS como `anon`): buscar funciona deslogado.

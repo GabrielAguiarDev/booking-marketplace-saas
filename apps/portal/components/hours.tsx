@@ -523,7 +523,7 @@ export function Hours() {
         )}
         <footer className="card-foot">
           A vaga que o cliente vê é o funcionamento menos quem não está na jornada, menos o que já
-          está agendado. Quem calcula isso é o Postgres (`available_slots`), nunca esta tela.
+          está agendado. A conta é a mesma no portal e nos aplicativos.
         </footer>
       </section>
 

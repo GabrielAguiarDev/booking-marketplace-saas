@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { ChevronLeft } from "lucide-react-native";
 import { type ReactNode, useEffect, useState } from "react";
 import {
   Animated,
@@ -12,7 +13,9 @@ import {
 } from "react-native";
 
 import { cardShadow, color, segmentShadow } from "../theme/tokens";
+import { useReducedMotion } from "@vez/mobile-kit/motion";
 import { mono, sans } from "@vez/mobile-kit/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Card branco separado do fundo por hairline — o padrão de superfície do design. */
 export function Card({
@@ -63,9 +66,18 @@ export function PrimaryButton({
   background?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  // Botão sem `onPress` é o jeito de as telas dizerem "agora não": enquanto
+  // envia, ou enquanto falta escolher algo. O leitor de tela precisa saber
+  // disso — sem o estado, ele anuncia um botão que não faz nada ao tocar.
+  const disabled = !onPress;
+
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       style={({ pressed }) => [
         {
           height,
@@ -73,12 +85,15 @@ export function PrimaryButton({
           backgroundColor: background,
           alignItems: "center",
           justifyContent: "center",
+          paddingHorizontal: 16,
           opacity: pressed ? 0.85 : 1,
         },
         style,
       ]}
     >
-      <Text style={sans(height >= 54 ? 15.5 : 14.5, 700, { color: "#fff" })}>{label}</Text>
+      <Text style={sans(height >= 54 ? 15.5 : 14.5, 700, { color: "#fff" })} numberOfLines={1}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -96,9 +111,15 @@ export function OutlineButton({
   radius?: number;
   style?: StyleProp<ViewStyle>;
 }) {
+  const disabled = !onPress;
+
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       style={({ pressed }) => [
         {
           height,
@@ -132,6 +153,10 @@ export function Chip({
   return (
     <Pressable
       onPress={onPress}
+      hitSlop={4}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
       style={{
         paddingVertical: variant === "mono" ? 10 : 10,
         paddingHorizontal: variant === "mono" ? 12 : 13,
@@ -166,6 +191,7 @@ export function Segmented({
 }) {
   return (
     <View
+      accessibilityRole="tablist"
       style={{
         flexDirection: "row",
         gap: 5,
@@ -180,6 +206,10 @@ export function Segmented({
           <Pressable
             key={item.key}
             onPress={() => onChange(item.key)}
+            hitSlop={{ top: 6, bottom: 6 }}
+            accessibilityRole="tab"
+            accessibilityLabel={item.label}
+            accessibilityState={{ selected: on }}
             style={[
               {
                 flex: 1,
@@ -204,8 +234,15 @@ export function Segmented({
 /** Ponto que pulsa — `@keyframes vzpulse` do design. */
 export function PulseDot({ size = 7, dotColor }: { size?: number; dotColor: string }) {
   const [value] = useState(() => new Animated.Value(0.3));
+  const reduced = useReducedMotion();
 
   useEffect(() => {
+    // Com "reduzir movimento" ligado o ponto fica aceso e parado: continua
+    // dizendo "ao vivo" pela cor, sem piscar.
+    if (reduced) {
+      value.setValue(1);
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(value, {
@@ -224,10 +261,12 @@ export function PulseDot({ size = 7, dotColor }: { size?: number; dotColor: stri
     );
     loop.start();
     return () => loop.stop();
-  }, [value]);
+  }, [value, reduced]);
 
   return (
     <Animated.View
+      accessible={false}
+      importantForAccessibility="no"
       style={{
         width: size,
         height: size,
@@ -250,8 +289,10 @@ export function Shimmer({
   radius?: number;
 }) {
   const [value] = useState(() => new Animated.Value(0));
+  const reduced = useReducedMotion();
 
   useEffect(() => {
+    if (reduced) return;
     const loop = Animated.loop(
       Animated.timing(value, {
         toValue: 1,
@@ -262,10 +303,24 @@ export function Shimmer({
     );
     loop.start();
     return () => loop.stop();
-  }, [value]);
+  }, [value, reduced]);
+
+  // O bloco cinza sozinho já diz "carregando"; a varredura é o enfeite, e é
+  // ela que sai quando a pessoa pediu menos movimento.
+  if (reduced) {
+    return (
+      <View
+        accessible={false}
+        importantForAccessibility="no"
+        style={{ width, height, borderRadius: radius, backgroundColor: color.rest }}
+      />
+    );
+  }
 
   return (
     <View
+      accessible={false}
+      importantForAccessibility="no"
       style={{
         width,
         height,
@@ -334,6 +389,45 @@ export function GridBackdrop({ step = 36 }: { step?: number }) {
   );
 }
 
+/**
+ * O "voltar" das telas empilhadas.
+ *
+ * No canvas é o caractere "‹", que um leitor de tela lê como "aspa angular
+ * simples" — ou não lê. Aqui é um botão com nome, e o `hitSlop` leva o alvo
+ * aos 44 pt sem mudar o desenho.
+ */
+export function BackButton({
+  onPress,
+  boxed = false,
+}: {
+  onPress: () => void;
+  /** Quadrado branco sobre a foto da loja, em vez do traço solto. */
+  boxed?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={boxed ? 6 : 12}
+      accessibilityRole="button"
+      accessibilityLabel="Voltar"
+      style={
+        boxed
+          ? {
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              backgroundColor: color.bg,
+              alignItems: "center",
+              justifyContent: "center",
+            }
+          : { width: 24, height: 28, justifyContent: "center", marginLeft: -5 }
+      }
+    >
+      <ChevronLeft size={boxed ? 20 : 24} color={color.ink} strokeWidth={boxed ? 2 : 1.8} />
+    </Pressable>
+  );
+}
+
 /** Cabeçalho `‹ Título` das telas empilhadas. */
 export function BackHeader({
   title,
@@ -348,10 +442,16 @@ export function BackHeader({
 }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 11 }}>
-      <Pressable onPress={onBack} hitSlop={12} style={{ paddingBottom: 4 }}>
-        <Text style={sans(24, 400, { lh: 1 })}>‹</Text>
-      </Pressable>
-      {title ? <Text style={sans(titleSize, 800, { ls: -0.03 })}>{title}</Text> : null}
+      <BackButton onPress={onBack} />
+      {title ? (
+        <Text
+          accessibilityRole="header"
+          style={[sans(titleSize, 800, { ls: -0.03 }), { flexShrink: 1 }]}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+      ) : null}
       {right}
     </View>
   );
@@ -382,9 +482,16 @@ export function SectionHeader({
         alignItems: "baseline",
       }}
     >
-      <Text style={sans(21, 800, { ls: -0.03 })}>{title}</Text>
+      <Text accessibilityRole="header" style={sans(21, 800, { ls: -0.03 })}>
+        {title}
+      </Text>
       {meta ? (
-        <Pressable onPress={onMetaPress} disabled={!onMetaPress}>
+        <Pressable
+          onPress={onMetaPress}
+          disabled={!onMetaPress}
+          hitSlop={12}
+          accessibilityRole={onMetaPress ? "button" : undefined}
+        >
           <Text style={mono(10.5, 600, { ls: 0.05, color: metaColor })}>{meta}</Text>
         </Pressable>
       ) : null}
@@ -392,14 +499,15 @@ export function SectionHeader({
   );
 }
 
-/** Barra fixa no rodapé da tela — Loja, Horário e Confirmar usam. */
-export function StickyFooter({
-  children,
-  bottomInset,
-}: {
-  children: ReactNode;
-  bottomInset: number;
-}) {
+/**
+ * Barra fixa no rodapé da tela — Loja, Horário e Confirmar usam.
+ *
+ * Soma a área segura por conta própria. Antes ela chegava por prop e todas as
+ * telas passavam zero: em aparelho sem botão físico o botão principal ficava
+ * em cima da barra de início.
+ */
+export function StickyFooter({ children }: { children: ReactNode }) {
+  const insets = useSafeAreaInsets();
   return (
     <View
       style={{
@@ -408,7 +516,7 @@ export function StickyFooter({
         backgroundColor: color.bg,
         paddingHorizontal: 20,
         paddingTop: 13,
-        paddingBottom: 16 + bottomInset,
+        paddingBottom: 16 + insets.bottom,
       }}
     >
       {children}

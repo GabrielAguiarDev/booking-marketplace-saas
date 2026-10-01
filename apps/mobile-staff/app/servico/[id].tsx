@@ -221,7 +221,11 @@ export default function ServicoEditor() {
                 o nome certo.
               </Text>
             </View>
-            <Toggle value={form.isActive} onChange={(next) => update({ isActive: next })} />
+            <Toggle
+              value={form.isActive}
+              onChange={(next) => update({ isActive: next })}
+              label="Serviço ativo"
+            />
           </View>
 
           <PrimaryButton

@@ -42,6 +42,9 @@ export function AccountSheet({ visible, onClose }: { visible: boolean; onClose: 
                 select(membership.establishment.id);
                 onClose();
               }}
+              accessibilityRole="button"
+              accessibilityLabel={`${membership.establishment.name}, ${ROLE_LABEL[membership.role] ?? membership.role}`}
+              accessibilityState={{ selected: current }}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -69,6 +72,7 @@ export function AccountSheet({ visible, onClose }: { visible: boolean; onClose: 
           onClose();
           void signOut();
         }}
+        accessibilityRole="button"
         style={{
           flexDirection: "row",
           alignItems: "center",

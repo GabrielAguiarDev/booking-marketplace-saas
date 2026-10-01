@@ -11,6 +11,8 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
+    "test": "pnpm -r test",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:start": "supabase start",
@@ -20,8 +22,8 @@
     "db:diff": "supabase db diff -f",
     "db:types": "supabase gen types typescript --local --schema public > packages/supabase/src/database.types.ts",
     "db:check-rls": "./scripts/check-rls.sh",
-    "db:test:behavior": "docker exec -i $(docker ps --filter name=supabase_db_ --format '{{.Names}}' | head -1) psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/launch-security.sql",
-    "db:demo": "docker exec -i $(docker ps --filter name=supabase_db_ --format '{{.Names}}' | head -1) psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/demo/demo-data.sql"
+    "db:test:behavior": "bash scripts/run-db-sql.sh supabase/tests/launch-security.sql",
+    "db:demo": "bash scripts/run-db-sql.sh supabase/demo/demo-data.sql"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

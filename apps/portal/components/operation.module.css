@@ -3,6 +3,10 @@
   gap: 18px;
   padding: 24px;
 }
+/* item de grade não encolhe abaixo do conteúdo: sem isto a tabela larga empurra a página */
+.page > * {
+  min-width: 0;
+}
 .kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -51,6 +55,7 @@
 .panelHeader,
 .toolbar {
   min-height: 62px;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 14px 18px;
   border-bottom: 1px solid #ececed;
@@ -267,7 +272,8 @@
 .drawer {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  min-height: 100vh;
+  /* altura da própria sobreposição: `100vh` escondia o rodapé atrás da barra do celular */
+  min-height: 0;
   overflow: hidden;
   background: #fff;
   box-shadow: -12px 0 40px rgb(20 22 24 / 18%);
@@ -293,10 +299,13 @@
   font-size: 17px;
 }
 .drawerBody {
+  /* sem isto as linhas da grade esticam para preencher a altura da gaveta */
+  align-content: start;
   overflow: auto;
   padding: 20px;
 }
 .drawerFooter {
+  flex-wrap: wrap;
   justify-content: flex-end;
   border-top: 1px solid #e7e8e9;
 }

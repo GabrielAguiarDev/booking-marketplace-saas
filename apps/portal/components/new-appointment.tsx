@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { NewAppointmentSeed } from "./agenda";
+import { Drawer } from "./drawer";
 import { dateLabel, duration, localDay, money, timeLabel } from "./operation-format";
 import type { AvailableSlot } from "./operation-model";
 import styles from "./operation.module.css";
@@ -134,150 +135,9 @@ export function NewAppointment({
   };
 
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true">
-      <button className={styles.scrim} onClick={onClose} type="button" />
-      <aside className={styles.drawer}>
-        <header className={styles.drawerHeader}>
-          <div>
-            <code>{appointment ? "REMARCAR" : "NOVO AGENDAMENTO"}</code>
-            <strong>
-              {appointment ? appointment.customerName : "Cliente de balcão ou telefone"}
-            </strong>
-          </div>
-          <button className={styles.iconButton} onClick={onClose} type="button">
-            Fechar
-          </button>
-        </header>
-
-        <div className={styles.drawerBody}>
-          {!appointment ? (
-            <>
-              <p className={styles.notice}>
-                Este fluxo cadastra uma reserva para quem ainda não tem conta. Ela fica visível só
-                para a equipe e nasce confirmada.
-              </p>
-              <div className={styles.formGrid}>
-                <label className={styles.field}>
-                  Nome do cliente
-                  <input
-                    required
-                    minLength={2}
-                    onChange={(event) => setName(event.target.value)}
-                    value={name}
-                  />
-                </label>
-                <label className={styles.field}>
-                  Telefone (opcional)
-                  <input
-                    inputMode="tel"
-                    onChange={(event) => setPhone(event.target.value)}
-                    value={phone}
-                  />
-                </label>
-              </div>
-            </>
-          ) : null}
-
-          <label className={styles.field}>
-            Serviço
-            <select
-              disabled={Boolean(appointment)}
-              onChange={(event) => {
-                setServiceId(event.target.value);
-                setProfessionalId("");
-                setStartsAt("");
-              }}
-              value={serviceId}
-            >
-              <option value="">Selecione</option>
-              {operation.services.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} · {duration(item.durationMinutes)} · {money(item.priceCents)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {service ? (
-            <label className={styles.field}>
-              Profissional
-              <select
-                disabled={Boolean(appointment)}
-                onChange={(event) => {
-                  setProfessionalId(event.target.value);
-                  setStartsAt("");
-                }}
-                value={professionalId}
-              >
-                <option value="">Selecione</option>
-                {professionals.map((professional) => (
-                  <option key={professional.id} value={professional.id}>
-                    {professional.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          {service && professionals.length === 0 ? (
-            <p className={styles.error}>Nenhum profissional ativo executa este serviço.</p>
-          ) : null}
-
-          {professionalId ? (
-            <label className={styles.field}>
-              Data
-              <input
-                min={operation.summary.localDay}
-                onChange={(event) => {
-                  setDay(event.target.value);
-                  setStartsAt("");
-                }}
-                type="date"
-                value={day}
-              />
-            </label>
-          ) : null}
-
-          {professionalId && day ? (
-            <section className={styles.field}>
-              <span>Horários livres</span>
-              <small className={styles.subtle}>
-                A disponibilidade abaixo vem de available_slots() no Postgres.
-              </small>
-              {loadingSlots ? <p className={styles.empty}>Consultando a agenda…</p> : null}
-              {!loadingSlots && slots.length === 0 ? (
-                <p className={styles.empty}>Nenhum horário livre nesta data.</p>
-              ) : null}
-              {!loadingSlots && slots.length ? (
-                <div className={styles.slots}>
-                  {slots.map((slot) => (
-                    <button
-                      aria-pressed={startsAt === slot.startsAt}
-                      className={`${styles.slot} ${startsAt === slot.startsAt ? styles.slotSelected : ""}`}
-                      key={`${slot.professionalId}-${slot.startsAt}`}
-                      onClick={() => setStartsAt(slot.startsAt)}
-                      type="button"
-                    >
-                      {timeLabel(slot.startsAt, operation.summary.timezone)}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </section>
-          ) : null}
-
-          {!appointment ? (
-            <label className={styles.field}>
-              Observação (opcional)
-              <textarea onChange={(event) => setNotes(event.target.value)} value={notes} />
-            </label>
-          ) : null}
-
-          {error ? <p className={styles.error}>{error}</p> : null}
-          {slotError ? <p className={styles.error}>{slotError}</p> : null}
-        </div>
-
-        <footer className={styles.drawerFooter}>
+    <Drawer
+      footer={
+        <>
           <button className={styles.secondary} disabled={saving} onClick={onClose} type="button">
             Cancelar
           </button>
@@ -289,8 +149,147 @@ export function NewAppointment({
           >
             {saving ? "Salvando…" : appointment ? "Confirmar remarcação" : "Criar agendamento"}
           </button>
-        </footer>
-      </aside>
-    </div>
+        </>
+      }
+      label={appointment ? "REMARCAR" : "NOVO AGENDAMENTO"}
+      onClose={onClose}
+      title={appointment ? appointment.customerName : "Cliente de balcão ou telefone"}
+    >
+      {!appointment ? (
+        <>
+          <p className={styles.notice}>
+            Este fluxo cadastra uma reserva para quem ainda não tem conta. Ela fica visível só para
+            a equipe e nasce confirmada.
+          </p>
+          <div className={styles.formGrid}>
+            <label className={styles.field}>
+              Nome do cliente
+              <input
+                autoComplete="off"
+                autoFocus
+                required
+                minLength={2}
+                onChange={(event) => setName(event.target.value)}
+                value={name}
+              />
+            </label>
+            <label className={styles.field}>
+              Telefone (opcional)
+              <input
+                inputMode="tel"
+                onChange={(event) => setPhone(event.target.value)}
+                value={phone}
+              />
+            </label>
+          </div>
+        </>
+      ) : null}
+
+      <label className={styles.field}>
+        Serviço
+        <select
+          disabled={Boolean(appointment)}
+          onChange={(event) => {
+            setServiceId(event.target.value);
+            setProfessionalId("");
+            setStartsAt("");
+          }}
+          value={serviceId}
+        >
+          <option value="">Selecione</option>
+          {operation.services.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name} · {duration(item.durationMinutes)} · {money(item.priceCents)}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {service ? (
+        <label className={styles.field}>
+          Profissional
+          <select
+            disabled={Boolean(appointment)}
+            onChange={(event) => {
+              setProfessionalId(event.target.value);
+              setStartsAt("");
+            }}
+            value={professionalId}
+          >
+            <option value="">Selecione</option>
+            {professionals.map((professional) => (
+              <option key={professional.id} value={professional.id}>
+                {professional.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+
+      {service && professionals.length === 0 ? (
+        <p className={styles.error}>Nenhum profissional ativo executa este serviço.</p>
+      ) : null}
+
+      {professionalId ? (
+        <label className={styles.field}>
+          Data
+          <input
+            min={operation.summary.localDay}
+            onChange={(event) => {
+              setDay(event.target.value);
+              setStartsAt("");
+            }}
+            type="date"
+            value={day}
+          />
+        </label>
+      ) : null}
+
+      {professionalId && day ? (
+        <section className={styles.field}>
+          <span>Horários livres</span>
+          <small className={styles.subtle}>
+            Só aparecem horários dentro da jornada e sem outra reserva.
+          </small>
+          {loadingSlots ? <p className={styles.empty}>Consultando a agenda…</p> : null}
+          {!loadingSlots && slots.length === 0 ? (
+            <p className={styles.empty}>Nenhum horário livre nesta data.</p>
+          ) : null}
+          {!loadingSlots && slots.length ? (
+            <div className={styles.slots}>
+              {slots.map((slot) => (
+                <button
+                  aria-pressed={startsAt === slot.startsAt}
+                  className={`${styles.slot} ${startsAt === slot.startsAt ? styles.slotSelected : ""}`}
+                  key={`${slot.professionalId}-${slot.startsAt}`}
+                  onClick={() => setStartsAt(slot.startsAt)}
+                  type="button"
+                >
+                  {timeLabel(slot.startsAt, operation.summary.timezone)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {!appointment ? (
+        <label className={styles.field}>
+          Observação (opcional)
+          <textarea onChange={(event) => setNotes(event.target.value)} value={notes} />
+        </label>
+      ) : null}
+
+      {error ? (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      ) : null}
+      {slotError ? (
+        <p className={styles.error} role="alert">
+          {slotError}
+        </p>
+      ) : null}
+    </Drawer>
   );
 }

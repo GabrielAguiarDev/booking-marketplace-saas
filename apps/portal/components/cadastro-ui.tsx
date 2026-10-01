@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useState } from "react";
 
 import type { ScheduleImpact } from "./model";
 import { AMBER, MUTED } from "./tokens";
+import { useDialog } from "./use-dialog";
 
 /* ── Formatação ───────────────────────────────────────────────────────────── */
 
@@ -62,15 +63,21 @@ const ToastContext = createContext<((text: string, bad?: boolean) => void) | nul
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<ToastState>(null);
   const show = useCallback((text: string, bad = false) => setToast({ text, bad }), []);
+  // Aviso de sucesso some sozinho; o de falha fica até ser lido.
+  useEffect(() => {
+    if (!toast || toast.bad) return;
+    const timer = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
   return (
     <ToastContext.Provider value={show}>
       {children}
       {toast ? (
-        <div className="toast" role="status">
+        <div className="toast" role={toast.bad ? "alert" : "status"}>
           <strong>{toast.bad ? "Não deu certo" : "Pronto"}</strong>
           <small>{toast.text}</small>
           <button onClick={() => setToast(null)} type="button">
-            fechar
+            Fechar
           </button>
         </div>
       ) : null}
@@ -146,11 +153,26 @@ export function Dialog({
   onCancel: () => void;
   children: React.ReactNode;
 }) {
+  const ref = useDialog<HTMLDivElement>(onCancel);
+  const titleId = useId();
   return (
     <div className="dialog-scrim">
-      <button aria-label="Fechar" className="dialog-backdrop" onClick={onCancel} type="button" />
-      <div aria-label={title} aria-modal="true" className="dialog" role="dialog">
-        <h2>{title}</h2>
+      <button
+        aria-label="Fechar"
+        className="dialog-backdrop"
+        onClick={onCancel}
+        tabIndex={-1}
+        type="button"
+      />
+      <div
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="dialog"
+        ref={ref}
+        role="dialog"
+        tabIndex={-1}
+      >
+        <h2 id={titleId}>{title}</h2>
         {sub ? <p>{sub}</p> : null}
         {children}
       </div>

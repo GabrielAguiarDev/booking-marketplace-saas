@@ -84,6 +84,7 @@ export default function Cadastro() {
             <Pressable
               onPress={() => router.replace({ pathname: "/entrar", params: { redirect } })}
               hitSlop={8}
+              accessibilityRole="button"
             >
               <Text style={sans(14, 700, { color: color.coral })}>Entrar</Text>
             </Pressable>

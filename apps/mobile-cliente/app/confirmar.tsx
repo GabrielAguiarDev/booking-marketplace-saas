@@ -97,7 +97,8 @@ export default function Confirmar() {
 
           <Pressable
             onPress={cooldown.active ? undefined : resend}
-            hitSlop={8}
+            hitSlop={12}
+            accessibilityRole="button"
             style={{ alignSelf: "center" }}
           >
             <Text style={sans(14, 600, { color: cooldown.active ? color.muted : color.ink })}>

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { createWaiters } from "./waiters";
+
 type Result<T> = { key: string; data: T | null; error: string | null };
 
 /**
@@ -19,9 +21,18 @@ export function useAsync<T>(
   const enabled = options.enabled ?? true;
   const [result, setResult] = useState<Result<T> | null>(null);
   const [nonce, setNonce] = useState(0);
+  // Quem chamou `reload()` e está esperando a busca terminar. Vive fora do
+  // estado porque não desenha nada: só o gesto de puxar para atualizar precisa
+  // saber quando soltar o indicador.
+  const [waiters] = useState(createWaiters);
 
   useEffect(() => {
-    if (!enabled) return;
+    const settle = () => waiters.settle(nonce);
+
+    if (!enabled) {
+      settle();
+      return;
+    }
 
     let active = true;
     run()
@@ -35,10 +46,16 @@ export function useAsync<T>(
           data: null,
           error: cause instanceof Error ? cause.message : "Falha inesperada.",
         });
+      })
+      .finally(() => {
+        if (active) settle();
       });
 
     return () => {
       active = false;
+      // Busca substituída ou tela desmontada: quem esperava não pode ficar
+      // pendurado com o indicador girando para sempre.
+      settle();
     };
     // `run` muda de identidade a cada render; `key` é o que de fato descreve a
     // consulta. Incluir `run` aqui refaria a busca em todo render.
@@ -51,6 +68,14 @@ export function useAsync<T>(
     data: current?.data ?? null,
     error: current?.error ?? null,
     loading: enabled && current === null,
-    reload: useCallback(() => setNonce((n) => n + 1), []),
+    /**
+     * Refaz a busca. A promessa resolve quando ela termina — com sucesso ou
+     * erro — e nunca rejeita: o erro continua chegando por `error`.
+     */
+    reload: useCallback(() => {
+      const { target, done } = waiters.next();
+      setNonce(target);
+      return done;
+    }, [waiters]),
   };
 }

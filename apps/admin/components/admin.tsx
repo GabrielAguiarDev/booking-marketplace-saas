@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Approvals } from "./approvals";
 import { AccountConsole } from "./account-console";
@@ -37,12 +38,37 @@ export function Admin({ initial, remote = false }: { initial: AdminData; remote?
   );
 }
 
+/**
+ * A tela aberta vive na URL (`?screen=support`, `?screen=estabDetail&id=…`):
+ * recarregar mantém onde a pessoa estava, o Voltar do navegador volta de tela e
+ * dá para mandar o link de uma ficha. O console de leitura é uma janela
+ * temporária e nunca vai para a URL; recarregar cai na ficha da loja.
+ */
+function readLocation(search: string, establishmentIds: Set<string>) {
+  const params = new URLSearchParams(search);
+  const value = params.get("screen");
+  const id = params.get("id") ?? "";
+  if (value === "estabDetail") {
+    return establishmentIds.has(id)
+      ? { screen: "estabDetail" as ScreenId, id }
+      : { screen: "estab" as ScreenId, id: "" };
+  }
+  const screen: ScreenId =
+    value && value in TITLES && value !== "accountConsole" ? (value as ScreenId) : "overview";
+  return { screen, id: "" };
+}
+
 function Shell() {
   const { data, toast, dismiss } = useAdmin();
-  const [screen, setScreen] = useState<ScreenId>("overview");
-  const [estabId, setEstabId] = useState(
-    data.establishments[4]?.id ?? data.establishments[0]?.id ?? "",
+  const searchParams = useSearchParams();
+  const establishmentIds = useMemo(
+    () => new Set(data.establishments.map((item) => item.id)),
+    [data.establishments],
   );
+  const [initial] = useState(() => readLocation(searchParams.toString(), establishmentIds));
+  const [screen, setScreenState] = useState<ScreenId>(initial.screen);
+  const [estabId, setEstabId] = useState(initial.id);
+  const [navOpen, setNavOpen] = useState(false);
   const [modal, setModal] = useState<Modal>(null);
   const [focus, setFocus] = useState<Focus>(null);
   const [accessSession, setAccessSession] = useState<AccessSession | null>(null);
@@ -50,6 +76,47 @@ function Shell() {
 
   const [title, fallback] = TITLES[screen];
   const subtitle = subtitleOf(screen, data) ?? fallback;
+
+  /** Troca de tela e registra a entrada no histórico do navegador. */
+  const setScreen = useCallback((next: ScreenId, id = "") => {
+    setScreenState(next);
+    setNavOpen(false);
+    const params = new URLSearchParams();
+    if (next === "estabDetail" || next === "accountConsole") {
+      params.set("screen", "estabDetail");
+      params.set("id", id);
+    } else if (next !== "overview") {
+      params.set("screen", next);
+    }
+    const query = params.toString();
+    if (query !== window.location.search.slice(1)) {
+      window.history.pushState(null, "", query ? `?${query}` : window.location.pathname);
+    }
+  }, []);
+
+  // Voltar/avançar do navegador: a URL manda, e o que era provisório fecha.
+  useEffect(() => {
+    const onPopState = () => {
+      const next = readLocation(window.location.search, establishmentIds);
+      setScreenState(next.screen);
+      if (next.id) setEstabId(next.id);
+      setModal(null);
+      setFocus(null);
+      setAccessSession(null);
+      setNavOpen(false);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [establishmentIds]);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNavOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [navOpen]);
 
   const go = (id: NavId) => {
     setScreen(id);
@@ -61,7 +128,7 @@ function Shell() {
   const openEstablishment = (id: string) => {
     setEstabId(id);
     setAccessSession(null);
-    setScreen("estabDetail");
+    setScreen("estabDetail", id);
     window.scrollTo(0, 0);
   };
 
@@ -73,7 +140,7 @@ function Shell() {
           setExpiredAccess((ids) => new Set(ids).add(session.id));
           if (accessSession?.id === session.id) {
             setAccessSession(null);
-            setScreen((current) => (current === "accountConsole" ? "estabDetail" : current));
+            setScreenState((current) => (current === "accountConsole" ? "estabDetail" : current));
           }
         },
         Math.max(0, new Date(session.expiresAt).getTime() - Date.now()),
@@ -93,14 +160,14 @@ function Shell() {
     setEstabId(session.establishmentId);
     setAccessSession(session);
     setModal(null);
-    setScreen("accountConsole");
+    setScreen("accountConsole", session.establishmentId);
     window.scrollTo(0, 0);
   };
 
   const leaveConsole = (expired = false) => {
     if (expired && activeAccess) setExpiredAccess((ids) => new Set(ids).add(activeAccess.id));
     setAccessSession(null);
-    setScreen("estabDetail");
+    setScreen("estabDetail", estabId);
     window.scrollTo(0, 0);
   };
 
@@ -112,11 +179,32 @@ function Shell() {
   };
 
   return (
-    <div className="shell">
+    <div className={navOpen ? "shell nav-open" : "shell"}>
+      {navOpen ? (
+        <button
+          aria-label="Fechar menu"
+          className="nav-backdrop"
+          onClick={() => setNavOpen(false)}
+          tabIndex={-1}
+          type="button"
+        />
+      ) : null}
       <Sidebar go={go} screen={screen} />
 
       <main>
         <header className="topbar">
+          <button
+            aria-controls="admin-nav"
+            aria-expanded={navOpen}
+            aria-label="Abrir menu"
+            className="nav-open-button"
+            onClick={() => setNavOpen(true)}
+            type="button"
+          >
+            <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 24 24" width="18">
+              <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" strokeWidth="1.8" />
+            </svg>
+          </button>
           <div className="topbar-title">
             <h1>{title}</h1>
             <span>{subtitle}</span>
@@ -200,8 +288,18 @@ function Shell() {
         <PlanImpactModal onClose={() => setModal(null)} planId={modal.planId} />
       ) : null}
       {toast ? (
-        <div className={toast.tone === "error" ? "toast error" : "toast"} role="status">
-          <Check size={16} width={2.4} />
+        <div
+          className={toast.tone === "error" ? "toast error" : "toast"}
+          role={toast.tone === "error" ? "alert" : "status"}
+        >
+          {toast.tone === "error" ? (
+            <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 24 24" width="16">
+              <path d="M12 8v5M12 16.5v.5" strokeLinecap="round" strokeWidth="2.4" />
+              <circle cx="12" cy="12" r="9" strokeWidth="2" />
+            </svg>
+          ) : (
+            <Check size={16} width={2.4} />
+          )}
           <div>
             <strong>{toast.title}</strong>
             <small>{toast.sub}</small>

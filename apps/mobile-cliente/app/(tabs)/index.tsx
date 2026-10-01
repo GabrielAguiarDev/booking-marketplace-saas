@@ -42,7 +42,7 @@ export default function Home() {
   const shops = useMemo(() => (rows ? sortByDistance(rows, origin) : null), [rows, origin]);
   const covers = useCovers((rows ?? []).map((shop) => shop.id));
   const { data: counts } = useCategoryCounts(cityId);
-  const { data: queueEntry } = useMyQueueEntry(Boolean(session));
+  const { data: queueEntry, reload: reloadQueue } = useMyQueueEntry(Boolean(session));
   // Sem banner no ar, a vitrine não ocupa espaço nem com esqueleto: a Home
   // começa nas categorias, como antes.
   const { data: banners } = useShowcaseBanners();
@@ -60,9 +60,9 @@ export default function Home() {
 
   return (
     <Screen>
-      <ScreenScroll gap={26}>
+      <ScreenScroll gap={26} onRefresh={() => Promise.all([reload(), reloadQueue()])}>
         <View style={{ gap: 4 }}>
-          <Text style={sans(30, 800, { ls: -0.04 })}>
+          <Text accessibilityRole="header" style={sans(30, 800, { ls: -0.04 })}>
             {firstName ? `Olá, ${firstName}` : "Olá"}
           </Text>
           <Text style={mono(10.5, 400, { ls: 0.06, color: color.muted })}>
@@ -74,7 +74,9 @@ export default function Home() {
           <Card radius={18} padding={16} style={{ gap: 13 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <PulseDot dotColor={color.green} />
-              <Text style={mono(9.5, 600, { ls: 0.1, color: color.green })}>AO VIVO · NA FILA</Text>
+              <Text style={mono(9.5, 600, { ls: 0.1, color: color.greenDeep })}>
+                AO VIVO · NA FILA
+              </Text>
             </View>
             <Text style={sans(18, 800, { ls: -0.03 })}>{queueEntry.establishments.name}</Text>
             <Text style={mono(10.5, 400, { ls: 0.05, color: color.muted })}>
@@ -112,6 +114,8 @@ export default function Home() {
                     onPress={() =>
                       router.push({ pathname: "/resultados", params: { category: key } })
                     }
+                    accessibilityRole="button"
+                    accessibilityLabel={`${category.label}${count === 0 ? ", nenhuma loja ainda" : ""}`}
                     style={{ width: 84, alignItems: "center", gap: 8 }}
                   >
                     <View

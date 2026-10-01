@@ -17,8 +17,16 @@ import {
 import { useAppState } from "../src/state/app-state";
 import { color } from "../src/theme/tokens";
 import { mono, sans } from "@vez/mobile-kit/theme";
-import { Card, Label, PrimaryButton, Shimmer, StickyFooter } from "../src/ui/primitives";
+import {
+  BackButton,
+  Card,
+  Label,
+  PrimaryButton,
+  Shimmer,
+  StickyFooter,
+} from "../src/ui/primitives";
 import { Screen } from "../src/ui/Screen";
+import { ErrorState } from "../src/ui/States";
 
 /** Manhã / tarde / noite, como o design agrupa. */
 const BLOCKS = [
@@ -109,10 +117,12 @@ function HorarioConteudo() {
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 11 }}>
-          <Pressable onPress={() => router.back()} hitSlop={12} style={{ paddingBottom: 4 }}>
-            <Text style={sans(24, 400, { lh: 1 })}>‹</Text>
-          </Pressable>
-          <Text style={[sans(19, 800, { ls: -0.03 }), { flex: 1 }]} numberOfLines={1}>
+          <BackButton onPress={() => router.back()} />
+          <Text
+            accessibilityRole="header"
+            style={[sans(19, 800, { ls: -0.03 }), { flex: 1 }]}
+            numberOfLines={1}
+          >
             {service?.name ?? "Escolher horário"}
           </Text>
         </View>
@@ -150,6 +160,17 @@ function HorarioConteudo() {
                       setDayIndex(index);
                       state.setSlot(null);
                     }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${weekdayShort(day)} ${dayNumber(day)}, ${
+                      row === undefined
+                        ? "disponibilidade ainda carregando"
+                        : closed
+                          ? "fechado"
+                          : soldOut
+                            ? "sem horário livre"
+                            : `${free} ${free === 1 ? "horário livre" : "horários livres"}`
+                    }`}
+                    accessibilityState={{ selected: on }}
                     style={{
                       width: 62,
                       paddingVertical: 11,
@@ -184,7 +205,7 @@ function HorarioConteudo() {
                           ? "FECHADO"
                           : soldOut
                             ? "CHEIO"
-                            : `${free} LIVRES`}
+                            : `${free} ${free === 1 ? "LIVRE" : "LIVRES"}`}
                     </Text>
                   </Pressable>
                 );
@@ -225,17 +246,7 @@ function HorarioConteudo() {
             <Shimmer width="100%" height={48} radius={12} />
           </View>
         ) : error ? (
-          <Card radius={15} padding={16} style={{ gap: 11 }}>
-            <Text style={sans(14, 400, { lh: 1.5, color: color.body })}>
-              Não conseguimos carregar a agenda.
-            </Text>
-            <PrimaryButton
-              label="Tentar de novo"
-              height={44}
-              onPress={reload}
-              background={accent}
-            />
-          </Card>
+          <ErrorState error={error} onRetry={reload} what="a agenda" />
         ) : byTime.length === 0 ? (
           <Card radius={15} padding={18}>
             <Text style={sans(14.5, 400, { lh: 1.5, color: color.muted })}>
@@ -260,7 +271,12 @@ function HorarioConteudo() {
                       <Pressable
                         key={iso}
                         onPress={() => escolher(iso, options)}
+                        accessibilityRole="button"
+                        accessibilityLabel={hourMinute(iso)}
+                        accessibilityState={{ selected: on }}
                         style={{
+                          minHeight: 44,
+                          justifyContent: "center",
                           paddingVertical: 12,
                           paddingHorizontal: 16,
                           borderRadius: 12,
@@ -282,7 +298,7 @@ function HorarioConteudo() {
         )}
       </ScrollView>
 
-      <StickyFooter bottomInset={0}>
+      <StickyFooter>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
           <View style={{ gap: 2, flex: 1 }}>
             <Label>{booking.slotStart ? "ESCOLHIDO" : "ESCOLHA UM HORÁRIO"}</Label>
@@ -319,6 +335,10 @@ function ProChip({
   return (
     <Pressable
       onPress={onPress}
+      hitSlop={{ top: 4, bottom: 4 }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: on }}
       style={{
         paddingVertical: 11,
         paddingHorizontal: 15,

@@ -22,6 +22,7 @@ import {
   Card,
   EmptyState,
   ErrorNote,
+  OutlineButton,
   Pill,
   PrimaryButton,
   SectionHeader,
@@ -30,6 +31,7 @@ import { QueueHeader, Screen, ScreenScroll } from "../../src/ui/Screen";
 import { Field } from "../../src/ui/Field";
 import { Sheet } from "../../src/ui/Sheet";
 import { useToast } from "../../src/ui/Toast";
+import { useAction } from "../../src/ui/use-action";
 
 const SOURCE = {
   counter: { label: "balcão", glyph: "B", tint: color.muted, background: color.neutralTint },
@@ -59,6 +61,18 @@ export default function Fila() {
   const [phone, setPhone] = useState("");
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Quem está prestes a ser marcado como ausente. Ausência tira a pessoa da
+  // fila e não tem desfazer; o "×" fica a um dedo da seta de subir, e por isso
+  // pergunta antes — numa folha, para não cobrir a fila que continua andando.
+  const [absent, setAbsent] = useState<QueueRow | null>(null);
+  // Aberta/fechada à parte de quem: fechar não apaga a pessoa, senão o título
+  // some enquanto a folha ainda está descendo.
+  const [absentOpen, setAbsentOpen] = useState(false);
+  const askAbsent = (row: QueueRow) => {
+    setAbsent(row);
+    setAbsentOpen(true);
+  };
+  const { run, busy } = useAction();
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -79,11 +93,6 @@ export default function Fila() {
       : Math.round(
           waiting.reduce((sum, row) => sum + row.estimatedWaitMinutes, 0) / waiting.length,
         );
-
-  async function act(run: () => Promise<{ ok: boolean; message?: string }>, success: string) {
-    const result = await run();
-    toast(result.ok ? success : (result.message ?? "Não deu certo."), result.ok ? "ok" : "bad");
-  }
 
   async function commitWalkIn() {
     const trimmed = name.trim();
@@ -176,21 +185,32 @@ export default function Fila() {
                     </Text>
                   </View>
                   <Pressable
-                    onPress={() => act(() => seatEntry(row.id), `${row.name} sentou.`)}
+                    onPress={() =>
+                      void run(`seat:${row.id}`, () => seatEntry(row.id), `${row.name} sentou.`)
+                    }
+                    disabled={busy !== null}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${row.name} sentou`}
+                    accessibilityState={{
+                      disabled: busy !== null,
+                      busy: busy === `seat:${row.id}`,
+                    }}
                     style={{
                       paddingVertical: 9,
                       paddingHorizontal: 13,
                       borderRadius: 999,
                       backgroundColor: color.ink,
+                      opacity: busy !== null ? 0.5 : 1,
                     }}
                   >
                     <Text style={sans(12, 700, { color: "#fff" })}>Sentou</Text>
                   </Pressable>
                   <Pressable
-                    onPress={() =>
-                      act(() => markEntryAbsent(row.id), `${row.name} marcado como ausente.`)
-                    }
+                    onPress={() => askAbsent(row)}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Marcar ${row.name} como ausente`}
                     style={{
                       width: 30,
                       height: 30,
@@ -217,13 +237,15 @@ export default function Fila() {
                 row={row}
                 index={index}
                 now={now}
+                disabled={busy !== null}
                 onUp={
                   index === 0
                     ? undefined
                     : () => {
                         const above = waiting[index - 1];
                         if (!above) return;
-                        void act(
+                        void run(
+                          `up:${row.id}`,
                           () =>
                             swapQueueOrder(
                               { id: row.id, joinedAt: row.joinedAt },
@@ -233,9 +255,7 @@ export default function Fila() {
                         );
                       }
                 }
-                onAbsent={() =>
-                  act(() => markEntryAbsent(row.id), `${row.name} marcado como ausente.`)
-                }
+                onAbsent={() => askAbsent(row)}
               />
             ))}
           </View>
@@ -282,13 +302,26 @@ export default function Fila() {
                     </View>
                     <Pressable
                       onPress={() =>
-                        act(() => confirmEntryArrival(row.id), `${row.name} entrou na fila.`)
+                        void run(
+                          `arrive:${row.id}`,
+                          () => confirmEntryArrival(row.id),
+                          `${row.name} entrou na fila.`,
+                        )
                       }
+                      disabled={busy !== null}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${row.name} chegou`}
+                      accessibilityState={{
+                        disabled: busy !== null,
+                        busy: busy === `arrive:${row.id}`,
+                      }}
                       style={{
                         paddingVertical: 9,
                         paddingHorizontal: 13,
                         borderRadius: 999,
                         backgroundColor: color.ink,
+                        opacity: busy !== null ? 0.5 : 1,
                       }}
                     >
                       <Text style={sans(12, 700, { color: "#fff" })}>Chegou</Text>
@@ -354,19 +387,27 @@ export default function Fila() {
           />
           <View style={{ flexDirection: "row", gap: 9 }}>
             <PrimaryButton
-              label={waiting.length === 0 ? "Ninguém para chamar" : "Chamar próximo"}
+              label={
+                busy === "call"
+                  ? "Chamando…"
+                  : waiting.length === 0
+                    ? "Ninguém para chamar"
+                    : "Chamar próximo"
+              }
               height={58}
               radius={16}
-              disabled={waiting.length === 0}
+              disabled={waiting.length === 0 || busy !== null}
               style={{ flex: 1 }}
               onPress={() => {
                 const next = waiting[0];
                 if (!next) return;
-                void act(() => callEntry(next.id), `${next.name} foi chamado.`);
+                void run("call", () => callEntry(next.id), `${next.name} foi chamado.`);
               }}
             />
             <Pressable
               onPress={() => setSheetOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Adicionar alguém pelo balcão"
               style={{
                 width: 62,
                 height: 58,
@@ -393,6 +434,7 @@ export default function Fila() {
         <View style={{ gap: 10 }}>
           <Field
             placeholder="Nome do cliente"
+            accessibilityLabel="Nome do cliente"
             value={name}
             onChangeText={setName}
             autoFocus
@@ -400,6 +442,7 @@ export default function Fila() {
           />
           <Field
             placeholder="Telefone (opcional)"
+            accessibilityLabel="Telefone, opcional"
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -432,6 +475,32 @@ export default function Fila() {
           />
         </View>
       </Sheet>
+
+      <Sheet
+        visible={absentOpen}
+        onClose={() => setAbsentOpen(false)}
+        title={absent ? `Marcar ${absent.name} como ausente?` : ""}
+        subtitle="A pessoa sai da fila e perde o lugar. Não dá para desfazer: se ela aparecer, entra de novo no fim."
+      >
+        <View style={{ gap: 9 }}>
+          <PrimaryButton
+            label={busy === "absent" ? "Marcando…" : "Marcar como ausente"}
+            height={54}
+            background={color.danger}
+            disabled={busy !== null}
+            onPress={() => {
+              const row = absent;
+              if (!row) return;
+              void run(
+                "absent",
+                () => markEntryAbsent(row.id),
+                `${row.name} marcado como ausente.`,
+              ).then(() => setAbsentOpen(false));
+            }}
+          />
+          <OutlineButton label="Manter na fila" height={50} onPress={() => setAbsentOpen(false)} />
+        </View>
+      </Sheet>
     </Screen>
   );
 }
@@ -458,12 +527,14 @@ function QueueLine({
   row,
   index,
   now,
+  disabled,
   onUp,
   onAbsent,
 }: {
   row: QueueRow;
   index: number;
   now: number;
+  disabled: boolean;
   onUp?: () => void;
   onAbsent: () => void;
 }) {
@@ -523,36 +594,44 @@ function QueueLine({
         </Text>
       </View>
 
-      <View style={{ gap: 3 }}>
+      {/* Dois alvos empilhados, um deles destrutivo. O desenho continua
+          pequeno, mas a área de toque de cada um cresce para os lados e para
+          fora — nunca para dentro, onde invadiria a do vizinho. */}
+      <View style={{ gap: 6 }}>
         <Pressable
           onPress={onUp}
-          disabled={!onUp}
-          hitSlop={6}
+          disabled={!onUp || disabled}
+          hitSlop={{ top: 10, left: 10, right: 12, bottom: 2 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Subir ${row.name} uma posição`}
+          accessibilityState={{ disabled: !onUp || disabled }}
           style={{
-            width: 26,
-            height: 20,
-            borderRadius: 5,
+            width: 30,
+            height: 24,
+            borderRadius: 6,
             backgroundColor: color.rest,
             alignItems: "center",
             justifyContent: "center",
             opacity: onUp ? 1 : 0.35,
           }}
         >
-          <ChevronUp size={13} color={color.muted} strokeWidth={2.4} />
+          <ChevronUp size={14} color={color.muted} strokeWidth={2.4} />
         </Pressable>
         <Pressable
           onPress={onAbsent}
-          hitSlop={6}
+          hitSlop={{ top: 2, left: 10, right: 12, bottom: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Marcar ${row.name} como ausente`}
           style={{
-            width: 26,
-            height: 20,
-            borderRadius: 5,
+            width: 30,
+            height: 24,
+            borderRadius: 6,
             backgroundColor: color.rest,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <X size={12} color={color.danger} strokeWidth={2.4} />
+          <X size={13} color={color.danger} strokeWidth={2.4} />
         </Pressable>
       </View>
     </View>

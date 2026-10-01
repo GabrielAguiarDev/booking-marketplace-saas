@@ -45,6 +45,11 @@ export function Field({
         }}
       >
         <TextInput
+          // O rótulo é um `Text` solto (ou só o placeholder); sem isto o
+          // leitor de tela anuncia "campo de texto", sem dizer de quê.
+          accessibilityLabel={
+            [label ?? input.placeholder, error].filter(Boolean).join(". ") || undefined
+          }
           {...input}
           secureTextEntry={secure && !revealed}
           onFocus={(event) => {
@@ -64,7 +69,12 @@ export function Field({
           ]}
         />
         {secure ? (
-          <Pressable onPress={() => setRevealed((value) => !value)} hitSlop={10}>
+          <Pressable
+            onPress={() => setRevealed((value) => !value)}
+            hitSlop={13}
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? "Ocultar senha" : "Mostrar senha"}
+          >
             {revealed ? (
               <EyeOff size={18} color={color.muted} strokeWidth={1.8} />
             ) : (
@@ -74,7 +84,11 @@ export function Field({
         ) : null}
       </View>
 
-      {error ? <Text style={sans(12.5, 500, { color: color.coral })}>{error}</Text> : null}
+      {error ? (
+        <Text accessibilityLiveRegion="polite" style={sans(12.5, 500, { color: color.coralDeep })}>
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -103,6 +117,7 @@ export function CodeField({
         value={value}
         // Só dígitos: teclado numérico não impede colar texto com espaços.
         onChangeText={(next) => onChangeText(next.replace(/\D/g, "").slice(0, 6))}
+        accessibilityLabel={error ? `Código de seis dígitos. ${error}` : "Código de seis dígitos"}
         keyboardType="number-pad"
         textContentType="oneTimeCode"
         autoComplete="one-time-code"
@@ -130,7 +145,11 @@ export function CodeField({
           },
         ]}
       />
-      {error ? <Text style={sans(12.5, 500, { color: color.coral })}>{error}</Text> : null}
+      {error ? (
+        <Text accessibilityLiveRegion="polite" style={sans(12.5, 500, { color: color.coralDeep })}>
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }

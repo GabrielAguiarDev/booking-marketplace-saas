@@ -38,7 +38,9 @@ export default function Explorar() {
   return (
     <Screen>
       <ScreenScroll gap={24}>
-        <Text style={sans(30, 800, { ls: -0.04 })}>Explorar</Text>
+        <Text accessibilityRole="header" style={sans(30, 800, { ls: -0.04 })}>
+          Explorar
+        </Text>
 
         <View
           style={{
@@ -57,6 +59,7 @@ export default function Explorar() {
             onChangeText={setTerm}
             placeholder="Buscar por nome da loja"
             placeholderTextColor={color.muted}
+            accessibilityLabel="Buscar por nome da loja"
             returnKeyType="search"
             onSubmitEditing={() => term.trim() && buscar({ term })}
             autoCapitalize="none"
@@ -70,7 +73,9 @@ export default function Explorar() {
           return (
             <View key={family.name} style={{ gap: 13 }}>
               <View style={{ flexDirection: "row", alignItems: "baseline", gap: 9 }}>
-                <Text style={sans(21, 800, { ls: -0.03 })}>{family.name}</Text>
+                <Text accessibilityRole="header" style={sans(21, 800, { ls: -0.03 })}>
+                  {family.name}
+                </Text>
                 <Text style={mono(10.5, 400, { ls: 0.05, color: color.muted })}>
                   {loading ? "…" : `${total} ${total === 1 ? "LOJA" : "LOJAS"}`}
                 </Text>
@@ -86,6 +91,14 @@ export default function Explorar() {
                     <Pressable
                       key={key}
                       onPress={() => buscar({ category: key })}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${category.label}, ${
+                        loading
+                          ? "carregando"
+                          : count === 0
+                            ? "nenhuma loja ainda"
+                            : `${count} ${count === 1 ? "loja" : "lojas"}`
+                      }`}
                       style={{ flexBasis: "47%", flexGrow: 1 }}
                     >
                       <Card
@@ -112,7 +125,7 @@ export default function Explorar() {
                           ) : (
                             <Text style={mono(9.5, 400, { ls: 0.05, color: color.muted })}>
                               {count === 0
-                                ? "EM BREVE"
+                                ? "NENHUMA AINDA"
                                 : `${count} ${count === 1 ? "LOJA" : "LOJAS"}`}
                             </Text>
                           )}

@@ -91,7 +91,7 @@ export function Settings() {
       <section className="empty-section">
         <span aria-hidden="true">○</span>
         <h2>Ajustes ainda não criados</h2>
-        <p>Esta loja não tem linha em `establishment_settings`. Fale com o suporte da Vez.</p>
+        <p>As regras desta loja ainda não foram criadas. Fale com o suporte do Vez.</p>
       </section>
     );
   }
@@ -339,7 +339,7 @@ export function Settings() {
             [
               "queue_notify_enabled",
               "Avisar o cliente na vez dele",
-              "Entra na caixa de saída; a entrega depende do canal configurado.",
+              "O aviso é enviado pelo canal escolhido abaixo.",
             ],
           ] as const
         ).map(([key, label, help]) => (
@@ -384,15 +384,15 @@ export function Settings() {
         ) : null}
 
         <footer className="card-foot">
-          As regras de fila valem em todas as telas. Avisos sem provedor ficam retidos por ate sete
-          dias e nao sao enviados fora de contexto depois disso.
+          As regras de fila valem no portal e nos aplicativos. Um aviso que não puder ser entregue
+          fica retido por até sete dias e depois é descartado, para não chegar fora de hora.
         </footer>
       </section>
 
       <section className="panel">
         <header className="panel-head stacked">
           <h2>Dados do estabelecimento</h2>
-          <p>Usados no contrato com a Vez. Para corrigir, fale com o suporte.</p>
+          <p>Usados no contrato com o Vez. Para corrigir, fale com o suporte.</p>
         </header>
         <div className="list-row">
           <div>

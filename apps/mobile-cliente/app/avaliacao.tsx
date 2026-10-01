@@ -11,8 +11,17 @@ import { slotLabel } from "@vez/mobile-kit/format";
 import { useGoToTab } from "../src/navigation";
 import { color, radius } from "../src/theme/tokens";
 import { mono, sans } from "@vez/mobile-kit/theme";
-import { BackHeader, Card, Chip, Label, PrimaryButton, StickyFooter } from "../src/ui/primitives";
+import {
+  BackHeader,
+  Card,
+  Chip,
+  Label,
+  PrimaryButton,
+  Shimmer,
+  StickyFooter,
+} from "../src/ui/primitives";
 import { Screen, ScreenScroll } from "../src/ui/Screen";
+import { ErrorState } from "../src/ui/States";
 
 const TAGS = ["Pontualidade", "Higiene", "Preço justo", "Atendimento", "Resultado"];
 const RATING_LABELS = ["", "RUIM", "ABAIXO", "OK", "BOM", "EXCELENTE"];
@@ -23,13 +32,15 @@ function AvaliacaoConteudo() {
   const { user } = useSession();
   const { appointmentId } = useLocalSearchParams<{ appointmentId?: string }>();
 
-  const { data } = useAppointments(true);
+  const { data, loading, error: loadError, reload } = useAppointments(true);
   const appointment =
     data?.history.find((item) => item.id === appointmentId) ??
     data?.upcoming.find((item) => item.id === appointmentId) ??
     null;
 
-  const [rating, setRating] = useState(5);
+  // Começa sem nota. Cinco estrelas já marcadas viram a resposta de quem só
+  // quer sair da tela, e a média da loja deixa de medir alguma coisa.
+  const [rating, setRating] = useState(0);
   const [tags, setTags] = useState<string[]>([]);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,7 +49,7 @@ function AvaliacaoConteudo() {
   const accent = accentOf(appointment?.establishments ?? null);
 
   async function enviar() {
-    if (!appointment || !user) return;
+    if (!appointment || !user || rating === 0) return;
 
     setBusy(true);
     setError(null);
@@ -68,7 +79,30 @@ function AvaliacaoConteudo() {
       return;
     }
 
-    goToTab("/(tabs)/agenda");
+    goToTab({ pathname: "/(tabs)/agenda", params: { avaliada: "1" } });
+  }
+
+  if (loading) {
+    return (
+      <Screen>
+        <ScreenScroll gap={16}>
+          <BackHeader title="Avaliar" onBack={() => router.back()} />
+          <Shimmer width={200} height={22} radius={7} />
+          <Shimmer width="100%" height={120} radius={16} />
+        </ScreenScroll>
+      </Screen>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Screen>
+        <ScreenScroll gap={16}>
+          <BackHeader title="Avaliar" onBack={() => router.back()} />
+          <ErrorState error={loadError} onRetry={reload} what="este atendimento" />
+        </ScreenScroll>
+      </Screen>
+    );
   }
 
   if (!appointment) {
@@ -99,9 +133,16 @@ function AvaliacaoConteudo() {
         </View>
 
         <View style={{ gap: 12, alignItems: "center" }}>
-          <View style={{ flexDirection: "row", gap: 10 }}>
+          <View accessibilityRole="radiogroup" style={{ flexDirection: "row", gap: 4 }}>
             {[1, 2, 3, 4, 5].map((value) => (
-              <Pressable key={value} onPress={() => setRating(value)} hitSlop={6}>
+              <Pressable
+                key={value}
+                onPress={() => setRating(value)}
+                accessibilityRole="radio"
+                accessibilityLabel={`${value} ${value === 1 ? "estrela" : "estrelas"}, ${RATING_LABELS[value]?.toLowerCase()}`}
+                accessibilityState={{ checked: value === rating }}
+                style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}
+              >
                 <Text style={sans(34, 400, { color: value <= rating ? accent : color.dotIdle })}>
                   ★
                 </Text>
@@ -109,7 +150,7 @@ function AvaliacaoConteudo() {
             ))}
           </View>
           <Text style={mono(10, 600, { ls: 0.1, color: color.muted })}>
-            {RATING_LABELS[rating]}
+            {rating === 0 ? "TOQUE NUMA ESTRELA" : RATING_LABELS[rating]}
           </Text>
         </View>
 
@@ -137,7 +178,8 @@ function AvaliacaoConteudo() {
             value={comment}
             onChangeText={setComment}
             placeholder="Conte como foi o atendimento."
-            placeholderTextColor={color.chevron}
+            placeholderTextColor={color.muted}
+            accessibilityLabel="Comentário, opcional"
             multiline
             maxLength={600}
             style={[
@@ -155,18 +197,20 @@ function AvaliacaoConteudo() {
         </View>
 
         {error ? (
-          <Card radius={14} padding={14}>
-            <Text style={sans(13.5, 500, { lh: 1.4, color: "#B33A1F" })}>{error}</Text>
+          <Card radius={14} padding={14} style={{ borderColor: color.coralBorder }}>
+            <Text accessibilityRole="alert" style={sans(13.5, 500, { lh: 1.4, color: "#B33A1F" })}>
+              {error}
+            </Text>
           </Card>
         ) : null}
       </ScreenScroll>
 
-      <StickyFooter bottomInset={0}>
+      <StickyFooter>
         <PrimaryButton
           label={busy ? "Enviando…" : "Enviar avaliação"}
           height={54}
-          background={busy ? color.chevron : accent}
-          onPress={busy ? undefined : enviar}
+          background={busy || rating === 0 ? color.chevron : accent}
+          onPress={busy || rating === 0 ? undefined : enviar}
         />
       </StickyFooter>
     </Screen>

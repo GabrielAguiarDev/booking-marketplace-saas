@@ -9,7 +9,6 @@ import {
   type Appointment,
   approveAppointment,
   presentation,
-  refuseAppointment,
   useAppointments,
   usePending,
 } from "../../src/data/appointments";
@@ -33,7 +32,7 @@ import {
   Tag,
 } from "../../src/ui/primitives";
 import { Screen, ScreenScroll, TodayHeader } from "../../src/ui/Screen";
-import { useToast } from "../../src/ui/Toast";
+import { useAction } from "../../src/ui/use-action";
 
 function dayBounds(now: Date) {
   const start = new Date(now);
@@ -65,7 +64,7 @@ function truncate(date: Date, unit: "minute" | "day"): number {
  */
 export default function Hoje() {
   const router = useRouter();
-  const toast = useToast();
+  const { run, busy } = useAction();
   const { establishment, settings, queue, queueError } = useEstablishment();
   const application = useApplicationState(establishment);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -161,22 +160,23 @@ export default function Hoje() {
           waiting.reduce((sum, row) => sum + row.estimatedWaitMinutes, 0) / waiting.length,
         );
 
-  async function decide(appointment: Appointment, approve: boolean) {
-    const result = approve
-      ? await approveAppointment(appointment.id)
-      : await refuseAppointment(appointment.id, "Recusado pela loja");
-
-    if (!result.ok) {
-      toast(result.message ?? "Não deu certo.", "bad");
-      return;
-    }
-    toast(
-      approve
-        ? `${appointment.name} está confirmado.`
-        : `Recusado. ${appointment.name} foi avisado pelo app.`,
+  async function approve(appointment: Appointment) {
+    const ok = await run(
+      `approve:${appointment.id}`,
+      () => approveAppointment(appointment.id),
+      `${appointment.name} está confirmado.`,
     );
-    pending.reload();
-    appointments.reload();
+    if (!ok) return;
+    void pending.reload();
+    void appointments.reload();
+  }
+
+  // Recusar não acontece aqui. O cliente é avisado na hora e o motivo vai
+  // junto: um toque neste cartão mandava "Recusado pela loja" sem ninguém ter
+  // escolhido isso. O detalhe abre já na folha de motivos — um toque a mais, e
+  // a recusa passa a dizer por quê.
+  function refuse(appointment: Appointment) {
+    router.push({ pathname: "/agendamento/[id]", params: { id: appointment.id, recusar: "1" } });
   }
 
   return (
@@ -186,11 +186,17 @@ export default function Hoje() {
         status={`${headerDate(now).toUpperCase()} · ${openingLabel(hours.data ?? [], now)}`}
         served={String(servedCount)}
         queueCount={usesQueue ? String(waiting.length) : "—"}
-        revenue={moneyPlain(revenue.data?.cents ?? 0)}
+        // Traço enquanto a consulta não volta, ou se falhar: "R$ 0" seria um
+        // faturamento que ninguém apurou.
+        revenue={revenue.data ? moneyPlain(revenue.data.cents) : "—"}
         onPressAccount={() => setAccountOpen(true)}
       />
 
-      <ScreenScroll>
+      <ScreenScroll
+        onRefresh={() =>
+          Promise.all([appointments.reload(), pending.reload(), revenue.reload(), hours.reload()])
+        }
+      >
         {appointments.error ? (
           <ErrorNote message={appointments.error} onRetry={appointments.reload} />
         ) : null}
@@ -241,12 +247,15 @@ export default function Hoje() {
           <ServingCard
             row={serving}
             now={now}
+            busy={busy !== null}
             onFinish={async () => {
-              const result = await finishEntry(serving.id);
-              toast(
-                result.ok ? `Atendimento de ${serving.name} concluído.` : "Não deu certo.",
-                result.ok ? "ok" : "bad",
+              const ok = await run(
+                "finish",
+                () => finishEntry(serving.id),
+                `Atendimento de ${serving.name} concluído.`,
               );
+              // O atendimento da fila entra no faturamento de hoje.
+              if (ok) void revenue.reload();
             }}
           />
         ) : liveAppointment ? (
@@ -260,14 +269,11 @@ export default function Hoje() {
             usesQueue={usesQueue}
             waiting={waiting.length}
             called={called}
-            onCallNext={async () => {
+            busy={busy !== null}
+            onCallNext={() => {
               const next = waiting[0];
               if (!next) return;
-              const result = await callEntry(next.id);
-              toast(
-                result.ok ? `${next.name} foi chamado.` : (result.message ?? "Não deu certo."),
-                result.ok ? "ok" : "bad",
-              );
+              void run("call", () => callEntry(next.id), `${next.name} foi chamado.`);
             }}
             onOpenQueue={() => router.navigate("/fila")}
           />
@@ -288,8 +294,9 @@ export default function Hoje() {
                 key={item.id}
                 appointment={item}
                 onOpen={() => router.push(`/agendamento/${item.id}`)}
-                onApprove={() => decide(item, true)}
-                onRefuse={() => decide(item, false)}
+                busy={busy !== null}
+                onApprove={() => void approve(item)}
+                onRefuse={() => refuse(item)}
               />
             ))}
           </View>
@@ -368,7 +375,12 @@ export default function Hoje() {
 
         {/* ── RESUMO DA FILA ────────────────────────────────────────────── */}
         {usesQueue ? (
-          <Pressable onPress={() => router.navigate("/fila")} style={{ margin: 20, marginTop: 14 }}>
+          <Pressable
+            onPress={() => router.navigate("/fila")}
+            accessibilityRole="button"
+            accessibilityHint="Abre a fila"
+            style={{ margin: 20, marginTop: 14 }}
+          >
             <Card radius={16} padding={15} shadow>
               <View
                 style={{
@@ -443,6 +455,9 @@ function Alert({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${body}`}
+      accessibilityHint={cta}
       style={{
         flexDirection: "row",
         gap: 10,
@@ -467,7 +482,17 @@ function Alert({
 }
 
 /** A cadeira ocupada por alguém que veio da fila. */
-function ServingCard({ row, now, onFinish }: { row: QueueRow; now: Date; onFinish: () => void }) {
+function ServingCard({
+  row,
+  now,
+  busy,
+  onFinish,
+}: {
+  row: QueueRow;
+  now: Date;
+  busy: boolean;
+  onFinish: () => void;
+}) {
   const elapsed = secondsSince(row.servedAt ?? row.joinedAt, now.getTime());
   const total = (row.serviceMinutes ?? 30) * 60;
   const percent = Math.min(100, Math.round((elapsed / total) * 100));
@@ -503,9 +528,17 @@ function ServingCard({ row, now, onFinish }: { row: QueueRow; now: Date; onFinis
 
         <Pressable
           onPress={onFinish}
-          style={{ paddingVertical: 14, alignItems: "center", backgroundColor: color.bg }}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: busy }}
+          style={{
+            paddingVertical: 14,
+            alignItems: "center",
+            backgroundColor: color.bg,
+            opacity: busy ? 0.5 : 1,
+          }}
         >
-          <Text style={sans(14, 700, { color: color.green })}>Concluir atendimento</Text>
+          <Text style={sans(14, 700, { color: color.greenDeep })}>Concluir atendimento</Text>
         </Pressable>
       </Card>
     </View>
@@ -557,6 +590,7 @@ function AppointmentNowCard({
 
         <Pressable
           onPress={onOpen}
+          accessibilityRole="button"
           style={{ paddingVertical: 14, alignItems: "center", backgroundColor: color.bg }}
         >
           <Text style={sans(14, 700, { color: color.coral })}>Abrir atendimento</Text>
@@ -571,12 +605,14 @@ function IdleCard({
   usesQueue,
   waiting,
   called,
+  busy,
   onCallNext,
   onOpenQueue,
 }: {
   usesQueue: boolean;
   waiting: number;
   called: QueueRow | null;
+  busy: boolean;
   onCallNext: () => void;
   onOpenQueue: () => void;
 }) {
@@ -613,11 +649,16 @@ function IdleCard({
       {usesQueue && (waiting > 0 || called) ? (
         <Pressable
           onPress={called ? onOpenQueue : onCallNext}
+          disabled={busy && !called}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: busy && !called }}
           style={{
             paddingVertical: 11,
             paddingHorizontal: 18,
             borderRadius: 999,
             backgroundColor: color.coral,
+            opacity: busy && !called ? 0.5 : 1,
           }}
         >
           <Text style={sans(13, 700, { color: "#fff" })}>
@@ -631,11 +672,13 @@ function IdleCard({
 
 function PendingCard({
   appointment,
+  busy,
   onOpen,
   onApprove,
   onRefuse,
 }: {
   appointment: Appointment;
+  busy: boolean;
   onOpen: () => void;
   onApprove: () => void;
   onRefuse: () => void;
@@ -648,6 +691,8 @@ function PendingCard({
     <Card radius={16} shadow>
       <Pressable
         onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityHint="Abre o agendamento"
         style={{ paddingHorizontal: 15, paddingTop: 14, paddingBottom: 12 }}
       >
         <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
@@ -688,17 +733,25 @@ function PendingCard({
       <View style={{ flexDirection: "row", gap: 1, backgroundColor: color.line }}>
         <Pressable
           onPress={onRefuse}
+          accessibilityRole="button"
+          accessibilityLabel={`Recusar o pedido de ${appointment.name}`}
+          accessibilityHint="Abre a escolha do motivo"
           style={{ flex: 1, paddingVertical: 13, alignItems: "center", backgroundColor: color.bg }}
         >
-          <Text style={sans(14, 600, { color: color.muted })}>Recusar</Text>
+          <Text style={sans(14, 600, { color: color.muted })}>Recusar…</Text>
         </Pressable>
         <Pressable
           onPress={onApprove}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={`Aprovar o pedido de ${appointment.name}`}
+          accessibilityState={{ disabled: busy }}
           style={{
             flex: 1.6,
             paddingVertical: 13,
             alignItems: "center",
             backgroundColor: color.coral,
+            opacity: busy ? 0.6 : 1,
           }}
         >
           <Text style={sans(14, 700, { color: "#fff" })}>Aprovar</Text>
@@ -742,7 +795,11 @@ function RailRow({
           : { dot: color.bg, size: 7, line: color.fill, width: 2, timeTint: color.hint };
 
   return (
-    <Pressable onPress={onPress} style={{ flexDirection: "row", gap: 11 }}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={{ flexDirection: "row", gap: 11 }}
+    >
       <View style={{ width: 44, paddingTop: 1 }}>
         <Text style={mono(12, 500, { ls: -0.2 / 12, color: marker.timeTint })}>{time}</Text>
       </View>

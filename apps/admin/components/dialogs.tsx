@@ -10,6 +10,7 @@ import { useState } from "react";
 
 import type { PlanKind } from "./model";
 import { useAdmin, type Toast } from "./store";
+import { useDialog } from "./use-dialog";
 
 export function Modal({
   children,
@@ -22,15 +23,25 @@ export function Modal({
   width: number;
   labelledBy: string;
 }) {
+  // Esc fecha de qualquer lugar, Tab fica dentro e o foco volta para quem abriu.
+  const ref = useDialog<HTMLDivElement>(onClose);
   return (
-    <div className="overlay" onKeyDown={(event) => event.key === "Escape" && onClose()}>
-      <button aria-label="Fechar" className="overlay-backdrop" onClick={onClose} type="button" />
+    <div className="overlay">
+      <button
+        aria-label="Fechar"
+        className="overlay-backdrop"
+        onClick={onClose}
+        tabIndex={-1}
+        type="button"
+      />
       <div
         aria-labelledby={labelledBy}
         aria-modal="true"
         className="modal"
+        ref={ref}
         role="dialog"
         style={{ width }}
+        tabIndex={-1}
       >
         {children}
       </div>

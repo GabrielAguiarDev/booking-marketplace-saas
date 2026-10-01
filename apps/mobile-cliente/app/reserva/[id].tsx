@@ -23,7 +23,8 @@ import { Screen, ScreenScroll } from "../../src/ui/Screen";
 import { ErrorState, useActionErrorText } from "../../src/ui/States";
 
 const STATUS_LABEL: Record<string, string> = {
-  scheduled: "AGENDADO",
+  // `scheduled` é o pedido esperando o sim da loja; só `confirmed` é garantido.
+  scheduled: "AGUARDANDO A LOJA",
   confirmed: "CONFIRMADO",
   completed: "ATENDIDO",
   cancelled_by_customer: "CANCELADO POR VOCÊ",

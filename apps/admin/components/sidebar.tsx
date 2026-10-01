@@ -23,13 +23,13 @@ export function Sidebar({ screen, go }: { screen: ScreenId; go: (id: NavId) => v
     .join("");
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" id="admin-nav">
       <div className="brand">
         <VezLogo height={22} title="Vez" />
         <code>Admin</code>
       </div>
 
-      <nav>
+      <nav aria-label="Telas do painel">
         {NAV.map((group) => (
           <div className="nav-group" key={group.label}>
             <p>{group.label}</p>
@@ -44,12 +44,14 @@ export function Sidebar({ screen, go }: { screen: ScreenId; go: (id: NavId) => v
                 const badge = n === undefined ? item.badge : n > 0 ? String(n) : undefined;
                 return (
                   <button
+                    aria-current={active ? "page" : undefined}
                     className={active ? "nav-link active" : "nav-link"}
                     key={item.id}
                     onClick={() => go(item.id)}
                     type="button"
                   >
                     <svg
+                      aria-hidden="true"
                       fill="none"
                       height="17"
                       strokeLinecap="round"
@@ -71,7 +73,7 @@ export function Sidebar({ screen, go }: { screen: ScreenId; go: (id: NavId) => v
       </nav>
 
       <footer>
-        <b>{initials}</b>
+        <b aria-hidden="true">{initials}</b>
         <div>
           <strong>{data.me.name}</strong>
           <small>{data.me.role}</small>

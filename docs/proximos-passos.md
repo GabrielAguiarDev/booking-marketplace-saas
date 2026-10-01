@@ -1,5 +1,10 @@
 # Próximos passos
 
+> **Atualização de 30/09/2026:** este documento conserva o histórico das entregas.
+> O estado atual e as evidências de validação estão em
+> [Auditoria e finalização](finalizacao-2026-09-30.md). As declarações de conclusão
+> abaixo se referem às verificações de setembro, não à prontidão de produção.
+
 Documento de continuidade. O [roadmap do app do cliente](roadmap-mobile-cliente.md)
 cobria uma superfície só e está quase todo riscado; este cobre o produto.
 

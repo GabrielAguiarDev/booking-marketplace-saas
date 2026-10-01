@@ -47,7 +47,7 @@ export function Queue({ notify }: { notify: Notify }) {
     setError("");
     try {
       await action();
-      notify({ title, sub: "A fila foi atualizada para o portal e o app da equipe." });
+      notify({ title, sub: "A fila já está atualizada no portal e no app da equipe." });
       return true;
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Não foi possível atualizar a fila.");
@@ -73,7 +73,7 @@ export function Queue({ notify }: { notify: Notify }) {
         <article className={styles.kpi}>
           <span>Esperando</span>
           <strong>{waiting.length}</strong>
-          <small>Posição e espera vêm de queue_state()</small>
+          <small>Na ordem de chamada</small>
         </article>
         <article className={styles.kpi}>
           <span>Chamados</span>
@@ -196,7 +196,11 @@ export function Queue({ notify }: { notify: Notify }) {
           </form>
         ) : null}
 
-        {error ? <p className={styles.error}>{error}</p> : null}
+        {error ? (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        ) : null}
         <div className={styles.list}>
           {rows.length === 0 ? (
             <p className={styles.empty}>Ninguém na fila agora.</p>

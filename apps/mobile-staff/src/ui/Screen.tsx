@@ -1,7 +1,16 @@
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { useRouter } from "expo-router";
-import type { ReactNode } from "react";
-import { Pressable, ScrollView, type StyleProp, Text, View, type ViewStyle } from "react-native";
+import { ChevronLeft } from "lucide-react-native";
+import { type ReactNode, useState } from "react";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  type StyleProp,
+  Text,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { color } from "../theme/tokens";
@@ -34,16 +43,47 @@ export function ScreenScroll({
   gap = 0,
   bottom = 118,
   contentStyle,
+  onRefresh,
 }: {
   children: ReactNode;
   padded?: boolean;
   gap?: number;
   bottom?: number;
   contentStyle?: StyleProp<ViewStyle>;
+  /**
+   * Liga o puxar-para-atualizar. O indicador fica até a promessa resolver —
+   * `reload()` de `useAsync` já devolve uma.
+   */
+  onRefresh?: () => Promise<unknown>;
 }) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function refresh() {
+    if (!onRefresh) return;
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
+      // Sem isto, o primeiro toque num botão com o teclado aberto só fecha o
+      // teclado — e no balcão cada toque a mais é alguém esperando.
+      keyboardShouldPersistTaps="handled"
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void refresh()}
+            tintColor={color.muted}
+            colors={[color.coral]}
+          />
+        ) : undefined
+      }
       contentContainerStyle={[
         {
           paddingHorizontal: padded ? 20 : 0,
@@ -87,7 +127,11 @@ export function TodayHeader({
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
         <View style={{ flex: 1, gap: 3 }}>
-          <Text style={sans(21, 800, { lh: 1.15, ls: -0.4 / 21 })} numberOfLines={1}>
+          <Text
+            accessibilityRole="header"
+            style={sans(21, 800, { lh: 1.15, ls: -0.4 / 21 })}
+            numberOfLines={1}
+          >
             {name}
           </Text>
           <Text style={mono(12, 500, { lh: 1.2, ls: 0.2 / 12, color: color.muted })}>{status}</Text>
@@ -95,6 +139,8 @@ export function TodayHeader({
         <Pressable
           onPress={onPressAccount}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Conta e troca de loja"
           style={{
             width: 38,
             height: 38,
@@ -151,7 +197,9 @@ export function QueueHeader({
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <View style={{ gap: 3 }}>
-          <Text style={sans(21, 800, { lh: 1.15, ls: -0.4 / 21 })}>Fila de espera</Text>
+          <Text accessibilityRole="header" style={sans(21, 800, { lh: 1.15, ls: -0.4 / 21 })}>
+            Fila de espera
+          </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             {live ? (
               <PulseDot />
@@ -173,6 +221,9 @@ export function QueueHeader({
         </View>
         <Pressable
           onPress={onAdjust}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel="Ajustar a fila"
           style={{
             paddingVertical: 9,
             paddingHorizontal: 14,
@@ -240,20 +291,31 @@ export function PlainHeader({
       }}
     >
       {canGoBack ? (
+        // No canvas é o caractere "‹", que o leitor de tela lê como "aspa
+        // angular" — ou não lê. Aqui é um botão com nome.
         <Pressable
           onPress={() => router.back()}
           hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
           style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}
         >
-          <Text style={sans(24, 400, { lh: 1 })}>‹</Text>
+          <ChevronLeft size={24} color={color.ink} strokeWidth={1.8} />
         </Pressable>
       ) : null}
-      <Text style={[sans(18, 700, { lh: 1.2, ls: -0.3 / 18 }), { flex: 1 }]} numberOfLines={1}>
+      <Text
+        accessibilityRole="header"
+        style={[sans(18, 700, { lh: 1.2, ls: -0.3 / 18 }), { flex: 1 }]}
+        numberOfLines={1}
+      >
         {title}
       </Text>
       {action ? (
         <Pressable
           onPress={onAction}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={action}
           style={{
             paddingVertical: 9,
             paddingHorizontal: 14,

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import type { SectionId } from "./data";
+import { Drawer } from "./drawer";
 import { dateTimeLabel, duration, money, phoneLabel, timeLabel } from "./operation-format";
 import type { OperationAppointment } from "./operation-model";
 import styles from "./operation.module.css";
@@ -31,7 +32,7 @@ export function Overview({ go, notify }: { go: (section: SectionId) => void; not
     setError("");
     try {
       await action();
-      notify({ title, sub: "O dado foi atualizado para toda a equipe." });
+      notify({ title, sub: "A mudança já vale para toda a equipe." });
       return true;
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Não foi possível concluir a ação.");
@@ -70,7 +71,11 @@ export function Overview({ go, notify }: { go: (section: SectionId) => void; not
         </article>
       </section>
 
-      {error ? <p className={styles.error}>{error}</p> : null}
+      {error && !refusing ? (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      ) : null}
 
       <div className={styles.columns}>
         <section className={styles.panel}>
@@ -158,34 +163,9 @@ export function Overview({ go, notify }: { go: (section: SectionId) => void; not
       </div>
 
       {refusing ? (
-        <div className={styles.overlay} role="dialog" aria-modal="true">
-          <button className={styles.scrim} onClick={() => setRefusing(null)} type="button" />
-          <aside className={styles.drawer}>
-            <header className={styles.drawerHeader}>
-              <div>
-                <code>RECUSAR RESERVA</code>
-                <strong>{refusing.customerName}</strong>
-              </div>
-              <button className={styles.iconButton} onClick={() => setRefusing(null)} type="button">
-                Fechar
-              </button>
-            </header>
-            <div className={styles.drawerBody}>
-              <p className={styles.notice}>
-                O motivo fica salvo no agendamento e aparece para clientes com conta. Cliente de
-                balcão não recebe notificação automática.
-              </p>
-              <label className={styles.field}>
-                Motivo
-                <textarea
-                  autoFocus
-                  onChange={(event) => setReason(event.target.value)}
-                  placeholder="Explique por que a loja não poderá atender neste horário"
-                  value={reason}
-                />
-              </label>
-            </div>
-            <footer className={styles.drawerFooter}>
+        <Drawer
+          footer={
+            <>
               <button className={styles.secondary} onClick={() => setRefusing(null)} type="button">
                 Voltar
               </button>
@@ -205,9 +185,31 @@ export function Overview({ go, notify }: { go: (section: SectionId) => void; not
               >
                 Confirmar recusa
               </button>
-            </footer>
-          </aside>
-        </div>
+            </>
+          }
+          label="RECUSAR RESERVA"
+          onClose={() => setRefusing(null)}
+          title={refusing.customerName}
+        >
+          <p className={styles.notice}>
+            O motivo fica salvo no agendamento e aparece para clientes com conta. Cliente de balcão
+            não recebe notificação automática.
+          </p>
+          <label className={styles.field}>
+            Motivo
+            <textarea
+              autoFocus
+              onChange={(event) => setReason(event.target.value)}
+              placeholder="Explique por que a loja não poderá atender neste horário"
+              value={reason}
+            />
+          </label>
+          {error ? (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          ) : null}
+        </Drawer>
       ) : null}
     </div>
   );

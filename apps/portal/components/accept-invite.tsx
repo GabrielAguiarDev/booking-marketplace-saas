@@ -80,7 +80,12 @@ export function AcceptEstablishmentInvite() {
         <VezSymbol className="auth-brand" height={40} />
         <p className="auth-eyebrow">Vez · portal do estabelecimento</p>
         <h1 id="invite-title">Bem-vindo à equipe</h1>
-        <p className={step === "error" ? "auth-error" : "auth-copy"}>{message}</p>
+        <p
+          className={step === "error" ? "auth-error" : "auth-copy"}
+          role={step === "error" ? "alert" : undefined}
+        >
+          {message}
+        </p>
 
         {step === "password" ? (
           <form
@@ -123,7 +128,9 @@ export function AcceptEstablishmentInvite() {
               />
             </label>
             {confirm && password !== confirm ? (
-              <p className="auth-error">As duas senhas precisam ser iguais.</p>
+              <p className="auth-error" role="alert">
+                As duas senhas precisam ser iguais.
+              </p>
             ) : null}
             <button className="primary auth-submit" disabled={!ready || pending} type="submit">
               {pending ? "Salvando…" : "Salvar senha e entrar"}

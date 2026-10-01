@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { Agenda, type NewAppointmentSeed } from "./agenda";
@@ -33,24 +34,9 @@ function canOpen(section: SectionId, role: "owner" | "manager" | "staff") {
   return true;
 }
 
-function EmptySection({ section }: { section: SectionId }) {
-  const meta = SECTION_META[section];
-  const operation = ["overview", "agenda", "queue", "customers"].includes(section);
-  return (
-    <section className="empty-section">
-      <span aria-hidden="true">○</span>
-      <h2>{meta.title}</h2>
-      <p>
-        Esta seção ainda não está ligada ao banco. Ela não exibe os dados de exemplo do canvas para
-        não transformar uma demonstração em informação da sua loja.
-      </p>
-      <small>
-        {operation
-          ? "A integração entra na P5 (operação)."
-          : "A integração entra na P6 (cadastro e negócio)."}
-      </small>
-    </section>
-  );
+/** `?section=agenda` abre direto na Agenda; valor desconhecido cai na Visão geral. */
+function sectionFrom(value: string | null): SectionId {
+  return value && value in SECTION_META ? (value as SectionId) : "overview";
 }
 
 function SetupSection({ go }: { go: (section: SectionId) => void }) {
@@ -70,7 +56,11 @@ function SetupSection({ go }: { go: (section: SectionId) => void }) {
           {done} de {data.setup.length} concluídos. O progresso é calculado a partir dos dados
           reais.
         </p>
-        <div className="setup-progress" aria-label={`${done} de ${data.setup.length} concluídos`}>
+        <div
+          aria-label={`${done} de ${data.setup.length} concluídos`}
+          className="setup-progress"
+          role="img"
+        >
           {data.setup.map((step) => (
             <i className={step.done ? "done" : ""} key={step.key} />
           ))}
@@ -98,8 +88,33 @@ function SetupSection({ go }: { go: (section: SectionId) => void }) {
 
 export function Portal() {
   const { data } = usePortal();
-  const [section, setSection] = useState<SectionId>("overview");
+  // A seção vive na URL: recarregar mantém a tela, o Voltar do navegador
+  // volta de seção e dá para guardar o link de "Agenda" ou "Equipe".
+  const searchParams = useSearchParams();
+  const section = sectionFrom(searchParams.get("section"));
   const [collapsed, setCollapsed] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const setSection = useCallback(
+    (next: SectionId) => {
+      setNavOpen(false);
+      if (next === section) return;
+      const params = new URLSearchParams(window.location.search);
+      if (next === "overview") params.delete("section");
+      else params.set("section", next);
+      const query = params.toString();
+      window.history.pushState(null, "", query ? `?${query}` : window.location.pathname);
+      window.scrollTo(0, 0);
+    },
+    [section],
+  );
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNavOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [navOpen]);
   const [appointmentSeed, setAppointmentSeed] = useState<NewAppointmentSeed | null>(null);
   const [toast, setToast] = useState<{ title: string; sub: string } | null>(null);
   const notify = useCallback<Notify>((next) => setToast(next), []);
@@ -113,8 +128,18 @@ export function Portal() {
   const meta = SECTION_META[section];
   const allowed = canOpen(section, data.establishment.role);
   return (
-    <div className={collapsed ? "shell collapsed" : "shell"}>
+    <div className={`shell${collapsed ? " collapsed" : ""}${navOpen ? " nav-open" : ""}`}>
+      {navOpen ? (
+        <button
+          aria-label="Fechar menu"
+          className="nav-backdrop"
+          onClick={() => setNavOpen(false)}
+          tabIndex={-1}
+          type="button"
+        />
+      ) : null}
       <Sidebar
+        canOpen={(id) => canOpen(id, data.establishment.role)}
         collapsed={collapsed}
         data={data}
         go={setSection}
@@ -123,7 +148,18 @@ export function Portal() {
       />
       <main>
         <header className="topbar">
-          <div>
+          <button
+            aria-expanded={navOpen}
+            aria-label="Abrir menu"
+            className="nav-open-button"
+            onClick={() => setNavOpen(true)}
+            type="button"
+          >
+            <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 24 24" width="18">
+              <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" strokeWidth="1.8" />
+            </svg>
+          </button>
+          <div className="topbar-title">
             <h1>{meta.title}</h1>
             <code>{meta.sub}</code>
           </div>
@@ -142,7 +178,7 @@ export function Portal() {
         </header>
         {!allowed ? (
           <section className="empty-section">
-            <span>!</span>
+            <span aria-hidden="true">!</span>
             <h2>Acesso restrito</h2>
             <p>Esta área exige papel de {OWNER_ONLY.has(section) ? "dono" : "dono ou gerente"}.</p>
           </section>
@@ -158,13 +194,18 @@ export function Portal() {
           <Customers />
         ) : CADASTRO_SECTIONS.has(section) ? (
           <CadastroSection section={section} />
-        ) : (
-          <EmptySection section={section} />
-        )}
+        ) : null}
       </main>
       {toast ? (
         <div className="toast" role="status">
-          <svg fill="none" height="17" stroke="#4ADE80" viewBox="0 0 24 24" width="17">
+          <svg
+            aria-hidden="true"
+            fill="none"
+            height="17"
+            stroke="#4ADE80"
+            viewBox="0 0 24 24"
+            width="17"
+          >
             <path
               d="M20 6.5L9.5 17 4.5 12"
               strokeLinecap="round"

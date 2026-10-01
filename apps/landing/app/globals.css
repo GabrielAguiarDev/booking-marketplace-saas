@@ -326,10 +326,87 @@ main:focus {
   color: var(--ink);
 }
 
-/* Abaixo disso os cinco links encostam nos botões. */
+.header__menu {
+  display: none;
+}
+
+/* Abaixo disso os cinco links encostam nos botões: eles vão para um menu. */
 @media (max-width: 800px) {
   .header__nav {
     display: none;
+  }
+
+  .header__menu {
+    display: block;
+  }
+
+  .header__menu-button {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .header__menu-panel {
+    display: grid;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    padding: 8px 20px 14px;
+    border-bottom: 1px solid var(--line);
+    background: #fff;
+    box-shadow: 0 18px 30px -18px rgb(20 23 26 / 0.25);
+  }
+
+  .header__menu-panel[hidden] {
+    display: none;
+  }
+
+  .header__menu-panel > a {
+    padding: 13px 2px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .header__menu-panel > a:last-child {
+    border-bottom: 0;
+  }
+
+  .header__menu-login {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .header__inner {
+    gap: 12px;
+    padding: 0 14px;
+  }
+
+  .header__actions {
+    gap: 8px;
+  }
+
+  /* "Entrar" sai da barra e reaparece dentro do menu */
+  .header__login {
+    display: none;
+  }
+
+  .header__menu-panel > .header__menu-login {
+    display: block;
+  }
+
+  .header__menu-panel > a:nth-last-child(2) {
+    border-bottom: 1px solid var(--line);
   }
 }
 

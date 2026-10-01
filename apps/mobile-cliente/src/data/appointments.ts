@@ -90,7 +90,8 @@ export function useAppointments(enabled: boolean) {
 }
 
 export type BookResult =
-  { ok: true; appointmentId: string } | { ok: false; code: string; message: string };
+  | { ok: true; appointmentId: string; status: AppointmentStatus }
+  | { ok: false; code: string; message: string };
 
 /** Cria a reserva pela Edge Function — nunca por insert direto (ver R4). */
 export async function bookAppointment(input: {
@@ -119,7 +120,8 @@ export async function bookAppointment(input: {
     };
   }
 
-  return { ok: true, appointmentId: (data as { appointment: { id: string } }).appointment.id };
+  const { appointment } = data as { appointment: { id: string; status: AppointmentStatus } };
+  return { ok: true, appointmentId: appointment.id, status: appointment.status };
 }
 
 export async function cancelAppointment(

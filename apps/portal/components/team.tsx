@@ -239,13 +239,13 @@ function ProfessionalDialog({
           )}
         </fieldset>
 
-        <label style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 10 }}>
+        <label className="dialog-check">
           <input
             checked={isActive}
             onChange={(event) => setIsActive(event.target.checked)}
             type="checkbox"
           />
-          <span style={{ fontSize: 12.5 }}>Atendendo — aparece na agenda e no app do cliente</span>
+          <span>Atendendo — aparece na agenda e no app do cliente</span>
         </label>
 
         <footer>
@@ -544,7 +544,7 @@ export function Team() {
           ))}
         <footer className="card-foot">
           {isOwner && owners === 1
-            ? "Você é o único dono desta loja, e o banco recusa deixá-la sem nenhum. Convites podem dar acesso de equipe ou gerência; outro dono é promovido depois que entrar."
+            ? "Você é o único dono desta loja, e ela não pode ficar sem nenhum. Convites podem dar acesso de equipe ou gerência; outro dono é promovido depois que entrar."
             : "Só o dono envia ou revoga convites. Gerência acompanha quem ainda não entrou."}
         </footer>
       </section>

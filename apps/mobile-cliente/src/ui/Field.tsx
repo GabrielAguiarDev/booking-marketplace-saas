@@ -50,6 +50,9 @@ export function Field({
         }}
       >
         <TextInput
+          // O rótulo é um `Text` solto acima do campo; sem isto o leitor de
+          // tela anuncia só "campo de texto", sem dizer de quê.
+          accessibilityLabel={error ? `${label}. ${error}` : label}
           {...input}
           secureTextEntry={secure && !revealed}
           onFocus={(e) => {
@@ -60,12 +63,17 @@ export function Field({
             setFocused(false);
             input.onBlur?.(e);
           }}
-          placeholderTextColor={color.chevron}
+          placeholderTextColor={color.muted}
           style={[sans(15, 500, { ls: -0.01 }), { flex: 1, paddingVertical: 0 }]}
         />
 
         {secure ? (
-          <Pressable onPress={() => setRevealed((v) => !v)} hitSlop={10}>
+          <Pressable
+            onPress={() => setRevealed((v) => !v)}
+            hitSlop={13}
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? "Ocultar senha" : "Mostrar senha"}
+          >
             {revealed ? (
               <EyeOff size={18} color={color.muted} strokeWidth={1.8} />
             ) : (
@@ -75,7 +83,11 @@ export function Field({
         ) : null}
       </View>
 
-      {error ? <Text style={sans(12.5, 500, { color: color.coral })}>{error}</Text> : null}
+      {error ? (
+        <Text accessibilityLiveRegion="polite" style={sans(12.5, 500, { color: "#B33A1F" })}>
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -104,6 +116,7 @@ export function CodeField({
         value={value}
         // Só dígitos: teclado numérico não impede colar texto com espaços.
         onChangeText={(next) => onChangeText(next.replace(/\D/g, "").slice(0, 6))}
+        accessibilityLabel={error ? `Código de seis dígitos. ${error}` : "Código de seis dígitos"}
         keyboardType="number-pad"
         textContentType="oneTimeCode"
         autoComplete="one-time-code"
@@ -125,7 +138,11 @@ export function CodeField({
           },
         ]}
       />
-      {error ? <Text style={sans(12.5, 500, { color: color.coral })}>{error}</Text> : null}
+      {error ? (
+        <Text accessibilityLiveRegion="polite" style={sans(12.5, 500, { color: "#B33A1F" })}>
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }

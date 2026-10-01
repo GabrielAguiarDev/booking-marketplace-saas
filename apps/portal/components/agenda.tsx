@@ -11,6 +11,7 @@ import {
   phoneLabel,
   timeLabel,
 } from "./operation-format";
+import { Drawer } from "./drawer";
 import type { OperationAppointment } from "./operation-model";
 import styles from "./operation.module.css";
 import type { Notify } from "./portal";
@@ -52,7 +53,7 @@ export function Agenda({
     setError("");
     try {
       await action();
-      notify({ title, sub: "A agenda foi atualizada no banco." });
+      notify({ title, sub: "A agenda já está atualizada para toda a equipe." });
       setSelectedId(null);
       return true;
     } catch (caught) {
@@ -88,12 +89,13 @@ export function Agenda({
               ))}
             </select>
           </label>
-          <button className={styles.button} onClick={() => openNew({})} type="button">
-            Novo agendamento
-          </button>
         </header>
 
-        {error ? <p className={styles.error}>{error}</p> : null}
+        {error && !selected ? (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        ) : null}
         <div className={styles.list}>
           {appointments.length === 0 ? (
             <p className={styles.empty}>Nenhum agendamento nesta data.</p>
@@ -153,80 +155,9 @@ export function Agenda({
       </section>
 
       {selected ? (
-        <div className={styles.overlay} role="dialog" aria-modal="true">
-          <button className={styles.scrim} onClick={() => setSelectedId(null)} type="button" />
-          <aside className={styles.drawer}>
-            <header className={styles.drawerHeader}>
-              <div>
-                <code>{APPOINTMENT_STATUS[selected.status].toUpperCase()}</code>
-                <strong>{selected.customerName}</strong>
-              </div>
-              <button
-                className={styles.iconButton}
-                onClick={() => setSelectedId(null)}
-                type="button"
-              >
-                Fechar
-              </button>
-            </header>
-            <div className={styles.drawerBody}>
-              <div className={styles.metrics}>
-                <div className={styles.metric}>
-                  <span>Horário</span>
-                  <strong>{timeLabel(selected.startsAt, operation.summary.timezone)}</strong>
-                </div>
-                <div className={styles.metric}>
-                  <span>Duração</span>
-                  <strong>{duration(selected.serviceMinutes)}</strong>
-                </div>
-                <div className={styles.metric}>
-                  <span>Valor</span>
-                  <strong>{money(selected.priceCents)}</strong>
-                </div>
-                <div className={styles.metric}>
-                  <span>Sinal registrado</span>
-                  <strong>{money(selected.depositCents)}</strong>
-                </div>
-              </div>
-              <div className={styles.form}>
-                <div className={styles.rowMain}>
-                  <span>Serviço</span>
-                  <strong>{selected.serviceName}</strong>
-                </div>
-                <div className={styles.rowMain}>
-                  <span>Profissional</span>
-                  <strong>{selected.professionalName}</strong>
-                </div>
-                <div className={styles.rowMain}>
-                  <span>Contato</span>
-                  <strong>{phoneLabel(selected.customerPhone)}</strong>
-                  <small>
-                    {selected.hasAccount ? "Cliente com conta no app" : "Cliente sem conta"}
-                  </small>
-                </div>
-                {selected.notes ? (
-                  <div className={styles.rowMain}>
-                    <span>Observação</span>
-                    <strong>{selected.notes}</strong>
-                  </div>
-                ) : null}
-                {selected.cancellationReason ? (
-                  <p className={styles.notice}>Motivo: {selected.cancellationReason}</p>
-                ) : null}
-                {cancelling ? (
-                  <label className={styles.field}>
-                    Motivo do cancelamento pela loja
-                    <textarea
-                      autoFocus
-                      onChange={(event) => setReason(event.target.value)}
-                      value={reason}
-                    />
-                  </label>
-                ) : null}
-                {error ? <p className={styles.error}>{error}</p> : null}
-              </div>
-            </div>
-            <footer className={styles.drawerFooter}>
+        <Drawer
+          footer={
+            <>
               {selected.status === "scheduled" ? (
                 <button
                   className={styles.button}
@@ -308,9 +239,68 @@ export function Agenda({
                   </button>
                 </>
               ) : null}
-            </footer>
-          </aside>
-        </div>
+            </>
+          }
+          label={APPOINTMENT_STATUS[selected.status].toUpperCase()}
+          onClose={() => setSelectedId(null)}
+          title={selected.customerName}
+        >
+          <div className={styles.metrics}>
+            <div className={styles.metric}>
+              <span>Horário</span>
+              <strong>{timeLabel(selected.startsAt, operation.summary.timezone)}</strong>
+            </div>
+            <div className={styles.metric}>
+              <span>Duração</span>
+              <strong>{duration(selected.serviceMinutes)}</strong>
+            </div>
+            <div className={styles.metric}>
+              <span>Valor</span>
+              <strong>{money(selected.priceCents)}</strong>
+            </div>
+            <div className={styles.metric}>
+              <span>Sinal registrado</span>
+              <strong>{money(selected.depositCents)}</strong>
+            </div>
+          </div>
+          <div className={styles.form}>
+            <div className={styles.rowMain}>
+              <span>Serviço</span>
+              <strong>{selected.serviceName}</strong>
+            </div>
+            <div className={styles.rowMain}>
+              <span>Profissional</span>
+              <strong>{selected.professionalName}</strong>
+            </div>
+            <div className={styles.rowMain}>
+              <span>Contato</span>
+              <strong>{phoneLabel(selected.customerPhone)}</strong>
+              <small>
+                {selected.hasAccount ? "Cliente com conta no app" : "Cliente sem conta"}
+              </small>
+            </div>
+            {selected.notes ? (
+              <div className={styles.rowMain}>
+                <span>Observação</span>
+                <strong>{selected.notes}</strong>
+              </div>
+            ) : null}
+            {selected.cancellationReason ? (
+              <p className={styles.notice}>Motivo: {selected.cancellationReason}</p>
+            ) : null}
+            {cancelling ? (
+              <label className={styles.field}>
+                Motivo do cancelamento pela loja
+                <textarea
+                  autoFocus
+                  onChange={(event) => setReason(event.target.value)}
+                  value={reason}
+                />
+              </label>
+            ) : null}
+            {error ? <p className={styles.error}>{error}</p> : null}
+          </div>
+        </Drawer>
       ) : null}
     </div>
   );

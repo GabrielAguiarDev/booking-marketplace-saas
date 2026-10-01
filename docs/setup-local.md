@@ -68,9 +68,9 @@ pnpm --filter @vez/mobile-cliente dev  # Metro em 8081
 pnpm --filter @vez/mobile-staff dev    # Metro em 8082
 ```
 
-Os três apps web ainda abrem numa tela única que consulta `cities`: se aparecer
-a lista de cidades, a conexão com o Supabase está de pé. Os dois apps mobile são
-produtos completos — para ter o que ver neles, carregue a demo.
+A landing apresenta o produto e recebe interessados. O portal permite cadastro
+e operação do estabelecimento; o admin exige uma conta da plataforma. Carregue
+a demo para testar os dois apps mobile e as áreas autenticadas com dados locais.
 
 ## Dados de demonstração
 
@@ -89,6 +89,7 @@ endereços de cada superfície em [contas-de-teste.md](contas-de-teste.md)):
 | `rafael@vez.local`  | dono da Barbearia Meia-Nove — acesso total       |
 | `diego@vez.local`   | equipe — vê a agenda, não edita cadastro da loja |
 | `cliente@vez.local` | cliente, com reserva pendente e lugar na fila    |
+| `admin@vez.local`   | administradora da plataforma                     |
 
 Entrar como `rafael` no app do estabelecimento e como `cliente` no app do
 cliente mostra os dois lados da mesma fila, ao vivo.
@@ -110,6 +111,18 @@ pnpm db:stop        # derruba o stack
 migration, rode `pnpm db:types` e faça commit do resultado — a build não depende
 do banco estar no ar.
 
+`db:demo` e `db:test:behavior` selecionam o container pelo `project_id` deste
+repositório. Outros projetos Supabase podem ficar ligados sem receber esse SQL.
+
+### Depois de mover a pasta do projeto
+
+Se o banco responder, mas a API em `54321` não abrir, confira o estado dos
+containers. Um erro de montagem do Kong citando a pasta antiga indica que os
+templates de e-mail ainda estão vinculados ao caminho anterior. A partir da
+nova pasta, rode `pnpm db:stop` e `pnpm db:start`: o stop normal preserva o backup
+local e o start recria os containers com os caminhos atuais. Não use `db:reset`
+ou `--no-backup` para resolver isso: eles descartam dados.
+
 ## Edge Functions e avisos
 
 ```bash
@@ -130,8 +143,16 @@ de mudar `supabase/config.toml` (modelo de convite, `verify_jwt`), rode
 pnpm build       # Next build nos três apps web
 pnpm lint        # ESLint nos 7 workspaces
 pnpm typecheck   # tsc --noEmit nos 7 workspaces
+pnpm test        # testes automatizados dos workspaces
+pnpm verify      # tipos, lint, testes e builds web
 pnpm format      # Prettier
 ```
 
 `pnpm build` não passa pelos apps mobile: Expo não compila localmente, quem
 compila é o EAS. Neles a rede de proteção é `lint` + `typecheck`.
+
+O workflow `.github/workflows/ci.yml` executa as verificações em PRs e em pushes
+para `main`. Um segundo job sobe banco efêmero, aplica migrations, carrega a demo,
+verifica RLS e autorização e compara os tipos gerados com os versionados.
+Não usa credenciais nem executa deploy em produção. O resultado no GitHub só
+existe depois que o workflow é enviado ao repositório remoto.

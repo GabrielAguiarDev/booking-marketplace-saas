@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { accentOf, CATEGORY, initialsOfName, shade } from "../../src/data/catalog";
 import { useAvailabilitySummary } from "../../src/data/availability";
@@ -15,6 +16,7 @@ import { color } from "../../src/theme/tokens";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { duo2, Photo } from "../../src/ui/Photo";
 import {
+  BackButton,
   Card,
   Label,
   PrimaryButton,
@@ -65,9 +67,7 @@ export default function Loja() {
     return (
       <Screen>
         <View style={{ padding: 20, paddingTop: 16, gap: 16 }}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
-            <Text style={sans(24, 400, { lh: 1 })}>‹</Text>
-          </Pressable>
+          <BackButton onPress={() => router.back()} />
           {error ? (
             <ErrorState error={error} onRetry={reload} what="esta loja" />
           ) : (
@@ -180,22 +180,9 @@ export default function Loja() {
               ))}
             </View>
           ) : null}
-          <Pressable
-            onPress={() => router.back()}
-            style={{
-              position: "absolute",
-              top: 12,
-              left: 16,
-              width: 38,
-              height: 38,
-              borderRadius: 12,
-              backgroundColor: color.bg,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={sans(20, 400)}>‹</Text>
-          </Pressable>
+          <View style={{ position: "absolute", top: 12, left: 16 }}>
+            <BackButton boxed onPress={() => router.back()} />
+          </View>
 
           <View style={{ position: "absolute", top: 12, right: 16 }}>
             <FavoriteButton
@@ -220,7 +207,9 @@ export default function Loja() {
                 paddingHorizontal: 11,
               }}
             >
-              <Ring size={14} innerSize={7} pct={72} color={color.coral} />
+              {/* Anel cheio: o selo só existe quando há horário hoje. Um
+                  arco parcial aqui seria uma proporção que ninguém mediu. */}
+              <Ring size={14} innerSize={7} pct={100} color={color.coral} />
               <Text style={mono(9.5, 600, { ls: 0.1 })}>NA VEZ</Text>
             </View>
           ) : null}
@@ -275,10 +264,12 @@ export default function Loja() {
               padding={15}
               style={{ flexDirection: "row", gap: 15, alignItems: "center" }}
             >
+              {/* O resumo diz quantos horários estão livres, não quantos
+                  existem: sem o total, o anel só sabe "tem" ou "não tem". */}
               <Ring
                 size={58}
                 innerSize={44}
-                pct={Math.min(100, freeToday * 7)}
+                pct={freeToday > 0 ? 100 : 0}
                 color={freeToday > 0 ? color.green : color.dotIdle}
               >
                 <Text style={mono(15, 600)}>{freeToday}</Text>
@@ -287,7 +278,7 @@ export default function Loja() {
                 <Text style={sans(16.5, 700, { ls: -0.02 })}>Agenda de hoje</Text>
                 <Text style={mono(10.5, 400, { ls: 0.05, color: color.muted })}>
                   {freeToday > 0
-                    ? `${freeToday} HORÁRIOS LIVRES`
+                    ? `${freeToday} ${freeToday === 1 ? "HORÁRIO LIVRE" : "HORÁRIOS LIVRES"}`
                     : "SEM HORÁRIO HOJE · VEJA OUTROS DIAS"}
                 </Text>
               </View>
@@ -323,7 +314,9 @@ export default function Loja() {
                 </>
               )}
               {queueError ? (
-                <Text style={sans(13, 500, { color: "#B33A1F" })}>{queueError}</Text>
+                <Text accessibilityRole="alert" style={sans(13, 500, { color: "#B33A1F" })}>
+                  {queueError}
+                </Text>
               ) : null}
             </Card>
           ) : null}
@@ -359,12 +352,16 @@ export default function Loja() {
                       </Text>
                       <Pressable
                         onPress={() => comecar(service.id)}
-                        style={{
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Agendar ${service.name}`}
+                        style={({ pressed }) => ({
                           backgroundColor: accent,
                           borderRadius: 9,
                           paddingVertical: 9,
                           paddingHorizontal: 14,
-                        }}
+                          opacity: pressed ? 0.85 : 1,
+                        })}
                       >
                         <Text style={mono(10, 600, { ls: 0.08, color: "#fff" })}>AGENDAR</Text>
                       </Pressable>
@@ -439,7 +436,7 @@ export default function Loja() {
       </ScrollView>
 
       {shop.services.length > 0 ? (
-        <StickyFooter bottomInset={0}>
+        <StickyFooter>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
             <View style={{ gap: 2 }}>
               <Label>A PARTIR DE</Label>
@@ -468,6 +465,9 @@ function Vazio({ texto }: { texto: string }) {
 }
 
 function LojaCarregando({ onBack }: { onBack: () => void }) {
+  // Mesmo lugar do botão da loja carregada: 12 pt abaixo da área segura. O
+  // `top: 56` fixo só acertava em aparelho com entalhe de 44 pt.
+  const insets = useSafeAreaInsets();
   return (
     <Screen>
       <Shimmer width="100%" height={246} radius={0} />
@@ -476,22 +476,9 @@ function LojaCarregando({ onBack }: { onBack: () => void }) {
         <Shimmer width="100%" height={64} radius={14} />
         <Shimmer width="100%" height={96} radius={14} />
       </View>
-      <Pressable
-        onPress={onBack}
-        style={{
-          position: "absolute",
-          top: 56,
-          left: 16,
-          width: 38,
-          height: 38,
-          borderRadius: 12,
-          backgroundColor: color.bg,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Text style={sans(20, 400)}>‹</Text>
-      </Pressable>
+      <View style={{ position: "absolute", top: insets.top + 12, left: 16 }}>
+        <BackButton boxed onPress={onBack} />
+      </View>
     </Screen>
   );
 }

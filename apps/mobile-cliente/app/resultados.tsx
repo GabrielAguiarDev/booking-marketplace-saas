@@ -40,7 +40,7 @@ export default function Resultados() {
 
   return (
     <Screen>
-      <ScreenScroll gap={18}>
+      <ScreenScroll gap={18} onRefresh={reload}>
         <BackHeader title={titulo} onBack={() => router.back()} />
 
         {loading ? (
@@ -107,7 +107,21 @@ export function LojaCard({
   const category = CATEGORY[shop.category];
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={shop.name}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={[
+        shop.name,
+        category.label,
+        distance,
+        shop.rating_count > 0 && shop.rating_avg !== null
+          ? `nota ${shop.rating_avg.toFixed(1).replace(".", ",")}`
+          : "sem avaliações",
+        shop.booking_mode !== "scheduled" ? "aceita fila" : null,
+      ]
+        .filter(Boolean)
+        .join(", ")}
+    >
       <Card
         radius={18}
         padding={13}

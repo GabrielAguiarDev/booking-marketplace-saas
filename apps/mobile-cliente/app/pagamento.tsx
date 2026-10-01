@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
 
@@ -7,26 +7,71 @@ import { bookAppointment } from "../src/data/appointments";
 import { accentOf, initialsOfName, shade } from "../src/data/catalog";
 import { useEstablishment } from "../src/data/establishments";
 import { duration, money, slotLabel } from "@vez/mobile-kit/format";
+import { useGoToTab } from "../src/navigation";
 import { useAppState } from "../src/state/app-state";
 import { color } from "../src/theme/tokens";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { duo2, Photo } from "../src/ui/Photo";
-import { BackHeader, Card, Label, PrimaryButton, StickyFooter } from "../src/ui/primitives";
+import {
+  BackHeader,
+  Card,
+  Label,
+  PrimaryButton,
+  Shimmer,
+  StickyFooter,
+} from "../src/ui/primitives";
 import { Screen, ScreenScroll } from "../src/ui/Screen";
+import { ErrorState, useActionErrorText } from "../src/ui/States";
 
 function PagamentoConteudo() {
   const router = useRouter();
+  const goToTab = useGoToTab();
+  const { origem } = useLocalSearchParams<{ origem?: string }>();
   const state = useAppState();
   const { booking } = state;
 
-  const { data: shop } = useEstablishment(booking.establishmentId);
+  const {
+    data: shop,
+    loading,
+    error: loadError,
+    reload,
+  } = useEstablishment(booking.establishmentId);
   const service = shop?.services.find((s) => s.id === booking.serviceId) ?? null;
   const pro = shop?.professionals.find((p) => p.id === booking.professionalId) ?? null;
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** O horário foi vendido entre a escolha e a confirmação. */
+  const [slotLost, setSlotLost] = useState(false);
+  const errorText = useActionErrorText(error);
 
   const accent = accentOf(shop);
+
+  // Carregando e com erro vêm antes de "incompleta": a loja é nula nos três
+  // casos, e quem chega do assistente ainda não tem a loja em memória — a tela
+  // dizia "reserva incompleta" de uma reserva perfeitamente completa.
+  if (booking.establishmentId && loading) {
+    return (
+      <Screen>
+        <ScreenScroll gap={22}>
+          <BackHeader title="Confirmar" onBack={() => router.back()} />
+          <Shimmer width="100%" height={88} radius={18} />
+          <Shimmer width="100%" height={210} radius={16} />
+        </ScreenScroll>
+      </Screen>
+    );
+  }
+
+  if (booking.establishmentId && loadError) {
+    return (
+      <Screen>
+        <ScreenScroll gap={16}>
+          <BackHeader title="Confirmar" onBack={() => router.back()} />
+          <ErrorState error={loadError} onRetry={reload} what="os dados da reserva" />
+        </ScreenScroll>
+      </Screen>
+    );
+  }
 
   if (!shop || !service || !booking.slotStart || !booking.professionalId) {
     return (
@@ -47,6 +92,14 @@ function PagamentoConteudo() {
     { k: "Pagamento", v: "DIRETO NO ESTABELECIMENTO", strong: true },
   ];
 
+  function escolherOutro() {
+    state.setSlot(null);
+    // Quem veio da grade volta para ela. Quem veio do assistente nunca passou
+    // pela grade: ela entra no lugar desta tela, já com loja e serviço.
+    if (origem === "assistente") router.replace("/horario");
+    else router.back();
+  }
+
   async function confirmar() {
     setBusy(true);
     setError(null);
@@ -64,14 +117,22 @@ function PagamentoConteudo() {
       setError(result.message);
       // O horário foi levado por outra pessoa entre a escolha e a confirmação.
       // Voltar para a grade é a única saída útil — insistir aqui não resolve.
+      // O rascunho fica como está até a pessoa sair: limpar o horário agora
+      // trocaria esta tela por "reserva incompleta" e apagaria o motivo.
       if (result.code === "slot_taken" || result.code === "slot_unavailable") {
-        state.setSlot(null);
+        setSlotLost(true);
       }
       return;
     }
 
     state.clearBooking();
-    router.replace("/(tabs)/agenda");
+    // Desempilha loja e horário antes de ir: a reserva acabou, e o gesto de
+    // voltar não pode devolver um fluxo concluído. A Agenda recebe o que
+    // aconteceu para dizer isso em voz alta — antes ela só aparecia.
+    goToTab({
+      pathname: "/(tabs)/agenda",
+      params: { reservada: result.status === "confirmed" ? "confirmada" : "pedido" },
+    });
   }
 
   return (
@@ -137,20 +198,33 @@ function PagamentoConteudo() {
           </Text>
         </Card>
 
-        {error ? (
-          <Card radius={14} padding={14} style={{ borderColor: color.coralBorder }}>
-            <Text style={sans(13.5, 500, { lh: 1.4, color: "#B33A1F" })}>{error}</Text>
+        {errorText ? (
+          <Card
+            radius={14}
+            padding={14}
+            style={{ borderColor: color.coralBorder, gap: 11, backgroundColor: "#FFF4F1" }}
+          >
+            <Text accessibilityRole="alert" style={sans(13.5, 500, { lh: 1.4, color: "#B33A1F" })}>
+              {errorText}
+            </Text>
+            {slotLost ? (
+              <PrimaryButton
+                label="Escolher outro horário"
+                height={44}
+                background={accent}
+                onPress={escolherOutro}
+              />
+            ) : null}
           </Card>
         ) : null}
-
       </ScreenScroll>
 
-      <StickyFooter bottomInset={0}>
+      <StickyFooter>
         <PrimaryButton
           label={busy ? "Confirmando…" : "Confirmar reserva"}
           height={54}
-          background={busy ? color.chevron : accent}
-          onPress={busy ? undefined : confirmar}
+          background={busy || slotLost ? color.chevron : accent}
+          onPress={busy || slotLost ? undefined : confirmar}
         />
       </StickyFooter>
     </Screen>

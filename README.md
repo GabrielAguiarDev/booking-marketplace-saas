@@ -13,7 +13,8 @@ pnpm db:start
 pnpm dev
 ```
 
-- **[Próximos passos — por onde continuar](docs/proximos-passos.md)**
+- **[Auditoria e finalização — estado atual](docs/finalizacao-2026-09-30.md)**
+- [Próximos passos e histórico de implementação](docs/proximos-passos.md)
 - [Setup local, passo a passo](docs/setup-local.md)
 - [Contas e endereços para testar](docs/contas-de-teste.md)
 - [Arquitetura](docs/architecture.md)

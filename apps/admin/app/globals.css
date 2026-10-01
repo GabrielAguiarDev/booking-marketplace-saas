@@ -439,6 +439,21 @@ svg {
   text-align: center;
 }
 
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  margin-top: 24px;
+}
+
+a.primary {
+  display: flex;
+  align-items: center;
+}
+
+a.primary:hover {
+  color: #fff;
+}
+
 .auth-secondary {
   width: 100%;
   margin-top: 12px;
@@ -517,6 +532,16 @@ svg {
   background: transparent;
   font-size: 12px;
   outline: none;
+}
+
+/* o campo de busca não tem borda própria: o foco aparece na caixa que o envolve */
+.search input:focus-visible {
+  box-shadow: none;
+}
+
+.search:focus-within {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 16%, transparent);
 }
 
 .search.light input {
@@ -898,6 +923,34 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--surface);
+  outline: none;
+}
+
+/* O contorno padrão sai, mas o campo com foco precisa aparecer para quem usa Tab. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 16%, transparent);
+}
+
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible,
+input[type="file"]:focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+
+[role="dialog"]:focus {
   outline: none;
 }
 
@@ -4463,5 +4516,191 @@ label.showcase-file input {
 
   .account-console-bar {
     flex-wrap: wrap;
+  }
+}
+
+/* ── telas estreitas ───────────────────────────────────────── */
+
+/* O painel é de mesa, mas precisa abrir num notebook pequeno, numa janela
+   dividida ou no celular de quem está de plantão: o menu vira gaveta e as
+   grades de duas ou mais colunas empilham. Tabelas rolam na horizontal. */
+
+.nav-open-button,
+.nav-backdrop {
+  display: none;
+}
+
+.modal {
+  max-width: 100%;
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
+}
+
+@media (max-width: 1100px) {
+  .services-grid,
+  .approvals-grid,
+  .reports-grid,
+  .cities-grid,
+  .customers-grid,
+  .quotas-grid,
+  .detail-split,
+  .detail-body,
+  .report-body,
+  .panorama-grid,
+  .chart-grid,
+  .showcase-upload {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kpi-grid,
+  .kpi-grid.three,
+  .queue-grid,
+  .fields.four,
+  .plan-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 45;
+    width: min(var(--side), 86vw);
+    height: 100dvh;
+    box-shadow: 12px 0 32px rgb(20 23 26 / 0.14);
+    /* fora da tela e fora da ordem de tabulação até a gaveta abrir */
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition:
+      transform 0.18s ease-out,
+      visibility 0.18s;
+  }
+
+  .shell.nav-open .sidebar {
+    visibility: visible;
+    transform: none;
+  }
+
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    z-index: 44;
+    inset: 0;
+    background: rgb(20 23 26 / 0.28);
+    cursor: default;
+  }
+
+  .nav-open-button {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--muted);
+  }
+
+  .topbar {
+    gap: 10px;
+    padding: 0 16px;
+  }
+
+  .topbar-title span,
+  .topbar > .clock {
+    display: none;
+  }
+
+  .topbar > .spacer {
+    display: none;
+  }
+
+  .topbar-title {
+    flex: none;
+  }
+
+  .search-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .search-wrap > .search {
+    width: 100%;
+  }
+
+  .page {
+    padding: 16px 16px 40px;
+  }
+
+  /* cabeçalhos de ficha: as ações descem para a linha de baixo em vez de sair da tela */
+  .entity-head,
+  .detail-head,
+  .head-actions,
+  .entity-head > .actions {
+    flex-wrap: wrap;
+  }
+
+  .entity-head > .actions {
+    width: 100%;
+  }
+
+  .tabs {
+    overflow-x: auto;
+  }
+
+  .tabs > * {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .overlay {
+    padding: 16px;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 32px);
+  }
+
+  .table-wrap > table,
+  .card.clip > table {
+    min-width: 640px;
+  }
+
+  .card.clip {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .kpi-grid,
+  .kpi-grid.three,
+  .queue-grid,
+  .fields,
+  .fields.four,
+  .plan-grid,
+  .stat-row,
+  .stat-row.three,
+  .filter-triple {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .topbar-title h1 {
+    max-width: 38vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .toast {
+    right: 16px;
+    left: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
   }
 }

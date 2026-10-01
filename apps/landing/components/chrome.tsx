@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { VezLogo } from "./brand";
+import { MobileNav } from "./mobile-nav";
 import { PORTAL_LOGIN, PORTAL_SIGNUP } from "./portal";
 import { ROUTES, SITE } from "./site";
 
@@ -50,6 +51,7 @@ export function Header() {
           <a href={PORTAL_SIGNUP} className="btn btn--primary btn--sm">
             Cadastrar minha loja
           </a>
+          <MobileNav items={NAV} loginHref={PORTAL_LOGIN} />
         </div>
       </div>
     </header>

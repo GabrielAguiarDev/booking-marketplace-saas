@@ -104,7 +104,7 @@ export default function Agenda() {
         onAction={() => router.push("/novo-agendamento")}
       />
 
-      <ScreenScroll>
+      <ScreenScroll onRefresh={() => Promise.all([appointments.reload(), hours.reload()])}>
         <View style={{ paddingHorizontal: 20, paddingTop: 14, gap: 12 }}>
           <Segmented
             items={[
@@ -231,6 +231,13 @@ export default function Agenda() {
                             <Pressable
                               key={item.id}
                               onPress={() => router.push(`/agendamento/${item.id}`)}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${item.name}, ${item.serviceName}, ${new Date(
+                                item.startsAt,
+                              ).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}`}
                               style={{
                                 position: "absolute",
                                 left: 3,

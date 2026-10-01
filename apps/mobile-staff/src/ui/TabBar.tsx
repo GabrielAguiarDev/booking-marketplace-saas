@@ -12,13 +12,20 @@ import { PulseDot } from "./primitives";
 type IconProps = { size: number; color: string; strokeWidth: number };
 type TabKey = "hoje" | "agenda" | "fila" | "loja" | "mais";
 
-const TABS: { key: TabKey; label: string; route: string; Icon?: ComponentType<IconProps> }[] = [
-  { key: "hoje", label: "HOJE", route: "/", Icon: House },
-  { key: "agenda", label: "AGENDA", route: "/agenda", Icon: CalendarDays },
+const TABS: {
+  key: TabKey;
+  label: string;
+  /** Nome falado pelo leitor de tela. */
+  name: string;
+  route: string;
+  Icon?: ComponentType<IconProps>;
+}[] = [
+  { key: "hoje", label: "HOJE", name: "Hoje", route: "/", Icon: House },
+  { key: "agenda", label: "AGENDA", name: "Agenda", route: "/agenda", Icon: CalendarDays },
   // A aba central não tem ícone: tem o número. Ver comentário abaixo.
-  { key: "fila", label: "FILA", route: "/fila" },
-  { key: "loja", label: "LOJA", route: "/loja", Icon: Store },
-  { key: "mais", label: "MAIS", route: "/mais", Icon: Menu },
+  { key: "fila", label: "FILA", name: "Fila", route: "/fila" },
+  { key: "loja", label: "LOJA", name: "Sua loja", route: "/loja", Icon: Store },
+  { key: "mais", label: "MAIS", name: "Mais", route: "/mais", Icon: Menu },
 ];
 
 function activeTab(pathname: string): TabKey {
@@ -55,6 +62,7 @@ export function TabBar() {
 
   return (
     <View
+      accessibilityRole="tablist"
       style={{
         borderTopWidth: 1,
         borderTopColor: color.line,
@@ -66,7 +74,7 @@ export function TabBar() {
         alignItems: "flex-start",
       }}
     >
-      {TABS.map(({ key, label, route, Icon }) => {
+      {TABS.map(({ key, label, name, route, Icon }) => {
         const on = key === active;
         const center = key === "fila";
         const tint = on ? (center ? color.coral : color.ink) : color.faint;
@@ -75,6 +83,17 @@ export function TabBar() {
           <Pressable
             key={key}
             onPress={() => router.navigate(route as never)}
+            accessibilityRole="tab"
+            // A aba do meio mostra um número e duas vezes a palavra "fila";
+            // lida em voz alta virava "3 NA FILA FILA". Aqui ela diz o que é.
+            accessibilityLabel={
+              center
+                ? usesQueue
+                  ? `Fila, ${waiting} ${waiting === 1 ? "pessoa esperando" : "pessoas esperando"}`
+                  : "Fila, desligada"
+                : name
+            }
+            accessibilityState={{ selected: on }}
             style={{ flex: 1, alignItems: "center", gap: 4, paddingTop: center ? 0 : 2 }}
           >
             {center ? (

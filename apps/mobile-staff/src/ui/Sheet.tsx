@@ -1,3 +1,4 @@
+import { useReducedMotion } from "@vez/mobile-kit/motion";
 import { sans } from "@vez/mobile-kit/theme";
 import type { ReactNode } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, View } from "react-native";
@@ -27,13 +28,25 @@ export function Sheet({
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType={reduced ? "fade" : "slide"}
+      onRequestClose={onClose}
+    >
       <View style={{ flex: 1, backgroundColor: "rgba(20,23,26,0.35)", justifyContent: "flex-end" }}>
-        <Pressable style={{ flex: 1 }} onPress={onClose} />
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Fechar"
+        />
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View
+            accessibilityViewIsModal
             style={[
               {
                 backgroundColor: color.bg,
@@ -56,7 +69,9 @@ export function Sheet({
                 marginBottom: 16,
               }}
             />
-            <Text style={sans(19, 800, { ls: -0.3 / 19 })}>{title}</Text>
+            <Text accessibilityRole="header" style={sans(19, 800, { ls: -0.3 / 19 })}>
+              {title}
+            </Text>
             {subtitle ? (
               <Text style={[sans(13, 400, { lh: 1.45, color: color.muted }), { marginTop: 5 }]}>
                 {subtitle}

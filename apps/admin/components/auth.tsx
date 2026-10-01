@@ -8,6 +8,23 @@ import { useEffect, useRef, useState } from "react";
 import { AcceptInvite, useInviteLanding } from "./accept-invite";
 import { VezSymbol } from "./brand";
 
+/** O Auth responde em inglês; o que não for reconhecido vira uma frase genérica. */
+function friendlyLoginError(error: { code?: string; message: string }): string {
+  if (error.code === "invalid_credentials" || error.message === "Invalid login credentials") {
+    return "E-mail ou senha inválidos.";
+  }
+  if (error.code === "email_not_confirmed") {
+    return "Este e-mail ainda não foi confirmado. Abra o convite recebido para definir a senha.";
+  }
+  if (error.code?.startsWith("over_") || /rate limit/i.test(error.message)) {
+    return "Muitas tentativas em pouco tempo. Aguarde um minuto e tente de novo.";
+  }
+  if (/fetch|network/i.test(error.message)) {
+    return "Sem conexão com o servidor. Confira a internet e tente de novo.";
+  }
+  return "Não foi possível entrar. Tente de novo em instantes.";
+}
+
 export function AdminLogin({ deniedEmail }: { deniedEmail?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState(deniedEmail ?? "");
@@ -41,11 +58,7 @@ export function AdminLogin({ deniedEmail }: { deniedEmail?: string }) {
               password,
             });
             if (signInError) {
-              setError(
-                signInError.message === "Invalid login credentials"
-                  ? "E-mail ou senha inválidos."
-                  : signInError.message,
-              );
+              setError(friendlyLoginError(signInError));
               setPending(false);
               return;
             }
@@ -59,7 +72,12 @@ export function AdminLogin({ deniedEmail }: { deniedEmail?: string }) {
               autoComplete="email"
               autoFocus
               id="admin-email"
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                // O aviso era sobre a conta anterior; não vale para a que está sendo digitada.
+                setError("");
+              }}
+              required
               type="email"
               value={email}
             />
@@ -70,6 +88,7 @@ export function AdminLogin({ deniedEmail }: { deniedEmail?: string }) {
               autoComplete="current-password"
               id="admin-password"
               onChange={(event) => setPassword(event.target.value)}
+              required
               type="password"
               value={password}
             />
@@ -102,7 +121,16 @@ function friendlyMfaError(message: string): string {
   if (/invalid.*code|challenge.*expired|factor.*not found/i.test(message)) {
     return "Código inválido ou expirado. Confira o relógio do aparelho e tente novamente.";
   }
-  return message;
+  if (/rate limit|too many/i.test(message)) {
+    return "Muitas tentativas em pouco tempo. Aguarde um minuto e tente de novo.";
+  }
+  if (/fetch|network/i.test(message)) {
+    return "Sem conexão com o servidor. Confira a internet e tente de novo.";
+  }
+  // Mensagens que o próprio painel escreve já estão em português.
+  return /[áéíóúãõç]/i.test(message)
+    ? message
+    : "Não foi possível confirmar o segundo fator. Tente de novo.";
 }
 
 /**

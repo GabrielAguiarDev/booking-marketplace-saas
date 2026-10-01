@@ -14,7 +14,7 @@ function planLines(plan: PortalPlan): string[] {
   lines.push(
     plan.kind === "commission"
       ? `${(plan.commissionPercent ?? 0).toString().replace(".", ",")}% sobre cada atendimento concluído`
-      : "Valor fixo por mês, combinado com a Vez",
+      : "Valor fixo por mês, combinado com o Vez",
   );
   lines.push(
     plan.maxProfessionals === null
@@ -89,7 +89,7 @@ export function Billing() {
           <strong>{discountPercent ? `${discountPercent}%` : "nenhum"}</strong>
           <div>
             <b style={{ color: discountPercent ? GREEN_DARK : MUTED }}>
-              {discountPercent ? "concedido pela Vez" : "—"}
+              {discountPercent ? "concedido pelo Vez" : "—"}
             </b>
             <small>
               {discountUntil
@@ -104,15 +104,15 @@ export function Billing() {
         <header className="panel-head stacked">
           <h2>O que muda em cada plano</h2>
           <p>
-            Os dois modelos coexistem. Trocar de plano é decisão da equipe da Vez — o banco recusa a
-            troca feita pela loja.
+            Os dois modelos coexistem. A troca de plano é feita pela equipe do Vez: fale com o
+            suporte para mudar.
           </p>
         </header>
         {catalog.length === 0 ? (
           <div className="list-row">
             <div>
               <strong>Nenhum plano ativo</strong>
-              <small>Fale com o suporte da Vez.</small>
+              <small>Fale com o suporte do Vez.</small>
             </div>
           </div>
         ) : (
@@ -153,7 +153,7 @@ export function Billing() {
           <div>
             <strong>Nenhuma cobrança foi emitida</strong>
             <small>
-              A Vez ainda não escolheu o provedor de pagamento. Enquanto isso não acontece, não há
+              O Vez ainda não escolheu o provedor de pagamento. Enquanto isso não acontece, não há
               fatura, cartão cadastrado nem repasse — e esta tela não mostra nenhum número inventado
               no lugar deles.
             </small>

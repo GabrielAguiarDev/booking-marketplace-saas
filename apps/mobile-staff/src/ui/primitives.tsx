@@ -1,3 +1,4 @@
+import { useReducedMotion } from "@vez/mobile-kit/motion";
 import { mono, sans } from "@vez/mobile-kit/theme";
 import { type ReactNode, useEffect, useState } from "react";
 import {
@@ -71,6 +72,10 @@ export function PrimaryButton({
   return (
     <Pressable
       onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       style={({ pressed }) => [
         {
           height,
@@ -94,6 +99,7 @@ export function PrimaryButton({
 export function OutlineButton({
   label,
   onPress,
+  disabled = false,
   height = 48,
   radius = 14,
   tint = color.ink,
@@ -101,6 +107,7 @@ export function OutlineButton({
 }: {
   label: string;
   onPress?: () => void;
+  disabled?: boolean;
   height?: number;
   radius?: number;
   tint?: string;
@@ -108,7 +115,11 @@ export function OutlineButton({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       style={({ pressed }) => [
         {
           height,
@@ -118,6 +129,7 @@ export function OutlineButton({
           alignItems: "center",
           justifyContent: "center",
           paddingHorizontal: 16,
+          opacity: disabled ? 0.45 : 1,
         },
         style,
       ]}
@@ -136,20 +148,45 @@ export function OutlineButton({
  * cor do sistema e ignora o raio e a sombra do design. Como o interruptor
  * aparece dezesseis vezes em três telas de ajuste, ele é elemento de marca.
  */
-export function Toggle({ value, onChange }: { value: boolean; onChange: (next: boolean) => void }) {
+export function Toggle({
+  value,
+  onChange,
+  label,
+  disabled = false,
+}: {
+  value: boolean;
+  onChange: (next: boolean) => void;
+  /** O que este interruptor liga — é o que o leitor de tela anuncia. */
+  label?: string;
+  disabled?: boolean;
+}) {
   const [anim] = useState(() => new Animated.Value(value ? 1 : 0));
+  const reduced = useReducedMotion();
 
   useEffect(() => {
+    if (reduced) {
+      anim.setValue(value ? 1 : 0);
+      return;
+    }
     Animated.timing(anim, {
       toValue: value ? 1 : 0,
       duration: 180,
       easing: Easing.out(Easing.ease),
       useNativeDriver: true,
     }).start();
-  }, [value, anim]);
+  }, [value, anim, reduced]);
 
   return (
-    <Pressable onPress={() => onChange(!value)} hitSlop={8}>
+    // Sem papel e estado, o desenho próprio (ver acima) é só um retângulo para
+    // quem não enxerga: ninguém sabe que é interruptor nem se está ligado.
+    <Pressable
+      onPress={() => onChange(!value)}
+      disabled={disabled}
+      hitSlop={10}
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: value, disabled }}
+    >
       <View
         style={{
           width: 48,
@@ -195,6 +232,10 @@ export function Pill({
   return (
     <Pressable
       onPress={onPress}
+      hitSlop={size === "sm" ? 8 : 5}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
       style={{
         paddingVertical: size === "sm" ? 7 : 9,
         paddingHorizontal: size === "sm" ? 11 : 13,
@@ -225,6 +266,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <View
+      accessibilityRole="tablist"
       style={{
         flexDirection: "row",
         gap: 2,
@@ -239,6 +281,10 @@ export function Segmented<T extends string>({
           <Pressable
             key={item.key}
             onPress={() => onChange(item.key)}
+            hitSlop={{ top: 6, bottom: 6 }}
+            accessibilityRole="tab"
+            accessibilityLabel={item.label}
+            accessibilityState={{ selected: on }}
             style={[
               {
                 flex: 1,
@@ -266,7 +312,11 @@ export function Segmented<T extends string>({
 
 /** Rótulo de seção: `700 11px` com entreletra larga, sempre em caixa alta. */
 export function SectionLabel({ children, tint = color.ink }: { children: string; tint?: string }) {
-  return <Text style={sans(11, 700, { ls: 1.2 / 11, color: tint })}>{children.toUpperCase()}</Text>;
+  return (
+    <Text accessibilityRole="header" style={sans(11, 700, { ls: 1.2 / 11, color: tint })}>
+      {children.toUpperCase()}
+    </Text>
+  );
 }
 
 /** Rótulo de seção com um número mono à direita. */
@@ -457,7 +507,13 @@ export function KeyRow({
     </View>
   );
 
-  return onPress ? <Pressable onPress={onPress}>{body}</Pressable> : body;
+  return onPress ? (
+    <Pressable onPress={onPress} accessibilityRole="button">
+      {body}
+    </Pressable>
+  ) : (
+    body
+  );
 }
 
 /** Linha dos hubs Loja e Mais: ícone, título, subtítulo e chevron. */
@@ -479,6 +535,8 @@ export function HubRow({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}. ${sub}${tag ? `. ${tag.label}` : ""}`}
       style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
@@ -565,7 +623,12 @@ export function ToggleRow({
         ) : null}
       </View>
       <View style={{ marginTop: 2, opacity: disabled ? 0.4 : 1 }}>
-        <Toggle value={value} onChange={disabled ? () => undefined : onChange} />
+        <Toggle
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          label={pending ? `${label}. Ainda não atua` : label}
+        />
       </View>
     </View>
   );
@@ -574,8 +637,15 @@ export function ToggleRow({
 /** Ponto que pulsa — `@keyframes vezpulse` do canvas. */
 export function PulseDot({ size = 7, tint = color.green }: { size?: number; tint?: string }) {
   const [value] = useState(() => new Animated.Value(1));
+  const reduced = useReducedMotion();
 
   useEffect(() => {
+    // Com "reduzir movimento" ligado o ponto fica aceso e parado: a cor
+    // continua dizendo "ao vivo", sem piscar.
+    if (reduced) {
+      value.setValue(1);
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(value, {
@@ -594,10 +664,12 @@ export function PulseDot({ size = 7, tint = color.green }: { size?: number; tint
     );
     loop.start();
     return () => loop.stop();
-  }, [value]);
+  }, [value, reduced]);
 
   return (
     <Animated.View
+      accessible={false}
+      importantForAccessibility="no"
       style={{
         width: size,
         height: size,
@@ -626,7 +698,11 @@ export function Hatch({
 }) {
   const bars = Array.from({ length: 40 }, (_, i) => i);
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: light, overflow: "hidden" }]}>
+    <View
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+      style={[StyleSheet.absoluteFill, { backgroundColor: light, overflow: "hidden" }]}
+    >
       <View
         style={{
           position: "absolute",
@@ -720,7 +796,9 @@ export function EmptyState({
           {glyph}
         </View>
       ) : null}
-      <Text style={[sans(17, 700), { textAlign: "center" }]}>{title}</Text>
+      <Text accessibilityRole="header" style={[sans(17, 700), { textAlign: "center" }]}>
+        {title}
+      </Text>
       <Text
         style={[
           sans(13.5, 400, { lh: 1.5, color: color.muted }),
@@ -732,14 +810,16 @@ export function EmptyState({
       {action ? (
         <Pressable
           onPress={onAction}
-          style={{
+          accessibilityRole="button"
+          accessibilityLabel={action}
+          style={({ pressed }) => ({
             marginTop: 18,
             paddingVertical: 13,
             paddingHorizontal: 20,
             borderRadius: 999,
             borderWidth: 1,
-            borderColor: color.line,
-          }}
+            borderColor: pressed ? color.ink : color.line,
+          })}
         >
           <Text style={sans(13.5, 700)}>{action}</Text>
         </Pressable>
@@ -786,10 +866,12 @@ export function ErrorNote({ message, onRetry }: { message: string; onRetry?: () 
         gap: 8,
       }}
     >
-      <Text style={sans(13, 500, { lh: 1.4, color: color.coralDeep })}>{message}</Text>
+      <Text accessibilityRole="alert" style={sans(13, 500, { lh: 1.4, color: color.coralDeep })}>
+        {message}
+      </Text>
       {onRetry ? (
-        <Pressable onPress={onRetry} hitSlop={8}>
-          <Text style={sans(13, 700, { color: color.coral })}>Tentar de novo</Text>
+        <Pressable onPress={onRetry} hitSlop={12} accessibilityRole="button">
+          <Text style={sans(13, 700, { color: color.coralDeep })}>Tentar de novo</Text>
         </Pressable>
       ) : null}
     </View>

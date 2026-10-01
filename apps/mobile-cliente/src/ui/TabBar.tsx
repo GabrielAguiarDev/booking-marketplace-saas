@@ -13,15 +13,24 @@ type TabKey = "inicio" | "explorar" | "assistente" | "agenda" | "perfil";
 const TABS: {
   key: TabKey;
   label: string;
+  /** Nome falado pelo leitor de tela. */
+  name: string;
   route: string;
   Icon: ComponentType<IconProps>;
   center?: boolean;
 }[] = [
-  { key: "inicio", label: "INÍCIO", route: "/", Icon: House },
-  { key: "explorar", label: "EXPLORAR", route: "/explorar", Icon: Search },
-  { key: "assistente", label: "IA", route: "/assistente", Icon: Sparkles, center: true },
-  { key: "agenda", label: "AGENDA", route: "/agenda", Icon: Calendar },
-  { key: "perfil", label: "PERFIL", route: "/perfil", Icon: User },
+  { key: "inicio", label: "INÍCIO", name: "Início", route: "/", Icon: House },
+  { key: "explorar", label: "EXPLORAR", name: "Explorar", route: "/explorar", Icon: Search },
+  {
+    key: "assistente",
+    label: "IA",
+    name: "Assistente",
+    route: "/assistente",
+    Icon: Sparkles,
+    center: true,
+  },
+  { key: "agenda", label: "AGENDA", name: "Agenda", route: "/agenda", Icon: Calendar },
+  { key: "perfil", label: "PERFIL", name: "Perfil", route: "/perfil", Icon: User },
 ];
 
 /**
@@ -44,6 +53,7 @@ export function TabBar() {
 
   return (
     <View
+      accessibilityRole="tablist"
       style={{
         borderTopWidth: 1,
         borderTopColor: color.line,
@@ -56,7 +66,7 @@ export function TabBar() {
         justifyContent: "space-between",
       }}
     >
-      {TABS.map(({ key, label, route, Icon, center }) => {
+      {TABS.map(({ key, label, name, route, Icon, center }) => {
         const on = key === active;
         const tint = on ? color.coral : color.muted;
 
@@ -64,6 +74,10 @@ export function TabBar() {
           <Pressable
             key={key}
             onPress={() => router.navigate(route as never)}
+            accessibilityRole="tab"
+            // O rótulo visível é abreviado ("IA"); quem ouve recebe o nome.
+            accessibilityLabel={name}
+            accessibilityState={{ selected: on }}
             style={{ flex: 1, alignItems: "center", gap: 5, paddingTop: center ? 0 : 4 }}
           >
             {center ? (

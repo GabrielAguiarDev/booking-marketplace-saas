@@ -76,6 +76,7 @@ export default function Entrar() {
           <Pressable
             onPress={() => router.push({ pathname: "/recuperar", params: { email } })}
             hitSlop={8}
+            accessibilityRole="button"
             style={{ alignSelf: "center" }}
           >
             <Text style={sans(14, 600, { color: color.ink })}>Esqueci minha senha</Text>
@@ -86,6 +87,7 @@ export default function Entrar() {
             <Pressable
               onPress={() => router.replace({ pathname: "/cadastro", params: { redirect } })}
               hitSlop={8}
+              accessibilityRole="button"
             >
               <Text style={sans(14, 700, { color: color.coral })}>Criar conta</Text>
             </Pressable>

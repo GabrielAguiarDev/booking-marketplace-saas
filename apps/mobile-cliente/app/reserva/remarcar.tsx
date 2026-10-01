@@ -347,7 +347,7 @@ function Grade({ item, onDone }: { item: AppointmentDetail; onDone: () => void }
         ) : null}
       </ScrollView>
 
-      <StickyFooter bottomInset={0}>
+      <StickyFooter>
         <View style={{ gap: 10 }}>
           <View style={{ gap: 2 }}>
             <Label>{choice ? "NOVO HORÁRIO" : "ESCOLHA UM HORÁRIO"}</Label>

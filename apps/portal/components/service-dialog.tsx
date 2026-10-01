@@ -154,13 +154,13 @@ export function ServiceDialog({
           )}
         </fieldset>
 
-        <label style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 10 }}>
+        <label className="dialog-check">
           <input
             checked={isActive}
             onChange={(event) => setIsActive(event.target.checked)}
             type="checkbox"
           />
-          <span style={{ fontSize: 12.5 }}>Ativo — aparece para o cliente</span>
+          <span>Ativo — aparece para o cliente</span>
         </label>
 
         {durationChanged ? (

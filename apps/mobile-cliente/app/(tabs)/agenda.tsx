@@ -1,6 +1,7 @@
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { X } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
+import { AccessibilityInfo, Alert, Pressable, Text, View } from "react-native";
 
 import { useSession } from "../../src/auth/session";
 import {
@@ -27,13 +28,41 @@ const TABS = [
   { key: "hist", label: "HISTÓRICO" },
 ];
 
+/**
+ * O que acabou de acontecer, dito por quem mandou a pessoa para cá.
+ *
+ * "Pedido" e "confirmada" são coisas diferentes e a diferença é da loja: com
+ * aprovação manual a reserva nasce esperando o sim dela. Dizer "confirmada"
+ * nos dois casos faria alguém sair de casa para um horário que a loja recusou.
+ */
+const AVISOS: Record<string, { titulo: string; texto: string }> = {
+  confirmada: {
+    titulo: "Reserva confirmada",
+    texto: "Seu horário está garantido. Ele aparece aqui em Próximos.",
+  },
+  pedido: {
+    titulo: "Pedido enviado",
+    texto: "A loja ainda vai confirmar este horário. A resposta aparece aqui em Próximos.",
+  },
+  avaliada: {
+    titulo: "Avaliação enviada",
+    texto: "Obrigado. Ela ajuda outras pessoas a escolher.",
+  },
+};
+
 export default function Agenda() {
   const router = useRouter();
   const { session, loading } = useSession();
   const [tab, setTab] = useState<AgendaTab>("prox");
+  const params = useLocalSearchParams<{ reservada?: string; avaliada?: string }>();
+  const aviso = AVISOS[params.reservada ?? (params.avaliada ? "avaliada" : "")] ?? null;
+
+  useEffect(() => {
+    if (aviso) AccessibilityInfo.announceForAccessibility(`${aviso.titulo}. ${aviso.texto}`);
+  }, [aviso]);
 
   const { data, loading: loadingAppointments, error, reload } = useAppointments(Boolean(session));
-  const { data: queueEntry } = useMyQueueEntry(Boolean(session));
+  const { data: queueEntry, reload: reloadQueue } = useMyQueueEntry(Boolean(session));
   const covers = useCovers(
     [...(data?.upcoming ?? []), ...(data?.history ?? [])].map((item) => item.establishments.id),
   );
@@ -41,7 +70,7 @@ export default function Agenda() {
   // Voltar do detalhe (remarcou, cancelou, avaliou) precisa refletir aqui.
   useFocusEffect(
     useCallback(() => {
-      if (session) reload();
+      if (session) void reload();
     }, [session, reload]),
   );
 
@@ -51,7 +80,9 @@ export default function Agenda() {
     return (
       <Screen>
         <ScreenScroll gap={22}>
-          <Text style={sans(30, 800, { ls: -0.04 })}>Agenda</Text>
+          <Text accessibilityRole="header" style={sans(30, 800, { ls: -0.04 })}>
+            Agenda
+          </Text>
         </ScreenScroll>
       </Screen>
     );
@@ -60,8 +91,42 @@ export default function Agenda() {
 
   return (
     <Screen>
-      <ScreenScroll gap={20}>
-        <Text style={sans(30, 800, { ls: -0.04 })}>Agenda</Text>
+      <ScreenScroll gap={20} onRefresh={() => Promise.all([reload(), reloadQueue()])}>
+        <Text accessibilityRole="header" style={sans(30, 800, { ls: -0.04 })}>
+          Agenda
+        </Text>
+
+        {aviso ? (
+          <Card
+            radius={16}
+            padding={15}
+            style={{
+              flexDirection: "row",
+              gap: 12,
+              alignItems: "flex-start",
+              backgroundColor: color.greenTint,
+              borderColor: color.greenTint,
+            }}
+          >
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={sans(15, 700, { ls: -0.02, color: color.greenDeep })}>
+                {aviso.titulo}
+              </Text>
+              <Text style={sans(13.5, 400, { lh: 1.45, color: color.greenDeep })}>
+                {aviso.texto}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => router.setParams({ reservada: undefined, avaliada: undefined })}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Dispensar aviso"
+            >
+              <X size={18} color={color.greenDeep} strokeWidth={2} />
+            </Pressable>
+          </Card>
+        ) : null}
+
         <Segmented items={TABS} value={tab} onChange={(key) => setTab(key as AgendaTab)} />
 
         {tab === "prox" ? (
@@ -91,7 +156,9 @@ export default function Agenda() {
         {tab === "fila" ? (
           queueEntry ? (
             <Card radius={18} padding={16} style={{ gap: 13 }}>
-              <Text style={mono(9.5, 600, { ls: 0.1, color: color.green })}>AO VIVO · NA FILA</Text>
+              <Text style={mono(9.5, 600, { ls: 0.1, color: color.greenDeep })}>
+                AO VIVO · NA FILA
+              </Text>
               <Text style={sans(18, 800, { ls: -0.03 })}>{queueEntry.establishments.name}</Text>
               <Text style={mono(10.5, 400, { ls: 0.05, color: color.muted })}>
                 ENTROU ÀS {hourMinute(queueEntry.joined_at)}
@@ -137,7 +204,8 @@ export default function Agenda() {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  scheduled: "AGENDADO",
+  // `scheduled` é o pedido esperando o sim da loja; só `confirmed` é garantido.
+  scheduled: "AGUARDANDO A LOJA",
   confirmed: "CONFIRMADO",
   completed: "ATENDIDO",
   cancelled_by_customer: "CANCELADO POR VOCÊ",
@@ -289,7 +357,8 @@ function ReservaCard({
             },
           })
         }
-        hitSlop={6}
+        hitSlop={12}
+        accessibilityRole="button"
       >
         <Text style={sans(13, 600, { color: color.muted })}>Preciso de ajuda com esta reserva</Text>
       </Pressable>
@@ -322,7 +391,12 @@ function Vazio({
       <Text style={sans(18, 800, { ls: -0.03 })}>{titulo}</Text>
       <Text style={sans(14.5, 400, { lh: 1.5, color: color.muted })}>{texto}</Text>
       {acao && onAcao ? (
-        <Pressable onPress={onAcao} hitSlop={8} style={{ marginTop: 4 }}>
+        <Pressable
+          onPress={onAcao}
+          hitSlop={12}
+          accessibilityRole="button"
+          style={{ marginTop: 4, alignSelf: "flex-start" }}
+        >
           <Text style={sans(14, 700, { color: color.coral })}>{acao}</Text>
         </Pressable>
       ) : null}

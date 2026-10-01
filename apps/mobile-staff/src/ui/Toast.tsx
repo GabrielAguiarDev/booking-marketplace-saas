@@ -1,3 +1,4 @@
+import { useReducedMotion } from "@vez/mobile-kit/motion";
 import { sans } from "@vez/mobile-kit/theme";
 import {
   createContext,
@@ -9,11 +10,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { Text, View } from "react-native";
+import { AccessibilityInfo, Animated, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { color } from "../theme/tokens";
 
-type Toast = { message: string; tone: "ok" | "bad" };
+type Toast = { id: number; message: string; tone: "ok" | "bad" };
 
 const ToastContext = createContext<((message: string, tone?: "ok" | "bad") => void) | null>(null);
 
@@ -23,22 +25,37 @@ const ToastContext = createContext<((message: string, tone?: "ok" | "bad") => vo
  * Toda ação deste app tem consequência fora da tela: chamar alguém, recusar um
  * pedido, marcar falta. Sem um retorno visível, o atendente toca duas vezes — e
  * na fila tocar duas vezes chama duas pessoas.
+ *
+ * "Visível" não alcança quem usa leitor de tela, então a mensagem também é
+ * anunciada. E a posição soma a área segura: com `bottom` fixo, em aparelho sem
+ * botão físico o aviso nascia atrás da aba central.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [opacity] = useState(() => new Animated.Value(0));
+  const counter = useRef(0);
+  const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
 
   const show = useCallback((message: string, tone: "ok" | "bad" = "ok") => {
-    setToast({ message, tone });
+    counter.current += 1;
+    setToast({ id: counter.current, message, tone });
+    AccessibilityInfo.announceForAccessibility(message);
   }, []);
 
   useEffect(() => {
     if (!toast) return;
-    timer.current = setTimeout(() => setToast(null), 2800);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [toast]);
+
+    if (reduced) opacity.setValue(1);
+    else {
+      opacity.setValue(0);
+      Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: true }).start();
+    }
+
+    // Erro fica mais tempo: é a mensagem que a pessoa precisa de fato ler.
+    const timer = setTimeout(() => setToast(null), toast.tone === "bad" ? 4500 : 2800);
+    return () => clearTimeout(timer);
+  }, [toast, opacity, reduced]);
 
   const value = useMemo(() => show, [show]);
 
@@ -46,12 +63,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       {toast ? (
-        <View
+        <Animated.View
+          accessibilityLiveRegion={toast.tone === "bad" ? "assertive" : "polite"}
+          accessibilityRole="alert"
           style={{
             position: "absolute",
             left: 16,
             right: 16,
-            bottom: 104,
+            bottom: 104 + insets.bottom,
             backgroundColor: color.ink,
             borderRadius: 14,
             paddingVertical: 13,
@@ -64,6 +83,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             shadowRadius: 24,
             shadowOffset: { width: 0, height: 8 },
             elevation: 10,
+            opacity,
           }}
           pointerEvents="none"
         >
@@ -78,7 +98,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <Text style={[sans(13.5, 600, { lh: 1.35, color: "#fff" }), { flex: 1 }]}>
             {toast.message}
           </Text>
-        </View>
+        </Animated.View>
       ) : null}
     </ToastContext.Provider>
   );
