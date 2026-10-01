@@ -1,0 +1,60 @@
+name: Verificações do Vez
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    name: Tipos, lint, testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Valores públicos fictícios, somente para compilar. Nenhum acesso a produção.
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_build_only
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.16.0"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+
+  database:
+    name: Migrations e autorização
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.16.0"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Banco efêmero do runner; nenhuma credencial externa é necessária.
+      - run: pnpm exec supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
+      - run: pnpm db:demo
+      - run: pnpm exec supabase db lint --local --level error
+      - run: pnpm db:check-rls
+      - run: pnpm db:test:behavior
+      - name: Conferir tipos gerados
+        run: |
+          pnpm db:types
+          git diff --exit-code -- packages/supabase/src/database.types.ts
+      - name: Encerrar banco efêmero
+        if: always()
+        run: pnpm exec supabase stop --no-backup
