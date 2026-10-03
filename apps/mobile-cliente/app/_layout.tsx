@@ -67,6 +67,7 @@ export default function RootLayout() {
             <Stack.Screen name="loja/[id]" />
             <Stack.Screen name="horario" />
             <Stack.Screen name="pagamento" />
+            <Stack.Screen name="sinal" />
             <Stack.Screen name="fila" />
             <Stack.Screen name="avaliacao" />
 

@@ -8,12 +8,14 @@ import type {
   AdminData,
   Banner,
   Establishment,
+  Invoice,
   Lead,
   Param,
   PlanDef,
   RecentReview,
   Report,
   Ticket,
+  Transfer,
 } from "./model";
 import { categoryLabel, ROLE_LABEL, ROLE_SCOPE } from "./model";
 
@@ -86,6 +88,7 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     ticketsResult,
     leadsResult,
     accessSessionsResult,
+    billingResult,
   ] = await Promise.all([
     supabase.rpc("admin_cities"),
     supabase.rpc("admin_applications"),
@@ -107,6 +110,7 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     supabase.rpc("admin_support_tickets"),
     supabase.rpc("admin_leads"),
     supabase.rpc("admin_active_access_sessions"),
+    supabase.rpc("admin_billing"),
   ]);
 
   const cities = rows(citiesResult, "cidades").map((city) => ({
@@ -376,6 +380,49 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     updatedAt: banner.updated_at,
   }));
 
+  // Suporte não vê cobrança: o banco nega (42501) e o painel segue sem ela.
+  const billingRow =
+    billingResult.error?.code === "42501" ? undefined : rows(billingResult, "cobranças")[0];
+  const invoices: Invoice[] = jsonList<{
+    id: string;
+    establishment_id: string;
+    establishment: string;
+    city: string;
+    competence: string;
+    amount_cents: number;
+    due_date: string;
+    paid_at: string | null;
+    status: Invoice["status"];
+  }>(billingRow?.invoices ?? []).map((invoice) => ({
+    id: invoice.id,
+    establishmentId: invoice.establishment_id,
+    establishment: invoice.establishment,
+    city: invoice.city,
+    competence: invoice.competence,
+    amountCents: invoice.amount_cents,
+    dueDate: invoice.due_date,
+    paidAt: invoice.paid_at,
+    status: invoice.status,
+  }));
+  // Não há repasse: o dinheiro cai direto na conta da loja e o Vez retém só a
+  // taxa. A linha é o que cada loja recebeu pelo app em cada mês.
+  const transfers: Transfer[] = jsonList<{
+    id: string;
+    establishment: string;
+    city: string;
+    gross_cents: number;
+    fee_cents: number;
+    at: string;
+  }>(billingRow?.transfers ?? []).map((transfer) => ({
+    id: transfer.id,
+    establishment: transfer.establishment,
+    city: transfer.city,
+    grossCents: transfer.gross_cents,
+    feeCents: transfer.fee_cents,
+    status: "sent",
+    at: transfer.at,
+  }));
+
   // Financeiro não atende chamado: o banco nega a fila (42501) e o resto do
   // painel carrega normalmente, sem ela.
   const supportAccess = ticketsResult.error?.code !== "42501";
@@ -464,10 +511,8 @@ export async function loadAdminData(supabase: ServerSupabaseClient): Promise<Adm
     applications,
     decisions,
     establishments,
-    // Cobrança entra quando o provedor for escolhido. Não exibimos faturas ou
-    // repasses inventados como se fossem dados reais.
-    invoices: [],
-    transfers: [],
+    invoices,
+    transfers,
     plans,
     catalog,
     suggestions,

@@ -414,6 +414,20 @@ deno_version = 2
 [functions.notifications-dispatch]
 verify_jwt = false
 
+# Quem chama é o provedor de pagamento. A autenticação é a assinatura do
+# webhook, conferida pelo adaptador do provedor.
+[functions.payment-webhook]
+verify_jwt = false
+
+# Chamada pelo `pg_cron` com `x-reconcile-secret`, como `notifications-dispatch`.
+[functions.payment-reconcile]
+verify_jwt = false
+
+# O retorno do OAuth do provedor chega pelo navegador, sem JWT; a função confia
+# no `state` assinado. O POST do portal confere o usuário à mão.
+[functions.payment-connect]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

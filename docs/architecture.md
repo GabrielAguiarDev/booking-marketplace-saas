@@ -104,8 +104,17 @@ verdades sobre a mesma pergunta:
 O que a Edge Function de reserva e `available_slots()` já liam continua em
 `establishments`. Ver [decisão 0007](decisions/0007-ajustes-da-loja-no-banco.md).
 
+## Pagamentos
+
+O que o cliente paga pelo app (sinal ou valor inteiro, por Pix ou cartão) cai
+direto na conta da loja no provedor, com a taxa da Vez separada na origem; a
+mensalidade é fatura nossa (`billing_invoices`) paga por Pix, com suspensão
+automática por atraso. O provedor fica atrás do contrato `PaymentProvider`
+(`supabase/functions/_shared/payments/`) e é trocável por secret. Decisão em
+[decisions/0009](decisions/0009-pagamentos.md); operação em
+[pagamentos.md](pagamentos.md).
+
 ## O que ainda não existe
 
-Planos e cobrança, Storage, notificação push, e o cadastro de estabelecimento
-com aprovação da plataforma. `payments` existe como esquema e nunca recebeu uma
-linha.
+Apple Pay e Google Pay (decisão 0009, item 4), parcelamento no cartão e nota
+fiscal da mensalidade e da comissão.

@@ -15,6 +15,13 @@ export type Finance = {
   compareLabel: string;
   periodLabel: string;
   topServices: { name: string; cents: number }[];
+  /**
+   * O que o cliente pagou pelo app no período, já sem estornos, e quanto disso
+   * ficou com o Vez. Zero para a equipe: a RLS só mostra pagamentos a dono e
+   * gerente.
+   */
+  appReceivedCents: number;
+  appFeeCents: number;
 };
 
 type Row = { starts_at: string; price_cents: number; services: { name: string } | null };
@@ -108,10 +115,10 @@ function bucketIndex(period: Period, date: Date, from: Date, firstHour: number):
 /**
  * Faturamento a partir de atendimento concluído.
  *
- * Não sai de `payments`: aquela tabela existe como esquema e nunca recebeu uma
- * linha, porque o provedor de pagamento ainda não foi escolhido. O que a loja
- * realmente faturou é a soma do preço congelado das reservas que viraram
- * `completed` — o preço combinado no ato, que é o número que ela reconhece.
+ * O faturamento não sai de `payments`: muita reserva é paga no balcão, e o
+ * que a loja reconhece como faturado é a soma do preço congelado das reservas
+ * que viraram `completed`. `payments` entra à parte, como "recebido pelo app":
+ * o que de fato caiu na conta da loja por Pix ou cartão no período.
  *
  * Fila de espera não entra: entrada de fila não guarda preço. É uma lacuna
  * conhecida, e a tela diz isso em vez de somar um número inventado.
@@ -123,7 +130,7 @@ export function useFinance(establishmentId: string | null, period: Period) {
       const now = new Date();
       const range = bounds(period, now);
 
-      const [current, previous] = await Promise.all([
+      const [current, previous, received] = await Promise.all([
         supabase
           .from("appointments")
           .select("starts_at, price_cents, services(name)")
@@ -138,6 +145,13 @@ export function useFinance(establishmentId: string | null, period: Period) {
           .eq("status", "completed")
           .gte("starts_at", range.previousFrom.toISOString())
           .lt("starts_at", range.previousTo.toISOString()),
+        supabase
+          .from("payments")
+          .select("amount_cents, refunded_cents, platform_fee_cents")
+          .eq("establishment_id", establishmentId!)
+          .in("status", ["paid", "partially_refunded"])
+          .gte("paid_at", range.from.toISOString())
+          .lt("paid_at", range.to.toISOString()),
       ]);
 
       if (current.error) throw new Error(current.error.message);
@@ -167,6 +181,16 @@ export function useFinance(establishmentId: string | null, period: Period) {
 
       const previousCents = (previous.data ?? []).reduce((sum, row) => sum + row.price_cents, 0);
 
+      // Erro aqui não derruba a tela de faturamento: o recebido aparece zerado.
+      let appReceivedCents = 0;
+      let appFeeCents = 0;
+      for (const row of received.data ?? []) {
+        const kept = row.amount_cents - row.refunded_cents;
+        appReceivedCents += kept;
+        // A taxa acompanha o estorno: devolveu metade, retém metade.
+        appFeeCents += Math.round((row.platform_fee_cents * kept) / row.amount_cents);
+      }
+
       return {
         totalCents,
         count: rows.length,
@@ -179,6 +203,8 @@ export function useFinance(establishmentId: string | null, period: Period) {
           .map(([name, cents]) => ({ name, cents }))
           .sort((a, b) => b.cents - a.cents)
           .slice(0, 5),
+        appReceivedCents,
+        appFeeCents,
       } satisfies Finance;
     },
     { enabled: Boolean(establishmentId) },

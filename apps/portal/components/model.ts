@@ -157,20 +157,54 @@ export type PortalPlan = {
   searchHighlight: boolean;
 };
 
+/** Conta da loja no provedor de pagamento. Os tokens nunca chegam ao portal. */
+export type PortalReceiving = {
+  provider: string;
+  connectedAt: string;
+};
+
+export type PortalInvoice = {
+  id: string;
+  periodStart: string;
+  dueDate: string;
+  listPriceCents: number;
+  discountCents: number;
+  amountCents: number;
+  status: Database["public"]["Enums"]["billing_invoice_status"];
+  paidAt: string | null;
+};
+
+/** O que `billing-invoice-pay` devolve: a fatura e, se aberta, o Pix dela. */
+export type InvoiceCharge = {
+  id: string;
+  status: PortalInvoice["status"];
+  amountCents: number;
+  pixCopyPaste: string | null;
+  chargeExpiresAt: string | null;
+  paidAt: string | null;
+};
+
 export type PortalBusiness = {
   plan: PortalPlan | null;
   catalog: PortalPlan[];
   planChangedAt: string | null;
   discountPercent: number | null;
   discountUntil: string | null;
+  /** Nulo: a loja ainda não conectou conta para receber pelo app. */
+  receiving: PortalReceiving | null;
+  /** Mensalidades, da mais nova para a mais antiga. Só o dono enxerga. */
+  invoices: PortalInvoice[];
+  /** Dias depois do vencimento em que a loja é suspensa. */
+  graceDays: number;
 };
 
 /**
  * Financeiro do que existe: preço congelado de atendimento concluído.
  *
- * Nada sai de `payments` — a tabela existe como esquema e nunca recebeu uma
- * linha, porque o provedor de pagamento não foi escolhido. Repasse e comissão
- * cobrada também não aparecem: seriam número inventado (R7).
+ * O faturamento vem do preço congelado de atendimento concluído. `receipts` é
+ * outra coisa: o que de fato entrou pelo app (`payments`), com taxa do Vez e
+ * tarifa do provedor. O que a loja recebe no balcão não aparece em nenhum dos
+ * dois — o portal não tem como saber (R7).
  */
 export type PortalFinance = {
   months: { label: string; cents: number; count: number }[];
@@ -182,6 +216,24 @@ export type PortalFinance = {
   byProfessional: { name: string; cents: number; count: number }[];
   scheduledDepositCents: number;
   queueCompleted: number;
+  /** O que entrou pelo app (Pix e cartão). Vazio para quem não é dono/gerente. */
+  receipts: PortalReceipt[];
+};
+
+/** Um pagamento recebido pelo app, já com o que foi descontado dele. */
+export type PortalReceipt = {
+  id: string;
+  paidAt: string;
+  serviceName: string;
+  scope: "deposit" | "full";
+  method: Database["public"]["Enums"]["payment_method"] | null;
+  status: Database["public"]["Enums"]["payment_status"];
+  amountCents: number;
+  refundedCents: number;
+  /** Taxa do plano Vez, retida na origem. */
+  platformFeeCents: number;
+  /** Tarifa do provedor; nula quando ele ainda não informou. */
+  providerFeeCents: number | null;
 };
 
 /** Quantas reservas vivas e futuras dependem de cada serviço e de cada pessoa. */

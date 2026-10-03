@@ -162,13 +162,22 @@ de cota.
 Falta transformar o plano escolhido em assinatura e ciclo financeiro depois da
 escolha do provedor.
 
-### 5. Pagamento ⟵ **continua bloqueada**
+### 5. Pagamento ⟵ **implementado em 2026-10-03; falta ligar**
 
-`payments` existe como esquema, sem nenhuma política de escrita. Falta escolher
-provedor e definir **quem recebe** — plataforma repassando ou estabelecimento
-direto. Isso muda o modelo tributário inteiro.
+A loja recebe direto, com split; provedor de lançamento é o Mercado Pago, atrás
+de um contrato trocável. No código: sinal ou valor inteiro pelo app, por Pix ou
+cartão (página do provedor); estorno no cancelamento; mensalidade por fatura com
+avisos, suspensão e reativação automáticas; extrato no portal, no app da loja e
+no admin; webhook e conciliação.
 
-Ver [decisions/0004](decisions/0004-catalogo-disponibilidade-fila.md), decisão 5.
+**Falta, fora do código:** criar a aplicação no provedor, configurar os secrets
+e rodar o roteiro com conta de teste — nenhuma chamada real ao provedor foi
+feita ainda. A lista completa está em
+[pagamentos-plataformas-externas.md](pagamentos-plataformas-externas.md).
+
+**Fora por decisão:** Apple Pay e Google Pay, parcelamento, nota fiscal.
+
+Ver [decisions/0009](decisions/0009-pagamentos.md) e [pagamentos.md](pagamentos.md).
 
 ---
 

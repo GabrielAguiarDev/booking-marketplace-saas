@@ -72,7 +72,11 @@ export default function TermsPage() {
         Nenhuma cobrança é feita sem que o valor, o plano e a forma de pagamento estejam informados
         ao estabelecimento com antecedência. O pagamento do cliente ao estabelecimento continua
         acontecendo do jeito que o estabelecimento já recebe, salvo quando ele optar por receber
-        pelo app — e aí as taxas aparecem separadas.
+        pelo app — e aí as taxas aparecem separadas. Nesse caso o valor pago pelo cliente cai direto
+        na conta do estabelecimento no provedor de pagamento (Mercado Pago); o Vez não guarda nem
+        repassa esse dinheiro, e retém apenas a taxa do plano. A mensalidade é cobrada por fatura
+        mensal, paga por Pix no portal; fatura em atraso além da carência informada no portal
+        suspende a loja até o pagamento.
       </p>
 
       <h2 id="reservas">5. Reservas, cancelamentos e fila</h2>

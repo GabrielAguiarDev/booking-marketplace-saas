@@ -1,8 +1,30 @@
 "use client";
 
-import type { PortalPlan } from "./model";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+
+import { money, useSave } from "./cadastro-ui";
+import type { InvoiceCharge, PortalInvoice, PortalPlan } from "./model";
 import { usePortal } from "./store";
-import { AMBER_DARK, GREEN_DARK, INK, MUTED } from "./tokens";
+import { AMBER_DARK, GREEN_DARK, INK, MONO, MUTED, RED } from "./tokens";
+
+/** Nome de vitrine do provedor. Provedor novo sem nome aqui aparece pelo id. */
+const PROVIDER_LABEL: Record<string, string> = { mercadopago: "Mercado Pago" };
+
+const longDate = (iso: string) =>
+  new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(new Date(iso));
+
+const monthLabel = (date: string) =>
+  new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(
+    new Date(`${date}T12:00:00`),
+  );
+
+function invoiceState(invoice: PortalInvoice): { label: string; tone: string } {
+  if (invoice.status === "paid") return { label: "paga", tone: GREEN_DARK };
+  if (invoice.status === "void") return { label: "cancelada", tone: MUTED };
+  const overdue = new Date(`${invoice.dueDate}T23:59:59`).getTime() < Date.now();
+  return overdue ? { label: "vencida", tone: RED } : { label: "em aberto", tone: AMBER_DARK };
+}
 
 const KIND_LABEL: Record<PortalPlan["kind"], string> = {
   monthly: "Mensalidade fixa",
@@ -34,21 +56,63 @@ function planLines(plan: PortalPlan): string[] {
   return lines;
 }
 
+/** Quantos dias faltam para a carência da fatura vencida acabar. */
+function daysUntilSuspension(invoice: PortalInvoice, graceDays: number): number {
+  const late = Math.floor(
+    (Date.now() - new Date(`${invoice.dueDate}T00:00:00`).getTime()) / 86_400_000,
+  );
+  return graceDays - late;
+}
+
 /**
  * Plano e assinatura.
  *
- * Só leitura, e não por preguiça: o gatilho `guard_establishment_status` recusa
- * qualquer mudança de plano, desconto ou situação que não venha de admin da
- * plataforma. E não existe fatura para mostrar — `payments` nunca recebeu uma
- * linha porque o provedor de pagamento não foi escolhido. Inventar histórico
- * de cobrança aqui seria a mentira mais cara do produto (R7).
+ * O plano é só leitura, e não por preguiça: o gatilho
+ * `guard_establishment_status` recusa qualquer mudança de plano, desconto ou
+ * situação que não venha de admin da plataforma.
+ *
+ * O que o dono faz aqui é o que só ele pode fazer com dinheiro: conectar a
+ * conta em que a loja recebe o sinal pelo app, e pagar a mensalidade. Tudo o
+ * que aparece vem do banco — conta conectada de `payment_accounts`, fatura de
+ * `billing_invoices`. Sem linha, a tela diz que não há, e não inventa (R7).
  */
 export function Billing() {
-  const { data } = usePortal();
+  const { data, actions } = usePortal();
+  const searchParams = useSearchParams();
+  const { run, pending } = useSave();
+  const [charge, setCharge] = useState<InvoiceCharge | null>(null);
+  const [copied, setCopied] = useState(false);
   if (!data) return null;
 
-  const { plan, catalog, planChangedAt, discountPercent, discountUntil } = data.business;
+  const {
+    plan,
+    catalog,
+    planChangedAt,
+    discountPercent,
+    discountUntil,
+    receiving,
+    invoices,
+    graceDays,
+  } = data.business;
+  // Fatura mais antiga em atraso: é ela que conta o prazo da suspensão.
+  const overdue = invoices.filter((invoice) => invoiceState(invoice).label === "vencida").at(-1);
+  const daysLeft = overdue ? daysUntilSuspension(overdue, graceDays) : null;
   const professionals = data.professionals.filter((item) => item.isActive).length;
+  const isOwner = data.establishment.role === "owner";
+  const establishmentId = data.establishment.id;
+  // Como o dono voltou do provedor depois de autorizar (ou não) a conexão.
+  const returned = searchParams.get("recebimento");
+
+  const connect = () =>
+    run(async () => {
+      window.location.assign(await actions.connectReceiving(establishmentId));
+    }, "Abrindo o provedor de pagamento…");
+
+  const pay = (invoiceId: string) =>
+    run(async () => {
+      setCopied(false);
+      setCharge(await actions.payInvoice(invoiceId));
+    }, "Fatura conferida.");
 
   return (
     <div className="page">
@@ -81,7 +145,13 @@ export function Billing() {
             <b style={{ color: MUTED }}>
               {plan?.kind === "commission" ? "por atendimento concluído" : "valor combinado"}
             </b>
-            <small>Cobrança ainda não roda: falta o provedor de pagamento.</small>
+            <small>
+              {plan?.kind === "commission"
+                ? "Retida na hora, sobre o que o cliente paga pelo app."
+                : plan
+                  ? "Fatura no dia 1º, vencimento no dia 10, por Pix."
+                  : "Definido na aprovação da loja."}
+            </small>
           </div>
         </article>
         <article>
@@ -146,31 +216,175 @@ export function Billing() {
 
       <section className="panel">
         <header className="panel-head stacked">
-          <h2>Cobrança</h2>
-          <p>O que existe hoje e o que ainda não.</p>
+          <h2>Recebimento pelo app</h2>
+          <p>
+            O que o cliente paga pelo app, por Pix ou cartão, cai direto na conta da loja. O Vez não
+            segura o dinheiro: só a taxa do plano é separada na hora do pagamento.
+          </p>
         </header>
-        <div className="list-row">
-          <div>
-            <strong>Nenhuma cobrança foi emitida</strong>
-            <small>
-              O Vez ainda não escolheu o provedor de pagamento. Enquanto isso não acontece, não há
-              fatura, cartão cadastrado nem repasse — e esta tela não mostra nenhum número inventado
-              no lugar deles.
-            </small>
+        {returned === "erro" ? (
+          <div className="list-row">
+            <div>
+              <strong style={{ color: RED }}>A conexão não foi concluída</strong>
+              <small>
+                O provedor não confirmou a autorização, ou o prazo de 15 minutos passou. Tente de
+                novo.
+              </small>
+            </div>
           </div>
-          <code style={{ color: AMBER_DARK }}>a definir</code>
-        </div>
-        <div className="list-row">
-          <div>
-            <strong>Sua loja continua no ar</strong>
-            <small>
-              Nada é suspenso por falta de pagamento enquanto a cobrança não existir. A situação da
-              loja hoje é “
-              {data.establishment.status === "active" ? "ativa" : data.establishment.status}”.
-            </small>
+        ) : null}
+        {receiving ? (
+          <div className="list-row">
+            <div>
+              <strong>
+                Conta {PROVIDER_LABEL[receiving.provider] ?? receiving.provider} conectada
+              </strong>
+              <small>
+                Desde {longDate(receiving.connectedAt)}.{" "}
+                {data.establishment.depositPercent > 0
+                  ? "O cliente já pode pagar o sinal ou o valor inteiro pelo app."
+                  : "O cliente já pode pagar pelo app, se quiser. Para tornar o sinal obrigatório, ligue-o em Configurações."}
+              </small>
+            </div>
+            {isOwner ? (
+              <button
+                className="ghost small"
+                disabled={pending}
+                onClick={() =>
+                  run(
+                    () => actions.disconnectReceiving(establishmentId),
+                    "Conta desconectada. O sinal volta a ser pago no balcão.",
+                  )
+                }
+                type="button"
+              >
+                Desconectar
+              </button>
+            ) : (
+              <code style={{ color: GREEN_DARK }}>ativa</code>
+            )}
           </div>
-          <code style={{ color: GREEN_DARK }}>sem pendência</code>
-        </div>
+        ) : (
+          <div className="list-row">
+            <div>
+              <strong>Nenhuma conta conectada</strong>
+              <small>
+                {isOwner
+                  ? "Conecte a conta em que a loja vai receber. Enquanto isso o cliente vê o valor do sinal e paga no estabelecimento."
+                  : "Só o dono da loja conecta a conta de recebimento."}
+              </small>
+            </div>
+            {isOwner ? (
+              <button className="primary small" disabled={pending} onClick={connect} type="button">
+                Conectar conta
+              </button>
+            ) : (
+              <code style={{ color: MUTED }}>pendente</code>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="panel">
+        <header className="panel-head stacked">
+          <h2>Faturas</h2>
+          <p>
+            {plan?.kind === "commission"
+              ? "No plano de comissão não há mensalidade: a parte do Vez é separada em cada pagamento pelo app."
+              : "A mensalidade do mês, paga por Pix. O mês em que a loja entrou não é cobrado."}
+          </p>
+        </header>
+        {overdue ? (
+          <div className="list-row">
+            <div>
+              <strong style={{ color: RED }}>
+                {data.establishment.status === "suspended"
+                  ? "Loja suspensa por mensalidade em atraso"
+                  : daysLeft !== null && daysLeft > 0
+                    ? `Mensalidade em atraso: faltam ${daysLeft} ${daysLeft === 1 ? "dia" : "dias"} para a suspensão`
+                    : "Mensalidade em atraso: a loja pode ser suspensa a qualquer momento"}
+              </strong>
+              <small>
+                A loja sai do app {graceDays} dias depois do vencimento e volta sozinha assim que a
+                fatura é paga. A agenda e os dados ficam preservados.
+              </small>
+            </div>
+          </div>
+        ) : null}
+        {invoices.length === 0 ? (
+          <div className="list-row">
+            <div>
+              <strong>Nenhuma fatura emitida</strong>
+              <small>
+                {isOwner
+                  ? "Quando houver mensalidade a pagar, ela aparece aqui."
+                  : "As faturas ficam visíveis só para o dono da loja."}
+              </small>
+            </div>
+            <code style={{ color: GREEN_DARK }}>sem pendência</code>
+          </div>
+        ) : (
+          invoices.map((invoice) => {
+            const state = invoiceState(invoice);
+            const open = charge?.id === invoice.id && charge.status === "open" ? charge : null;
+            return (
+              <div key={invoice.id}>
+                <div className="list-row">
+                  <div>
+                    <strong>Mensalidade de {monthLabel(invoice.periodStart)}</strong>
+                    <small>
+                      {money(invoice.amountCents)}
+                      {invoice.discountCents > 0
+                        ? ` · ${money(invoice.discountCents)} de desconto sobre ${money(invoice.listPriceCents)}`
+                        : ""}
+                      {invoice.status === "paid" && invoice.paidAt
+                        ? ` · paga em ${longDate(invoice.paidAt)}`
+                        : ` · vence em ${longDate(`${invoice.dueDate}T12:00:00`)}`}
+                    </small>
+                  </div>
+                  {invoice.status === "open" ? (
+                    <button
+                      className="primary small"
+                      disabled={pending}
+                      onClick={() => pay(invoice.id)}
+                      type="button"
+                    >
+                      {open ? "Já paguei" : "Pagar com Pix"}
+                    </button>
+                  ) : null}
+                  <code style={{ color: state.tone }}>{state.label}</code>
+                </div>
+                {open?.pixCopyPaste ? (
+                  <div className="list-row">
+                    <div>
+                      <strong>Pix copia e cola</strong>
+                      <small style={{ fontFamily: MONO, wordBreak: "break-all" }}>
+                        {open.pixCopyPaste}
+                      </small>
+                      <small>
+                        Cole no app do seu banco
+                        {open.chargeExpiresAt
+                          ? ` até ${new Intl.DateTimeFormat("pt-BR", { timeStyle: "short" }).format(new Date(open.chargeExpiresAt))}`
+                          : ""}
+                        . Depois de pagar, toque em “Já paguei”.
+                      </small>
+                    </div>
+                    <button
+                      className="ghost small"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(open.pixCopyPaste ?? "");
+                        setCopied(true);
+                      }}
+                      type="button"
+                    >
+                      {copied ? "Copiado" : "Copiar código"}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })
+        )}
       </section>
     </div>
   );

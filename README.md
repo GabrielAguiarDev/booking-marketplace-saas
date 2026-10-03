@@ -32,3 +32,6 @@ pnpm dev
 - [Cliente sem conta entra na fila e na agenda](docs/decisions/0006-cliente-sem-conta.md)
 - [Como a loja trabalha vira dado](docs/decisions/0007-ajustes-da-loja-no-banco.md)
 - [Loja não se aprova sozinha](docs/decisions/0008-loja-nao-se-aprova-sozinha.md)
+- [Pagamentos: quem recebe, provedor e como trocar](docs/decisions/0009-pagamentos.md)
+- [Pagamentos: como funciona e como operar](docs/pagamentos.md)
+- [Pagamentos: o que fazer nas plataformas externas](docs/pagamentos-plataformas-externas.md)

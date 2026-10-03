@@ -22,7 +22,7 @@
     "db:diff": "supabase db diff -f",
     "db:types": "supabase gen types typescript --local --schema public > packages/supabase/src/database.types.ts",
     "db:check-rls": "./scripts/check-rls.sh",
-    "db:test:behavior": "bash scripts/run-db-sql.sh supabase/tests/launch-security.sql",
+    "db:test:behavior": "bash scripts/run-db-sql.sh supabase/tests/launch-security.sql && bash scripts/run-db-sql.sh supabase/tests/payments.sql",
     "db:demo": "bash scripts/run-db-sql.sh supabase/demo/demo-data.sql"
   },
   "devDependencies": {

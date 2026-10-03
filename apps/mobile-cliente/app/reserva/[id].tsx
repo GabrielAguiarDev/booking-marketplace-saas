@@ -5,6 +5,7 @@ import { Alert, Pressable, Text, View } from "react-native";
 import { AuthGate } from "../../src/auth/AuthGate";
 import { cancelAppointment, useAppointment } from "../../src/data/appointments";
 import { accentOf, initialsOfName, shade } from "../../src/data/catalog";
+import { isLivePayment, useAcceptsAppPayment, useDepositPayment } from "../../src/data/payments";
 import { useCovers } from "../../src/data/photos";
 import { cancelIsFree, rescheduleCheck, windowLabel } from "../../src/domain/reschedule";
 import { duration, hourMinute, money, slotLabel } from "@vez/mobile-kit/format";
@@ -44,6 +45,8 @@ function ReservaConteudo() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: item, loading, error, reload } = useAppointment(id ?? null);
   const covers = useCovers(item ? [item.establishments.id] : []);
+  const { data: deposit, reload: reloadDeposit } = useDepositPayment(id ?? null);
+  const { data: acceptsAppPayment } = useAcceptsAppPayment(item?.establishments.id ?? null);
   const [cancelling, setCancelling] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -53,7 +56,9 @@ function ReservaConteudo() {
   useFocusEffect(
     useCallback(() => {
       reload();
-    }, [reload]),
+      // Voltar da tela do Pix precisa mostrar o sinal pago.
+      reloadDeposit();
+    }, [reload, reloadDeposit]),
   );
 
   if (loading) {
@@ -95,6 +100,23 @@ function ReservaConteudo() {
   // Ainda por vir: remarcável, ou só fora do prazo (mas antes do horário).
   const upcoming = active && (check.ok || check.reason === "outside_window");
   const canReview = item.status === "completed" && item.reviews === null;
+
+  const appPaid = deposit?.status === "paid" || deposit?.status === "partially_refunded";
+  const paidInFull = appPaid && deposit?.scope === "full";
+  // Ainda dá para pagar pelo app: reserva por vir, loja que recebe por ele, e
+  // nada pago ainda.
+  const canPayInApp = upcoming && acceptsAppPayment === true && !appPaid && item.price_cents >= 100;
+  const hasDeposit = item.deposit_cents >= 100;
+  const depositLabel =
+    appPaid && !paidInFull
+      ? `${money(item.deposit_cents)} · PAGO`
+      : paidInFull
+        ? `${money(item.deposit_cents)} · INCLUÍDO`
+        : deposit?.status === "refunded"
+          ? `${money(item.deposit_cents)} · DEVOLVIDO`
+          : canPayInApp
+            ? `${money(item.deposit_cents)} · ${isLivePayment(deposit) ? "AGUARDANDO PAGAMENTO" : "PENDENTE"}`
+            : `${money(item.deposit_cents)} · NO ESTABELECIMENTO`;
 
   function cancelar() {
     const free = cancelIsFree(item!, windowMinutes);
@@ -179,7 +201,17 @@ function ReservaConteudo() {
             <Linha rotulo="Serviço" valor={item.services.name} />
             <Linha rotulo="Duração" valor={duration(item.services.duration_minutes)} />
             <Linha rotulo="Profissional" valor={item.professionals.display_name} />
-            <Linha rotulo="Valor combinado" valor={money(item.price_cents)} ultima />
+            <Linha
+              rotulo="Valor combinado"
+              valor={money(item.price_cents)}
+              ultima={item.deposit_cents === 0 && !paidInFull}
+            />
+            {item.deposit_cents > 0 ? (
+              <Linha rotulo="Sinal" valor={depositLabel} ultima={!paidInFull} />
+            ) : null}
+            {paidInFull ? (
+              <Linha rotulo="Pago pelo app" valor={money(deposit!.amount_cents)} ultima />
+            ) : null}
           </Card>
           <Text style={sans(12.5, 400, { lh: 1.45, color: color.muted })}>
             O valor foi fixado no momento da reserva; remarcar não muda o preço.
@@ -221,6 +253,19 @@ function ReservaConteudo() {
         ) : null}
 
         <View style={{ gap: 11 }}>
+          {canPayInApp ? (
+            <PrimaryButton
+              label={hasDeposit ? "Pagar sinal pelo app" : "Pagar pelo app"}
+              height={50}
+              background={accent}
+              onPress={() =>
+                router.push({
+                  pathname: "/sinal",
+                  params: { reserva: item.id, escopo: hasDeposit ? "deposit" : "full" },
+                })
+              }
+            />
+          ) : null}
           {upcoming && check.ok ? (
             <PrimaryButton
               label="Remarcar"

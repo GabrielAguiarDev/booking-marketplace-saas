@@ -6,6 +6,7 @@ import { AuthGate } from "../src/auth/AuthGate";
 import { bookAppointment } from "../src/data/appointments";
 import { accentOf, initialsOfName, shade } from "../src/data/catalog";
 import { useEstablishment } from "../src/data/establishments";
+import { useAcceptsAppPayment } from "../src/data/payments";
 import { duration, money, slotLabel } from "@vez/mobile-kit/format";
 import { useGoToTab } from "../src/navigation";
 import { useAppState } from "../src/state/app-state";
@@ -17,11 +18,15 @@ import {
   Card,
   Label,
   PrimaryButton,
+  Segmented,
   Shimmer,
   StickyFooter,
 } from "../src/ui/primitives";
 import { Screen, ScreenScroll } from "../src/ui/Screen";
 import { ErrorState, useActionErrorText } from "../src/ui/States";
+
+/** Quanto se paga pelo app agora: só o sinal, tudo, ou nada (balcão). */
+type Plano = "deposit" | "full" | "counter";
 
 function PagamentoConteudo() {
   const router = useRouter();
@@ -38,8 +43,11 @@ function PagamentoConteudo() {
   } = useEstablishment(booking.establishmentId);
   const service = shop?.services.find((s) => s.id === booking.serviceId) ?? null;
   const pro = shop?.professionals.find((p) => p.id === booking.professionalId) ?? null;
+  const { data: acceptsAppPayment } = useAcceptsAppPayment(booking.establishmentId);
 
   const [busy, setBusy] = useState(false);
+  /** O que a pessoa escolheu pagar pelo app; nulo enquanto vale o padrão da loja. */
+  const [escolha, setEscolha] = useState<Plano | null>(null);
   const [error, setError] = useState<string | null>(null);
   /** O horário foi vendido entre a escolha e a confirmação. */
   const [slotLost, setSlotLost] = useState(false);
@@ -87,10 +95,49 @@ function PagamentoConteudo() {
     );
   }
 
-  const rows = [
-    { k: service.name, v: money(service.price_cents), strong: false },
-    { k: "Pagamento", v: "DIRETO NO ESTABELECIMENTO", strong: true },
-  ];
+  // O mesmo cálculo de `book-appointment`. Aqui é só para mostrar: o valor
+  // cobrado é o que o servidor congela na reserva.
+  const depositCents = Math.round((service.price_cents * shop.deposit_percent) / 100);
+  const hasDeposit = depositCents >= 100;
+  // Só anuncia pagamento pelo app quando a loja de fato recebe por ele. Mostrar
+  // uma forma de pagamento que não cobra seria pior do que não mostrar (R7).
+  const inApp = acceptsAppPayment === true && service.price_cents >= 100;
+
+  // Loja com sinal: o sinal é obrigatório, a escolha é pagar só ele ou tudo.
+  // Loja sem sinal: pagar pelo app é opcional, e o padrão é o balcão.
+  const choices: { key: Plano; label: string }[] = !inApp
+    ? []
+    : hasDeposit
+      ? [
+          { key: "deposit", label: "SÓ O SINAL" },
+          { key: "full", label: "VALOR TOTAL" },
+        ]
+      : [
+          { key: "counter", label: "NO LOCAL" },
+          { key: "full", label: "PELO APP" },
+        ];
+  const plano: Plano = !inApp ? "counter" : (escolha ?? (hasDeposit ? "deposit" : "counter"));
+
+  const rows =
+    plano === "deposit"
+      ? [
+          { k: service.name, v: money(service.price_cents), strong: false },
+          { k: "Sinal agora, pelo app", v: money(depositCents), strong: true },
+          {
+            k: "Restante no estabelecimento",
+            v: money(service.price_cents - depositCents),
+            strong: false,
+          },
+        ]
+      : plano === "full"
+        ? [
+            { k: service.name, v: money(service.price_cents), strong: false },
+            { k: "Agora, pelo app", v: money(service.price_cents), strong: true },
+          ]
+        : [
+            { k: service.name, v: money(service.price_cents), strong: false },
+            { k: "Pagamento", v: "DIRETO NO ESTABELECIMENTO", strong: true },
+          ];
 
   function escolherOutro() {
     state.setSlot(null);
@@ -126,6 +173,17 @@ function PagamentoConteudo() {
     }
 
     state.clearBooking();
+
+    // A reserva já existe; o pagamento é o passo seguinte, no lugar desta tela.
+    // Sair de lá sem pagar não a desfaz — fica "pagamento pendente".
+    if (plano !== "counter") {
+      router.replace({
+        pathname: "/sinal",
+        params: { reserva: result.appointmentId, origem: "reserva", escopo: plano },
+      });
+      return;
+    }
+
     // Desempilha loja e horário antes de ir: a reserva acabou, e o gesto de
     // voltar não pode devolver um fluxo concluído. A Agenda recebe o que
     // aconteceu para dizer isso em voz alta — antes ela só aparecia.
@@ -175,6 +233,9 @@ function PagamentoConteudo() {
 
         <View style={{ gap: 11 }}>
           <Label>VALOR INFORMADO</Label>
+          {choices.length > 0 ? (
+            <Segmented items={choices} value={plano} onChange={(key) => setEscolha(key as Plano)} />
+          ) : null}
           <Card radius={16}>
             {rows.map((row, index) => (
               <Linha
@@ -221,7 +282,9 @@ function PagamentoConteudo() {
 
       <StickyFooter>
         <PrimaryButton
-          label={busy ? "Confirmando…" : "Confirmar reserva"}
+          label={
+            busy ? "Confirmando…" : plano === "counter" ? "Confirmar reserva" : "Reservar e pagar"
+          }
           height={54}
           background={busy || slotLost ? color.chevron : accent}
           onPress={busy || slotLost ? undefined : confirmar}

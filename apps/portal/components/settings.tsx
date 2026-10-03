@@ -222,8 +222,9 @@ export function Settings() {
         <header className="panel-head stacked">
           <h2>Sinal e pagamento</h2>
           <p>
-            O valor do sinal já é calculado e guardado em cada reserva. Nenhuma cobrança sai de
-            lugar nenhum: falta escolher o provedor de pagamento.
+            {data.business.receiving
+              ? "O cliente paga pelo app, por Pix ou cartão, e o dinheiro cai direto na sua conta de recebimento."
+              : "O valor do sinal é calculado e guardado em cada reserva. Para cobrá-lo pelo app, conecte a conta de recebimento em Plano e assinatura; até lá, o cliente paga no balcão."}
           </p>
         </header>
 
@@ -257,9 +258,52 @@ export function Settings() {
           />
         ) : null}
 
-        {/* "Sinal reembolsável" e "Aceitar pagamento pelo app" voltam junto com o
-            pagamento pelo app; até lá seriam interruptores sem efeito. As colunas
-            continuam em establishment_settings. */}
+        {/* Sem conta de recebimento os dois interruptores abaixo não teriam
+            efeito nenhum — por isso só aparecem com a conta conectada. */}
+        {data.business.receiving ? (
+          <>
+            <div className="list-row">
+              <div>
+                <strong>Receber pelo app</strong>
+                <small>
+                  O cliente paga o sinal — ou, se quiser, o valor inteiro — por Pix ou cartão.
+                  Desligado, o app só mostra o valor e o pagamento é no estabelecimento.
+                </small>
+              </div>
+              <Switch
+                disabled={pending}
+                label="Receber pelo app"
+                on={settings.accept_app_payment}
+                onChange={(next) =>
+                  patchSettings(
+                    { accept_app_payment: next },
+                    next ? "A loja passa a receber pelo app." : "O pagamento volta para o balcão.",
+                  )
+                }
+              />
+            </div>
+            <div className="list-row">
+              <div>
+                <strong>Devolver o sinal em cancelamento dentro do prazo</strong>
+                <small>
+                  Vale para o cliente que cancela antes da janela acima. Fora do prazo ele perde só
+                  o sinal: o que pagou além dele volta. Quando é a loja que cancela, volta tudo.
+                </small>
+              </div>
+              <Switch
+                disabled={pending}
+                label="Devolver o sinal em cancelamento dentro do prazo"
+                on={settings.deposit_refundable}
+                onChange={(next) =>
+                  patchSettings(
+                    { deposit_refundable: next },
+                    next ? "Sinal volta a ser devolvido." : "Sinal deixa de ser devolvido.",
+                  )
+                }
+              />
+            </div>
+          </>
+        ) : null}
       </section>
 
       <section className="panel">

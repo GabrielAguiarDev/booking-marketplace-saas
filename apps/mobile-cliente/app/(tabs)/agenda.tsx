@@ -44,6 +44,14 @@ const AVISOS: Record<string, { titulo: string; texto: string }> = {
     titulo: "Pedido enviado",
     texto: "A loja ainda vai confirmar este horário. A resposta aparece aqui em Próximos.",
   },
+  "sinal-pago": {
+    titulo: "Pagamento confirmado",
+    texto: "Recebemos o pagamento. Sua reserva aparece aqui em Próximos.",
+  },
+  "sinal-pendente": {
+    titulo: "Reserva feita, pagamento pendente",
+    texto: "Abra a reserva em Próximos para pagar pelo app, por Pix ou cartão.",
+  },
   avaliada: {
     titulo: "Avaliação enviada",
     texto: "Obrigado. Ela ajuda outras pessoas a escolher.",

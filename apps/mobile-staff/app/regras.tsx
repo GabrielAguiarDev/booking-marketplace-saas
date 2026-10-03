@@ -179,10 +179,10 @@ export default function Regras() {
             com a regra de ontem. O novo valor vale do próximo pedido em diante.
           </Caveat>
           <Caveat>
-            Sinal e pagamento pelo app dependem de provedor de pagamento, que ainda não foi
-            escolhido. O valor do sinal já é calculado e guardado em cada reserva; nenhuma cobrança
-            sai de lugar nenhum. Por isso “sinal reembolsável” e “aceitar pagamento pelo app” estão
-            marcados como não atuantes.
+            O sinal só é cobrado pelo app, por Pix, depois que o dono conecta a conta de recebimento
+            no portal web, em Plano e assinatura. Sem a conta conectada, o valor do sinal é
+            calculado e guardado em cada reserva e o cliente paga no balcão. Os ajustes “cobrar pelo
+            app” e “devolver o sinal” também ficam no portal.
           </Caveat>
         </View>
       </ScreenScroll>

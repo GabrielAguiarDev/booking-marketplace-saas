@@ -162,6 +162,23 @@ export default function Financeiro() {
               </View>
             </View>
 
+            {data.appReceivedCents > 0 ? (
+              <View style={{ paddingHorizontal: 20, paddingTop: 22 }}>
+                <Card radius={13} padding={14} background={color.rest} borderColor={color.rest}>
+                  <Text style={sans(11, 500, { color: color.muted })}>recebido pelo app</Text>
+                  <Text style={[mono(20, 600), { marginTop: 3 }]}>
+                    {moneyShort(data.appReceivedCents)}
+                  </Text>
+                  <Text style={[sans(12, 400, { lh: 1.45, color: color.muted }), { marginTop: 5 }]}>
+                    Pix e cartão pagos pelo cliente no período, direto na conta da loja.
+                    {data.appFeeCents > 0
+                      ? ` Taxa do Vez retida: ${moneyShort(data.appFeeCents)}.`
+                      : ""}
+                  </Text>
+                </Card>
+              </View>
+            ) : null}
+
             {data.topServices.length > 0 ? (
               <View style={{ paddingHorizontal: 20, paddingTop: 26, gap: 12 }}>
                 <SectionLabel>Mais vendidos</SectionLabel>
@@ -204,8 +221,9 @@ export default function Financeiro() {
             preço, e somar uma média seria inventar.
           </Caveat>
           <Caveat>
-            Recebimentos e repasses não aparecem porque não existem: nenhum pagamento passa pela
-            plataforma ainda, e o provedor não foi escolhido. Quando existir, é aqui que fica.
+            O que o cliente paga pelo app cai direto na conta da loja no provedor de pagamento; o
+            Vez não segura nem repassa. O extrato de cada pagamento, com taxa e tarifa, fica no
+            portal web, em Financeiro.
           </Caveat>
         </View>
       </ScreenScroll>

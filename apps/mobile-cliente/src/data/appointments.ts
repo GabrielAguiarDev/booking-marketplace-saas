@@ -90,7 +90,7 @@ export function useAppointments(enabled: boolean) {
 }
 
 export type BookResult =
-  | { ok: true; appointmentId: string; status: AppointmentStatus }
+  | { ok: true; appointmentId: string; status: AppointmentStatus; depositCents: number }
   | { ok: false; code: string; message: string };
 
 /** Cria a reserva pela Edge Function — nunca por insert direto (ver R4). */
@@ -120,8 +120,15 @@ export async function bookAppointment(input: {
     };
   }
 
-  const { appointment } = data as { appointment: { id: string; status: AppointmentStatus } };
-  return { ok: true, appointmentId: appointment.id, status: appointment.status };
+  const { appointment } = data as {
+    appointment: { id: string; status: AppointmentStatus; deposit_cents: number };
+  };
+  return {
+    ok: true,
+    appointmentId: appointment.id,
+    status: appointment.status,
+    depositCents: appointment.deposit_cents,
+  };
 }
 
 export async function cancelAppointment(

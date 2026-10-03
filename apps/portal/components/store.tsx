@@ -9,6 +9,7 @@ import type {
   ApplicationInput,
   EstablishmentRole,
   ExceptionInput,
+  InvoiceCharge,
   PortalData,
   ProfessionalInput,
   PublicProfilePatch,
@@ -57,6 +58,11 @@ export type PortalActions = PortalOperationActions & {
   savePublicProfile: (establishmentId: string, patch: PublicProfilePatch) => Promise<void>;
   saveRules: (establishmentId: string, patch: RulesPatch) => Promise<void>;
   saveSettings: (establishmentId: string, patch: SettingsPatch) => Promise<void>;
+  /** Devolve a URL do provedor para onde o dono vai autorizar a conexão. */
+  connectReceiving: (establishmentId: string) => Promise<string>;
+  disconnectReceiving: (establishmentId: string) => Promise<void>;
+  /** Gera o Pix da fatura, ou confere se o que já existe foi pago. */
+  payInvoice: (invoiceId: string) => Promise<InvoiceCharge>;
   uploadPhoto: (establishmentId: string, file: File) => Promise<void>;
   removePhoto: (photo: { id: string; storagePath: string }) => Promise<void>;
   /** Regra R9: o que a mudança de jornada deixaria de fora. Só lê. */

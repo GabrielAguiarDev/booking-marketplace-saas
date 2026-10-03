@@ -277,12 +277,8 @@ export function createSupabaseActions(get: GetData, refresh: () => void): AdminA
       ).then(() => undefined);
     },
 
-    resendInvoice: () =>
-      Promise.reject(
-        new Error(
-          "O reenvio será ligado junto ao provedor de cobrança; nenhuma fatura fictícia foi enviada.",
-        ),
-      ),
+    resendInvoice: (id) =>
+      changed(supabase.rpc("admin_resend_invoice", { p_invoice_id: id })).then(() => undefined),
 
     saveCatalogItem: (id, patch) =>
       changed(

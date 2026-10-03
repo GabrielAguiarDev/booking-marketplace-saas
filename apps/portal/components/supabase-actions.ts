@@ -2,7 +2,7 @@
 
 import { createBrowserSupabaseClient } from "@vez/supabase/browser";
 
-import type { ApplicationInput, ScheduleImpact, TimeWindow } from "./model";
+import type { ApplicationInput, InvoiceCharge, ScheduleImpact, TimeWindow } from "./model";
 import { PHOTO_BUCKET } from "./photo-bucket";
 import type { PortalActions } from "./store";
 
@@ -24,6 +24,15 @@ function check(error: Failure, message: string): void {
     throw new Error("Nome de arquivo não aceito. Use letras, números, ponto ou hífen.");
   }
   throw new Error(`${message} (${error.message})`);
+}
+
+/** A frase que a Edge Function mandou no corpo do erro, ou a de reserva. */
+async function functionError(error: { context?: unknown }, fallback: string): Promise<Error> {
+  const context = error.context instanceof Response ? error.context : null;
+  const payload = context
+    ? ((await context.json().catch(() => null)) as { error?: { message?: string } } | null)
+    : null;
+  return new Error(payload?.error?.message || fallback);
 }
 
 /**
@@ -572,6 +581,53 @@ export function createPortalActions(refresh: () => void): PortalActions {
       });
       if (error) throw new Error(error.message);
       return toImpact(data as ImpactRow[] | null);
+    },
+
+    /* ── Pagamento: conta de recebimento e mensalidade ─────────────────── */
+    connectReceiving: async (establishmentId) => {
+      const { data, error } = await supabase.functions.invoke<{ url: string }>("payment-connect", {
+        body: { establishment_id: establishmentId, action: "start" },
+      });
+      if (error || !data?.url) {
+        throw await functionError(
+          error ?? {},
+          "Não foi possível iniciar a conexão. Tente de novo.",
+        );
+      }
+      return data.url;
+    },
+
+    disconnectReceiving: async (establishmentId) => {
+      const { error } = await supabase.functions.invoke("payment-connect", {
+        body: { establishment_id: establishmentId, action: "disconnect" },
+      });
+      if (error) throw await functionError(error, "Não foi possível desconectar.");
+      refresh();
+    },
+
+    payInvoice: async (invoiceId) => {
+      const { data, error } = await supabase.functions.invoke<{
+        invoice: {
+          id: string;
+          status: InvoiceCharge["status"];
+          amount_cents: number;
+          pix_copy_paste: string | null;
+          charge_expires_at: string | null;
+          paid_at: string | null;
+        };
+      }>("billing-invoice-pay", { body: { invoice_id: invoiceId } });
+      if (error || !data) {
+        throw await functionError(error ?? {}, "Não foi possível gerar o Pix da fatura.");
+      }
+      if (data.invoice.status === "paid") refresh();
+      return {
+        id: data.invoice.id,
+        status: data.invoice.status,
+        amountCents: data.invoice.amount_cents,
+        pixCopyPaste: data.invoice.pix_copy_paste,
+        chargeExpiresAt: data.invoice.charge_expires_at,
+        paidAt: data.invoice.paid_at,
+      };
     },
 
     blockImpact: async (input) => {

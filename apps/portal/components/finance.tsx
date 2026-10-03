@@ -1,16 +1,27 @@
 "use client";
 
 import { money } from "./cadastro-ui";
+import type { PortalReceipt } from "./model";
 import { usePortal } from "./store";
 import { AMBER_DARK, CORAL, GREEN_DARK, MUTED, MUTED_SOFT, RED, SURFACE_5 } from "./tokens";
+
+const METHOD_LABEL: Record<string, string> = {
+  pix: "Pix",
+  credit_card: "Crédito",
+  debit_card: "Débito",
+  other: "Saldo",
+};
+
+/** A taxa do Vez acompanha o estorno: devolveu metade, retém metade. */
+const keptFee = (row: PortalReceipt) =>
+  Math.round((row.platformFeeCents * (row.amountCents - row.refundedCents)) / row.amountCents);
 
 /**
  * Financeiro do que existe.
  *
- * Tudo aqui sai de `appointments` com `status = 'completed'` e o `price_cents`
- * congelado no ato da reserva. Repasse, taxa e recebimento pelo app não
- * aparecem: `payments` nunca recebeu uma linha, e uma tabela vazia não vira
- * gráfico bonito (R7).
+ * Duas fontes, que não se somam: o faturamento sai de `appointments` concluídos
+ * com o `price_cents` congelado na reserva; "Recebido pelo app" sai de
+ * `payments`, com a taxa do Vez e a tarifa do provedor de cada pagamento (R7).
  */
 export function Finance() {
   const { data } = usePortal();
@@ -34,6 +45,18 @@ export function Finance() {
       ? null
       : Math.round(((finance.monthCents - finance.previousCents) / finance.previousCents) * 100);
   const totalTop = finance.topServices.reduce((sum, item) => sum + item.cents, 0);
+
+  const receipts = finance.receipts;
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const monthReceipts = receipts
+    .filter((row) => new Date(row.paidAt).getTime() >= monthStart)
+    .reduce(
+      (sum, row) => ({
+        gross: sum.gross + row.amountCents - row.refundedCents,
+        fee: sum.fee + keptFee(row),
+      }),
+      { gross: 0, fee: 0 },
+    );
 
   return (
     <div className="page">
@@ -73,8 +96,8 @@ export function Finance() {
           <span>Sinal preso em reservas futuras</span>
           <strong>{money(finance.scheduledDepositCents)}</strong>
           <div>
-            <b style={{ color: AMBER_DARK }}>calculado, não cobrado</b>
-            <small>depende do provedor de pagamento</small>
+            <b style={{ color: AMBER_DARK }}>valor combinado nas reservas</b>
+            <small>pago por Pix no app, ou no balcão quando a loja não recebe pelo app</small>
           </div>
         </article>
       </section>
@@ -209,9 +232,93 @@ export function Finance() {
           </div>
         )}
         <footer className="card-foot" style={{ background: SURFACE_5 }}>
-          Não há linha de repasse, taxa ou recebimento pelo app: o Vez ainda não escolheu o provedor
-          de pagamento, e nenhum dinheiro passa por ela hoje. O que a loja recebe no balcão não
-          entra aqui — o portal só sabe o que foi vendido pelo app.
+          Os números acima são o preço dos atendimentos concluídos. O que a loja recebe no balcão
+          não entra em “Recebido pelo app”, abaixo — o portal só sabe o que foi pago por ele.
+        </footer>
+      </section>
+
+      <section className="panel">
+        <header className="panel-head">
+          <h2>Recebido pelo app</h2>
+          <span>
+            {receipts.length === 0
+              ? "Pix e cartão pagos pelo cliente no app"
+              : `no mês: ${money(monthReceipts.gross)} bruto · ${money(monthReceipts.fee)} de taxa Vez`}
+          </span>
+        </header>
+        {receipts.length === 0 ? (
+          <p className="empty-state" style={{ padding: 20 }}>
+            Nenhum pagamento pelo app nos últimos seis meses. Para receber por ele, conecte a conta
+            de recebimento em Plano e assinatura.
+          </p>
+        ) : (
+          <div className="table-scroll">
+            <div
+              className="table-head block-table"
+              style={{ "--gc": "1fr 1.6fr .9fr 1fr 1fr 1fr 1fr" } as React.CSSProperties}
+            >
+              <div>DATA</div>
+              <div>SERVIÇO</div>
+              <div>FORMA</div>
+              <div style={{ textAlign: "right" }}>PAGO</div>
+              <div style={{ textAlign: "right" }}>TAXA VEZ</div>
+              <div style={{ textAlign: "right" }}>TARIFA</div>
+              <div style={{ textAlign: "right" }}>LÍQUIDO</div>
+            </div>
+            {receipts.slice(0, 50).map((row) => {
+              const kept = row.amountCents - row.refundedCents;
+              const fee = keptFee(row);
+              return (
+                <div
+                  className="table-row block-table"
+                  key={row.id}
+                  style={{ "--gc": "1fr 1.6fr .9fr 1fr 1fr 1fr 1fr" } as React.CSSProperties}
+                >
+                  <div className="table-cell">
+                    <div>
+                      {new Intl.DateTimeFormat("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                      }).format(new Date(row.paidAt))}
+                    </div>
+                  </div>
+                  <div className="table-cell">
+                    <div style={{ fontWeight: 600 }}>{row.serviceName}</div>
+                    <div style={{ color: MUTED }}>
+                      {row.scope === "full" ? "valor total" : "sinal"}
+                      {row.refundedCents > 0
+                        ? row.refundedCents >= row.amountCents
+                          ? " · devolvido"
+                          : ` · ${money(row.refundedCents)} devolvidos`
+                        : ""}
+                    </div>
+                  </div>
+                  <div className="table-cell">
+                    <div>{METHOD_LABEL[row.method ?? "other"] ?? "Outro"}</div>
+                  </div>
+                  <div className="table-cell" style={{ textAlign: "right" }}>
+                    <div>{money(kept)}</div>
+                  </div>
+                  <div className="table-cell" style={{ textAlign: "right" }}>
+                    <div>{money(fee)}</div>
+                  </div>
+                  <div className="table-cell" style={{ textAlign: "right" }}>
+                    <div>{row.providerFeeCents === null ? "—" : money(row.providerFeeCents)}</div>
+                  </div>
+                  <div className="table-cell" style={{ textAlign: "right" }}>
+                    <div style={{ fontWeight: 600 }}>
+                      {money(Math.max(kept - fee - (row.providerFeeCents ?? 0), 0))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <footer className="card-foot" style={{ background: SURFACE_5 }}>
+          O dinheiro cai direto na conta da loja no provedor de pagamento; o Vez não segura nem
+          repassa. “Tarifa” é a do provedor, informada por ele; o líquido exato e a data em que o
+          saldo libera estão no extrato da sua conta lá.
         </footer>
       </section>
     </div>

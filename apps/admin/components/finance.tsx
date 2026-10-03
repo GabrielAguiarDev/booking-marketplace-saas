@@ -27,9 +27,8 @@ const lateDays = (i: Invoice, now = Date.now()) =>
 /** As etapas do fluxo de carência, contadas a partir do vencimento. A última vem do parâmetro. */
 const BASE_STEPS = [
   { d: 0, label: "Vencimento", meta: "cobrança marcada como vencida", tone: MUTED },
-  { d: 3, label: "Primeiro aviso", meta: "e-mail + push no app do estabelecimento", tone: AMBER },
-  { d: 7, label: "Segundo aviso", meta: "aviso no painel + contato do time", tone: AMBER },
-  { d: 10, label: "Perde o destaque", meta: "perfil sai do destaque na busca", tone: RED },
+  { d: 3, label: "Primeiro aviso", meta: "e-mail + push ao dono da loja", tone: AMBER },
+  { d: 7, label: "Segundo aviso", meta: "e-mail + push, com os dias que faltam", tone: AMBER },
 ];
 
 function stepsFor(graceDays: number) {
@@ -155,8 +154,8 @@ export function Finance({ onOpen }: { onOpen: (id: string) => void }) {
       {tab === "Receita" ? (
         <div className="card clip">
           <p className="hint finance-estimate">
-            Estimativa reconstruída com o plano atual; o histórico contábil virá do provedor de
-            cobrança.
+            Receita recebida: mensalidades pagas e taxa retida nos pagamentos pelo app, no mês em
+            que o dinheiro entrou.
           </p>
           <div className="table-wrap">
             <table>
@@ -275,7 +274,7 @@ export function Finance({ onOpen }: { onOpen: (id: string) => void }) {
                                 setSending(row.id);
                                 void resend.run(() => actions.resendInvoice(row.id), {
                                   title: "Cobrança reenviada",
-                                  sub: `${row.establishment} recebe o boleto e o Pix de novo por e-mail.`,
+                                  sub: `O dono de ${row.establishment} recebe o aviso por e-mail e no app.`,
                                 });
                               }}
                               type="button"
@@ -302,8 +301,8 @@ export function Finance({ onOpen }: { onOpen: (id: string) => void }) {
       {tab === "Repasses" ? (
         <div className="stack tight">
           <p className="lede">
-            Só aparecem aqui os estabelecimentos que aceitam pagamento pelo app. Agendamentos sem
-            pagamento integrado não geram repasse.
+            O que cada loja recebeu pelo app em cada mês, já sem os estornos. O dinheiro cai direto
+            na conta da loja no provedor: o Vez não segura nem repassa, só retém a taxa.
           </p>
           <div className="card clip">
             <div className="table-wrap">
@@ -314,7 +313,7 @@ export function Finance({ onOpen }: { onOpen: (id: string) => void }) {
                     <th>Cidade</th>
                     <th className="right">Recebido no app</th>
                     <th className="right">Comissão retida</th>
-                    <th className="right">A repassar</th>
+                    <th className="right">Ficou com a loja</th>
                     <th>Situação</th>
                     <th className="right">Quando</th>
                   </tr>
@@ -331,7 +330,7 @@ export function Finance({ onOpen }: { onOpen: (id: string) => void }) {
                         className="strong"
                         style={{ color: row.status === "sent" ? GREEN : AMBER, fontSize: "12px" }}
                       >
-                        {row.status === "sent" ? "Enviado" : "Retido"}
+                        {row.status === "sent" ? "Direto na conta" : "Retido"}
                       </td>
                       <td className="right mono muted">
                         {row.status === "sent" ? day(row.at) : `libera ${day(row.at).slice(0, 6)}`}
@@ -342,7 +341,7 @@ export function Finance({ onOpen }: { onOpen: (id: string) => void }) {
               </table>
             </div>
             {data.transfers.length === 0 ? (
-              <p className="table-empty">Nenhum repasse ainda.</p>
+              <p className="table-empty">Nenhum pagamento pelo app ainda.</p>
             ) : null}
           </div>
         </div>
@@ -353,7 +352,8 @@ export function Finance({ onOpen }: { onOpen: (id: string) => void }) {
           <h3 className="card-title tight">Fluxo de carência e suspensão automática</h3>
           <p className="lede spaced">
             Contagem a partir do vencimento da cobrança. O número indica quantos estabelecimentos
-            estão em cada etapa agora. As automações entram junto com o provedor de cobrança.
+            estão em cada etapa agora. Os avisos de 3 e 7 dias e a suspensão rodam sozinhos, todo
+            dia; a loja volta ao ar assim que a fatura é paga.
           </p>
           <div className="steps">
             {STEPS.map((step, i) => (

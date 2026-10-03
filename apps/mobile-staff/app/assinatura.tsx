@@ -25,9 +25,10 @@ const longDate = new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" });
  * `guard_establishment_status` recusa troca de plano ou desconto que não venha
  * de admin da plataforma.
  *
- * Fatura, cartão e histórico de cobrança continuam fora: `payments` não tem
- * linha porque o provedor de pagamento não foi escolhido, e inventar número
- * aqui seria a pior mentira do produto (R7).
+ * Fatura e conta de recebimento ficam de fora de propósito: moram no portal
+ * web. Vender a assinatura por dentro do app obrigaria a usar a compra da
+ * Apple e do Google, com 15% a 30% de comissão sobre a mensalidade (ver
+ * docs/decisions/0009-pagamentos.md).
  */
 export default function Assinatura() {
   const { establishment, role } = useEstablishment();
@@ -151,11 +152,10 @@ export default function Assinatura() {
           <View style={{ gap: 10 }}>
             <SectionLabel>Cobrança</SectionLabel>
             <Card radius={14} padding={14} background={color.rest} borderColor={color.rest}>
-              <Text style={sans(14, 700)}>Nenhuma cobrança foi emitida</Text>
+              <Text style={sans(14, 700)}>Faturas e recebimento ficam no portal</Text>
               <Text style={[sans(12.5, 400, { lh: 1.5, color: color.muted }), { marginTop: 5 }]}>
-                A cobrança automática ainda não roda: não há fatura, cartão nem repasse. Nada é
-                suspenso por falta de pagamento enquanto isso — e esta tela não mostra número
-                inventado no lugar.
+                A mensalidade e a conta em que a loja recebe o sinal são administradas pelo dono no
+                portal web do Vez. Este app não mostra fatura nem cobra nada.
               </Text>
             </Card>
           </View>

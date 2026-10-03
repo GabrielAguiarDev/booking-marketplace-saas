@@ -123,6 +123,10 @@ export async function loadCadastroData(
     queueResult,
     futureResult,
     invitationsResult,
+    receivingResult,
+    invoicesResult,
+    receiptsResult,
+    platformResult,
   ] = await Promise.all([
     supabase
       .from("services")
@@ -212,6 +216,35 @@ export async function loadCadastroData(
       .in("status", ["scheduled", "confirmed"])
       .gte("starts_at", now.toISOString()),
     invitationsPromise,
+    // As duas leituras abaixo são filtradas pela RLS: equipe não vê a conta de
+    // recebimento, e fatura só o dono vê. Para os outros papéis voltam vazias.
+    supabase
+      .from("payment_accounts")
+      .select("provider, connected_at")
+      .eq("establishment_id", establishmentId)
+      .eq("status", "connected")
+      .order("connected_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("billing_invoices")
+      .select(
+        "id, period_start, due_date, list_price_cents, discount_cents, amount_cents, status, paid_at",
+      )
+      .eq("establishment_id", establishmentId)
+      .order("period_start", { ascending: false })
+      .limit(24),
+    // Também pela RLS: só dono e gerente leem `payments` da loja.
+    supabase
+      .from("payments")
+      .select(
+        "id, paid_at, scope, method, status, amount_cents, refunded_cents, platform_fee_cents, provider_fee_cents, appointments(services(name))",
+      )
+      .eq("establishment_id", establishmentId)
+      .in("status", ["paid", "partially_refunded", "refunded"])
+      .gte("paid_at", financeFrom.toISOString())
+      .order("paid_at", { ascending: false })
+      .limit(200),
+    supabase.from("platform_settings").select("delinquency_grace_days").maybeSingle(),
   ]);
 
   for (const [label, result] of [
@@ -395,6 +428,20 @@ export async function loadCadastroData(
       0,
     ),
     queueCompleted: (queueResult.data ?? []).length,
+    receipts: (receiptsResult.data ?? []).map((row) => ({
+      id: row.id,
+      paidAt: row.paid_at ?? "",
+      serviceName:
+        (row.appointments as unknown as { services: { name: string } | null } | null)?.services
+          ?.name ?? "Serviço",
+      scope: row.scope === "full" ? "full" : "deposit",
+      method: row.method,
+      status: row.status,
+      amountCents: row.amount_cents,
+      refundedCents: row.refunded_cents,
+      platformFeeCents: row.platform_fee_cents,
+      providerFeeCents: row.provider_fee_cents,
+    })),
   };
 
   const commitments: PortalCommitments = { byService: {}, byProfessional: {} };
@@ -410,6 +457,23 @@ export async function loadCadastroData(
     planChangedAt: establishment.plan_changed_at,
     discountPercent: establishment.discount_percent,
     discountUntil: establishment.discount_until,
+    receiving: receivingResult.data?.[0]
+      ? {
+          provider: receivingResult.data[0].provider,
+          connectedAt: receivingResult.data[0].connected_at,
+        }
+      : null,
+    graceDays: platformResult.data?.delinquency_grace_days ?? 15,
+    invoices: (invoicesResult.data ?? []).map((row) => ({
+      id: row.id,
+      periodStart: row.period_start,
+      dueDate: row.due_date,
+      listPriceCents: row.list_price_cents,
+      discountCents: row.discount_cents,
+      amountCents: row.amount_cents,
+      status: row.status,
+      paidAt: row.paid_at,
+    })),
   };
 
   return {

@@ -61,8 +61,10 @@ export default function PrivacyPage() {
         </li>
       </ul>
       <p>
-        Não pedimos sua localização e não vendemos dados pessoais. Pagamentos pelo app ainda não são
-        processados pelo Vez; quando forem, esta política dirá qual provedor recebe quais dados.
+        Não pedimos sua localização e não vendemos dados pessoais. Pagamentos pelo app (Pix e
+        cartão) são processados pelo Mercado Pago: ele recebe o seu e-mail, o valor e a descrição da
+        reserva, e é na página dele que o cartão é informado. O Vez não vê nem guarda número de
+        cartão; guardamos só o valor, a situação do pagamento e o identificador dele no provedor.
       </p>
 
       <h2 id="bases">3. Bases legais</h2>

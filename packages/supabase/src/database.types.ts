@@ -360,6 +360,87 @@ export type Database = {
           },
         ]
       }
+      billing_invoices: {
+        Row: {
+          amount_cents: number
+          charge_expires_at: string | null
+          created_at: string
+          discount_cents: number
+          due_date: string
+          establishment_id: string
+          id: string
+          list_price_cents: number
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          pix_copy_paste: string | null
+          plan_id: string | null
+          provider: string | null
+          provider_charge_id: string | null
+          provider_payload: Json | null
+          status: Database["public"]["Enums"]["billing_invoice_status"]
+          suspended_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          charge_expires_at?: string | null
+          created_at?: string
+          discount_cents?: number
+          due_date: string
+          establishment_id: string
+          id?: string
+          list_price_cents: number
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          pix_copy_paste?: string | null
+          plan_id?: string | null
+          provider?: string | null
+          provider_charge_id?: string | null
+          provider_payload?: Json | null
+          status?: Database["public"]["Enums"]["billing_invoice_status"]
+          suspended_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          charge_expires_at?: string | null
+          created_at?: string
+          discount_cents?: number
+          due_date?: string
+          establishment_id?: string
+          id?: string
+          list_price_cents?: number
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          pix_copy_paste?: string | null
+          plan_id?: string | null
+          provider?: string | null
+          provider_charge_id?: string | null
+          provider_payload?: Json | null
+          status?: Database["public"]["Enums"]["billing_invoice_status"]
+          suspended_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_invoices_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_hours: {
         Row: {
           closes_at: string
@@ -1318,55 +1399,166 @@ export type Database = {
           },
         ]
       }
+      payment_accounts: {
+        Row: {
+          connected_at: string
+          connected_by: string | null
+          establishment_id: string
+          external_account_id: string
+          provider: string
+          status: string
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          connected_at?: string
+          connected_by?: string | null
+          establishment_id: string
+          external_account_id: string
+          provider: string
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          connected_at?: string
+          connected_by?: string | null
+          establishment_id?: string
+          external_account_id?: string
+          provider?: string
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_accounts_connected_by_fkey"
+            columns: ["connected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_accounts_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_webhook_events: {
+        Row: {
+          charge_id: string | null
+          deliveries: number
+          error: string | null
+          event_id: string
+          id: string
+          payload: Json | null
+          processed_at: string | null
+          provider: string
+          received_at: string
+        }
+        Insert: {
+          charge_id?: string | null
+          deliveries?: number
+          error?: string | null
+          event_id: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          provider: string
+          received_at?: string
+        }
+        Update: {
+          charge_id?: string | null
+          deliveries?: number
+          error?: string | null
+          event_id?: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          provider?: string
+          received_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount_cents: number
           appointment_id: string
+          checkout_url: string | null
           created_at: string
           customer_id: string
           establishment_id: string
+          expires_at: string | null
           id: string
+          last_synced_at: string | null
           method: Database["public"]["Enums"]["payment_method"] | null
           paid_at: string | null
+          pix_copy_paste: string | null
+          platform_fee_cents: number
           provider: string | null
           provider_charge_id: string | null
+          provider_checkout_id: string | null
+          provider_fee_cents: number | null
           provider_payload: Json | null
+          refund_requested_cents: number
           refunded_at: string | null
           refunded_cents: number
+          scope: string
           status: Database["public"]["Enums"]["payment_status"]
           updated_at: string
         }
         Insert: {
           amount_cents: number
           appointment_id: string
+          checkout_url?: string | null
           created_at?: string
           customer_id: string
           establishment_id: string
+          expires_at?: string | null
           id?: string
+          last_synced_at?: string | null
           method?: Database["public"]["Enums"]["payment_method"] | null
           paid_at?: string | null
+          pix_copy_paste?: string | null
+          platform_fee_cents?: number
           provider?: string | null
           provider_charge_id?: string | null
+          provider_checkout_id?: string | null
+          provider_fee_cents?: number | null
           provider_payload?: Json | null
+          refund_requested_cents?: number
           refunded_at?: string | null
           refunded_cents?: number
+          scope?: string
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
         }
         Update: {
           amount_cents?: number
           appointment_id?: string
+          checkout_url?: string | null
           created_at?: string
           customer_id?: string
           establishment_id?: string
+          expires_at?: string | null
           id?: string
+          last_synced_at?: string | null
           method?: Database["public"]["Enums"]["payment_method"] | null
           paid_at?: string | null
+          pix_copy_paste?: string | null
+          platform_fee_cents?: number
           provider?: string | null
           provider_charge_id?: string | null
+          provider_checkout_id?: string | null
+          provider_fee_cents?: number | null
           provider_payload?: Json | null
+          refund_requested_cents?: number
           refunded_at?: string | null
           refunded_cents?: number
+          scope?: string
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
         }
@@ -2509,6 +2701,13 @@ export type Database = {
           who: string
         }[]
       }
+      admin_billing: {
+        Args: never
+        Returns: {
+          invoices: Json
+          transfers: Json
+        }[]
+      }
       admin_brl: { Args: { p_cents: number }; Returns: string }
       admin_catalog_items: {
         Args: never
@@ -2765,6 +2964,10 @@ export type Database = {
         Returns: undefined
       }
       admin_require_team_admin: { Args: never; Returns: undefined }
+      admin_resend_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
+      }
       admin_resolve_suggestion: {
         Args: { p_key: string; p_resolution: string; p_target_id: string }
         Returns: undefined
@@ -3095,6 +3298,23 @@ export type Database = {
           slot_start: string
         }[]
       }
+      billing_enforce: {
+        Args: { p_today?: string }
+        Returns: {
+          suspended: number
+          warned: number
+        }[]
+      }
+      billing_generate_invoices: { Args: { p_month?: string }; Returns: number }
+      billing_notify_owners: {
+        Args: {
+          p_body: string
+          p_invoice: Database["public"]["Tables"]["billing_invoices"]["Row"]
+          p_kind: string
+          p_title: string
+        }
+        Returns: undefined
+      }
       block_impact: {
         Args: {
           p_date?: string
@@ -3184,6 +3404,10 @@ export type Database = {
           accepted: number
           establishment_id: string
         }[]
+      }
+      establishment_accepts_app_payment: {
+        Args: { p_establishment_id: string }
+        Returns: boolean
       }
       establishment_add_member: {
         Args: {
@@ -3374,6 +3598,75 @@ export type Database = {
           id: string
           number: number
         }[]
+      }
+      payment_account_credentials: {
+        Args: { p_establishment_id: string; p_provider: string }
+        Returns: {
+          access_token: string
+          external_account_id: string
+          refresh_token: string
+          token_expires_at: string
+        }[]
+      }
+      payment_account_revoke: {
+        Args: { p_establishment_id: string; p_provider: string }
+        Returns: undefined
+      }
+      payment_account_store: {
+        Args: {
+          p_access_token: string
+          p_connected_by?: string
+          p_establishment_id: string
+          p_external_account_id: string
+          p_provider: string
+          p_refresh_token: string
+          p_token_expires_at: string
+        }
+        Returns: undefined
+      }
+      payment_claim_work: {
+        Args: { p_limit?: number }
+        Returns: {
+          amount_cents: number
+          appointment_id: string
+          checkout_url: string | null
+          created_at: string
+          customer_id: string
+          establishment_id: string
+          expires_at: string | null
+          id: string
+          last_synced_at: string | null
+          method: Database["public"]["Enums"]["payment_method"] | null
+          paid_at: string | null
+          pix_copy_paste: string | null
+          platform_fee_cents: number
+          provider: string | null
+          provider_charge_id: string | null
+          provider_checkout_id: string | null
+          provider_fee_cents: number | null
+          provider_payload: Json | null
+          refund_requested_cents: number
+          refunded_at: string | null
+          refunded_cents: number
+          scope: string
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      payment_reconcile_kick: { Args: never; Returns: string }
+      payment_secret_name: {
+        Args: { p_establishment_id: string; p_kind: string; p_provider: string }
+        Returns: string
+      }
+      payment_secret_put: {
+        Args: { p_name: string; p_secret: string }
+        Returns: undefined
       }
       portal_create_guest_appointment: {
         Args: {
@@ -3648,6 +3941,7 @@ export type Database = {
         | "cancelled_by_establishment"
         | "no_show"
       assistant_role: "user" | "assistant"
+      billing_invoice_status: "open" | "paid" | "void"
       booking_mode: "scheduled" | "queue" | "both"
       city_launch_status: "active" | "pre_launch" | "evaluating"
       establishment_category:
@@ -3846,6 +4140,7 @@ export const Constants = {
         "no_show",
       ],
       assistant_role: ["user", "assistant"],
+      billing_invoice_status: ["open", "paid", "void"],
       booking_mode: ["scheduled", "queue", "both"],
       city_launch_status: ["active", "pre_launch", "evaluating"],
       establishment_category: [
