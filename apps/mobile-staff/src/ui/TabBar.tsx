@@ -147,7 +147,9 @@ export function TabBar() {
                 {Icon ? <Icon size={22} color={tint} strokeWidth={on ? 2.2 : 1.8} /> : null}
               </View>
             )}
-            <Text style={sans(10.5, 700, { ls: 0.2 / 10.5, color: tint })}>{label}</Text>
+            <Text style={sans(10.5, 700, { ls: 0.2 / 10.5, color: tint })} numberOfLines={1}>
+              {label}
+            </Text>
           </Pressable>
         );
       })}

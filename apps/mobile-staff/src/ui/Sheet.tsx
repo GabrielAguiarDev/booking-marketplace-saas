@@ -1,7 +1,15 @@
 import { useReducedMotion } from "@vez/mobile-kit/motion";
 import { sans } from "@vez/mobile-kit/theme";
 import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { color, sheetShadow } from "../theme/tokens";
@@ -44,7 +52,12 @@ export function Sheet({
           accessibilityRole="button"
           accessibilityLabel="Fechar"
         />
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        {/* Teto + encolher: folha alta (ou com teclado aberto) rola por dentro em
+            vez de subir para fora da tela em aparelho pequeno. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flexShrink: 1, maxHeight: "92%" }}
+        >
           <View
             accessibilityViewIsModal
             style={[
@@ -55,6 +68,7 @@ export function Sheet({
                 paddingHorizontal: 20,
                 paddingTop: 12,
                 paddingBottom: 24 + insets.bottom,
+                flexShrink: 1,
               },
               sheetShadow,
             ]}
@@ -77,7 +91,14 @@ export function Sheet({
                 {subtitle}
               </Text>
             ) : null}
-            <View style={{ marginTop: 16 }}>{children}</View>
+            <ScrollView
+              style={{ marginTop: 16, flexGrow: 0, flexShrink: 1 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+            >
+              {children}
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </View>

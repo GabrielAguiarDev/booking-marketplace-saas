@@ -302,7 +302,9 @@ export function Segmented<T extends string>({
               },
             ]}
           >
-            <Text style={sans(13, 600, { color: on ? color.ink : color.muted })}>{item.label}</Text>
+            <Text style={sans(13, 600, { color: on ? color.ink : color.muted })} numberOfLines={1}>
+              {item.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -340,7 +342,7 @@ export function SectionHeader({
         gap: 8,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 }}>
         <SectionLabel>{label}</SectionLabel>
         {count !== undefined ? <CountBadge value={count} /> : null}
       </View>
@@ -446,14 +448,21 @@ export function StatTile({
         backgroundColor: color.rest,
         borderRadius: 12,
         paddingVertical: 10,
-        paddingHorizontal: 11,
+        paddingHorizontal: 9,
         gap: 3,
       }}
     >
       <Text style={mono(22, 600, { lh: 1, color: tint })} numberOfLines={1}>
         {value}
       </Text>
-      <Text style={sans(10, 500, { ls: 0.3 / 10, color: color.muted })}>{label.toUpperCase()}</Text>
+      <Text
+        style={sans(10, 500, { ls: 0.3 / 10, color: color.muted })}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+      >
+        {label.toUpperCase()}
+      </Text>
     </View>
   );
 }
@@ -495,10 +504,13 @@ export function KeyRow({
         {help ? <Text style={sans(12, 400, { lh: 1.4, color: color.muted })}>{help}</Text> : null}
       </View>
       {value ? (
+        // Sem encolher, um valor longo (e-mail, endereço) esmaga o rótulo até
+        // zero e sai da tela.
         <Text
-          style={
-            valueMono ? mono(14, 600, { color: valueColor }) : sans(14, 600, { color: valueColor })
-          }
+          style={[
+            valueMono ? mono(14, 600, { color: valueColor }) : sans(14, 600, { color: valueColor }),
+            { flexShrink: 1, maxWidth: "62%", textAlign: "right" },
+          ]}
         >
           {value}
         </Text>

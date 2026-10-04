@@ -148,6 +148,8 @@ export default function Agenda() {
                 flexDirection: "row",
                 alignItems: "baseline",
                 justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 8,
                 marginBottom: 10,
               }}
             >
@@ -421,6 +423,8 @@ function MonthView({ today, items }: { today: Date; items: Item[] }) {
           flexDirection: "row",
           alignItems: "baseline",
           justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 8,
           marginBottom: 12,
         }}
       >

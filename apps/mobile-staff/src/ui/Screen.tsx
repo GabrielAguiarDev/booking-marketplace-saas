@@ -74,6 +74,10 @@ export function ScreenScroll({
       // Sem isto, o primeiro toque num botão com o teclado aberto só fecha o
       // teclado — e no balcão cada toque a mais é alguém esperando.
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      // Nenhuma tela do app envolve o corpo em KeyboardAvoidingView: sem isto o
+      // campo do fim do formulário fica atrás do teclado no iOS.
+      automaticallyAdjustKeyboardInsets
       refreshControl={
         onRefresh ? (
           <RefreshControl
@@ -323,7 +327,9 @@ export function PlainHeader({
             backgroundColor: color.coral,
           }}
         >
-          <Text style={sans(13, 700, { color: "#fff" })}>{action}</Text>
+          <Text style={sans(13, 700, { color: "#fff" })} numberOfLines={1}>
+            {action}
+          </Text>
         </Pressable>
       ) : null}
     </View>

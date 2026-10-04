@@ -85,7 +85,7 @@ export function Sheet({
               <X size={16} color={color.muted} strokeWidth={2.2} />
             </Pressable>
           </View>
-          {children}
+          <View style={{ flexShrink: 1 }}>{children}</View>
         </View>
       </View>
     </Modal>

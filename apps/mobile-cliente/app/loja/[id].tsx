@@ -413,8 +413,10 @@ export default function Loja() {
               ) : (
                 reviews.map((review) => (
                   <Card key={review.id} radius={15} padding={15} style={{ gap: 8 }}>
-                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                      <Text style={sans(14.5, 700, { ls: -0.02 })}>
+                    <View
+                      style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}
+                    >
+                      <Text style={[sans(14.5, 700, { ls: -0.02 }), { flex: 1 }]}>
                         {review.profiles?.full_name ?? "Cliente"}
                       </Text>
                       <Text style={mono(11.5, 600)}>★ {review.rating},0</Text>

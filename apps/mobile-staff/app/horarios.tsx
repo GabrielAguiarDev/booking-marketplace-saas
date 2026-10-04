@@ -111,6 +111,7 @@ export default function Horarios() {
                 style={{
                   flexDirection: "row",
                   justifyContent: "space-between",
+                  gap: 12,
                   paddingVertical: 12,
                   borderBottomWidth: 1,
                   borderBottomColor: color.lineSoft,
@@ -119,7 +120,12 @@ export default function Horarios() {
                 <Text style={sans(13.5, 600, { color: closed ? color.faint : color.ink })}>
                   {weekdayLong(weekday)}
                 </Text>
-                <Text style={mono(13, 600, { color: closed ? color.faint : color.ink })}>
+                <Text
+                  style={[
+                    mono(13, 600, { color: closed ? color.faint : color.ink }),
+                    { flexShrink: 1, textAlign: "right" },
+                  ]}
+                >
                   {closed
                     ? "fechado"
                     : shifts
@@ -146,9 +152,14 @@ export default function Horarios() {
             const days = [...new Set(own.map((schedule) => schedule.weekday))].length;
             return (
               <Card key={professional.id} radius={13} padding={13}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={sans(14.5, 700)}>{professional.displayName}</Text>
-                  <Text style={mono(12.5, 600, { color: color.muted })}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
+                  <Text style={[sans(14.5, 700), { flex: 1 }]}>{professional.displayName}</Text>
+                  <Text
+                    style={[
+                      mono(12.5, 600, { color: color.muted }),
+                      { flexShrink: 1, textAlign: "right" },
+                    ]}
+                  >
                     {own.length === 0
                       ? "sem escala"
                       : `${clockFromTime(own.reduce((min, s) => (s.startsAt < min ? s.startsAt : min), own[0]!.startsAt))}–${clockFromTime(own.reduce((max, s) => (s.endsAt > max ? s.endsAt : max), own[0]!.endsAt))}`}

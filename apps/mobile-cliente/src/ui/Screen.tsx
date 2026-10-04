@@ -74,6 +74,7 @@ export function ScreenScroll({
   gap = 26,
   contentStyle,
   onRefresh,
+  keyboardInsets = false,
 }: {
   children: ReactNode;
   gap?: number;
@@ -83,6 +84,11 @@ export function ScreenScroll({
    * fica na tela até ela resolver — `reload()` de `useAsync` já é assim.
    */
   onRefresh?: () => Promise<unknown>;
+  /**
+   * Abre espaço para o teclado no iOS. Só para telas com campo de texto que
+   * não estão dentro de um `KeyboardAvoidingView` — com os dois, a folga dobra.
+   */
+  keyboardInsets?: boolean;
 }) {
   const [refreshing, setRefreshing] = useState(false);
 
@@ -102,6 +108,8 @@ export function ScreenScroll({
       // Sem isto, o primeiro toque num botão com o teclado aberto só fecha o
       // teclado, e a pessoa precisa tocar de novo.
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      automaticallyAdjustKeyboardInsets={keyboardInsets}
       refreshControl={
         onRefresh ? (
           <RefreshControl

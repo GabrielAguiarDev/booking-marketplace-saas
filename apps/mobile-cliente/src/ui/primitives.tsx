@@ -133,7 +133,9 @@ export function OutlineButton({
         style,
       ]}
     >
-      <Text style={sans(height >= 54 ? 15 : 14.5, 600)}>{label}</Text>
+      <Text style={sans(height >= 54 ? 15 : 14.5, 600)} numberOfLines={1}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -221,7 +223,10 @@ export function Segmented({
               on && segmentShadow,
             ]}
           >
-            <Text style={mono(10.5, 600, { ls: 0.05, color: on ? color.ink : color.muted })}>
+            <Text
+              style={mono(10.5, 600, { ls: 0.05, color: on ? color.ink : color.muted })}
+              numberOfLines={1}
+            >
               {item.label}
             </Text>
           </Pressable>
@@ -480,9 +485,10 @@ export function SectionHeader({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "baseline",
+        gap: 12,
       }}
     >
-      <Text accessibilityRole="header" style={sans(21, 800, { ls: -0.03 })}>
+      <Text accessibilityRole="header" style={[sans(21, 800, { ls: -0.03 }), { flexShrink: 1 }]}>
         {title}
       </Text>
       {meta ? (

@@ -121,7 +121,7 @@ function AvaliacaoConteudo() {
 
   return (
     <Screen>
-      <ScreenScroll gap={24}>
+      <ScreenScroll gap={24} keyboardInsets>
         <BackHeader title="Como foi?" onBack={() => router.back()} />
 
         <View style={{ gap: 5 }}>
