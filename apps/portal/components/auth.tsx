@@ -3,8 +3,10 @@
 import { createBrowserSupabaseClient } from "@vez/supabase/browser";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { VezSymbol } from "./brand";
+import { Dialog } from "./cadastro-ui";
 
 type AuthMode =
   "login" | "signup" | "forgot" | "verify-signup" | "verify-recovery" | "update-password";
@@ -304,25 +306,83 @@ export function PortalAuth({ initialMode = "login" }: { initialMode?: AuthMode }
   );
 }
 
-export function SignOutButton() {
+export function SignOutButton({ className = "ghost" }: { className?: string }) {
   const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cancel = () => {
+    if (!pending) setConfirming(false);
+  };
+  async function signOut() {
+    if (pending) return;
+    setPending(true);
+    setError(null);
+    try {
+      const { error: cause } = await createBrowserSupabaseClient().auth.signOut();
+      if (cause) throw cause;
+      setConfirming(false);
+      router.refresh();
+    } catch {
+      setError("Não foi possível sair. Tente novamente.");
+    } finally {
+      setPending(false);
+    }
+  }
   return (
-    <button
-      className="ghost"
-      disabled={pending}
-      onClick={async () => {
-        setPending(true);
-        // Mesmo sem rede a sessão local é encerrada; o refresh mostra o login.
-        await createBrowserSupabaseClient()
-          .auth.signOut()
-          .catch(() => undefined);
-        router.refresh();
-        setPending(false);
-      }}
-      type="button"
-    >
-      {pending ? "Saindo…" : "Sair"}
-    </button>
+    <>
+      <button
+        aria-label="Sair da conta"
+        className={`sign-out-button ${className}`}
+        onClick={() => {
+          setError(null);
+          setConfirming(true);
+        }}
+        title="Sair da conta"
+        type="button"
+      >
+        <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 24 24" width="18">
+          <path
+            d="M10 5H5v14h5M9 12h11m-4-4 4 4-4 4"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.7"
+          />
+        </svg>
+        <span>Sair da conta</span>
+      </button>
+      {confirming
+        ? createPortal(
+            <div className="sign-out-confirmation">
+              <Dialog
+                title="Sair da conta?"
+                sub="Você precisará entrar novamente para acessar o portal."
+                onCancel={cancel}
+              >
+                {error ? (
+                  <p className="sign-out-error" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+                <div className="sign-out-actions">
+                  <button className="ghost" disabled={pending} onClick={cancel} type="button">
+                    Cancelar
+                  </button>
+                  <button
+                    className="primary"
+                    disabled={pending}
+                    onClick={() => void signOut()}
+                    type="button"
+                  >
+                    {pending ? "Saindo…" : "Sair da conta"}
+                  </button>
+                </div>
+              </Dialog>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }

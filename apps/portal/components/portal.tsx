@@ -4,7 +4,6 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { Agenda, type NewAppointmentSeed } from "./agenda";
-import { SignOutButton } from "./auth";
 import { CADASTRO_SECTIONS, CadastroSection } from "./cadastro-sections";
 import { Customers } from "./customers";
 import { SECTION_META, type SectionId } from "./data";
@@ -110,7 +109,9 @@ export function Portal() {
   useEffect(() => {
     if (!navOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setNavOpen(false);
+      if (event.key === "Escape" && !document.querySelector('[aria-modal="true"]')) {
+        setNavOpen(false);
+      }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
@@ -143,6 +144,7 @@ export function Portal() {
         collapsed={collapsed}
         data={data}
         go={setSection}
+        onClose={() => setNavOpen(false)}
         onToggle={() => setCollapsed((value) => !value)}
         section={section}
       />
@@ -173,7 +175,6 @@ export function Portal() {
                 Novo agendamento
               </button>
             ) : null}
-            <SignOutButton />
           </div>
         </header>
         {!allowed ? (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { SignOutButton } from "./auth";
 import { VezLogo, VezSymbol } from "./brand";
 import { ICONS, NAV_GROUPS, type SectionId } from "./data";
 import { ROLE_LABEL, type PortalData } from "./model";
@@ -14,6 +15,7 @@ export function Sidebar({
   canOpen,
   collapsed,
   onToggle,
+  onClose,
   data,
 }: {
   section: SectionId;
@@ -22,6 +24,7 @@ export function Sidebar({
   canOpen: (section: SectionId) => boolean;
   collapsed: boolean;
   onToggle: () => void;
+  onClose: () => void;
   data: PortalData;
 }) {
   const [hint, setHint] = useState<Hint>(null);
@@ -44,21 +47,39 @@ export function Sidebar({
       id="portal-nav"
       onMouseLeave={() => setHint(null)}
     >
+      <button
+        aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+        aria-expanded={!collapsed}
+        aria-controls="portal-nav"
+        className="nav-toggle"
+        onClick={onToggle}
+        title={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+        type="button"
+      >
+        <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 24 24" width="16">
+          <path
+            d={collapsed ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.8"
+          />
+        </svg>
+      </button>
       <div className="brand">
         <VezLogo className="brand-logo" height={22} title="Vez" />
         <VezSymbol className="brand-symbol" height={24} title="Vez" />
         <code>PORTAL</code>
         <button
-          aria-label={collapsed ? "Abrir menu" : "Recolher menu"}
-          className="nav-toggle"
-          onClick={onToggle}
+          aria-label="Fechar menu lateral"
+          className="nav-close"
+          onClick={onClose}
           type="button"
         >
-          <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 24 24" width="16">
+          <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 24 24" width="18">
             <path
-              d={collapsed ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"}
+              d="M6 6l12 12M18 6L6 18"
+              stroke="currentColor"
               strokeLinecap="round"
-              strokeLinejoin="round"
               strokeWidth="1.8"
             />
           </svg>
@@ -106,6 +127,7 @@ export function Sidebar({
         <small>
           {data.user.name} · {ROLE_LABEL[data.establishment.role]}
         </small>
+        <SignOutButton className="sidebar-sign-out" />
       </footer>
       {collapsed && hint ? (
         <span className="nav-hint" style={{ top: hint.top }}>
